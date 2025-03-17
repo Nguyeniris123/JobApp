@@ -161,3 +161,16 @@ class VerificationDocumentSerializer(serializers.ModelSerializer):
         model = VerificationDocument
         fields = ["id", "user", "document", "status", "admin_note", "submitted_at", "reviewed_at"]
         read_only_fields = ["user", "status", "submitted_at", "reviewed_at"]
+
+
+INSTALLED_APPS = [
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'your_app_name',  # Thay bằng tên app của bạn
+]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
