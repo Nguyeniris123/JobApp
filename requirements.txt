@@ -1,0 +1,42 @@
+# Django và các thư viện hỗ trợ
+Django==4.2
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+djangorestframework-simplejwt==5.3.0
+
+# Quản lý người dùng
+django-allauth==0.60.0
+
+# Upload file và hình ảnh
+Pillow==10.2.0
+django-storages==1.14.2
+
+# PostgreSQL (nếu sử dụng PostgreSQL, có thể thay bằng mysqlclient nếu dùng MySQL)
+psycopg2-binary==2.9.9
+
+# Xác thực OAuth2 (cho đăng nhập Google, Facebook...)
+social-auth-app-django==5.4.0
+
+# Xử lý môi trường biến môi trường
+python-decouple==3.8
+
+# Caching (Redis để cải thiện hiệu suất)
+django-redis==5.3.0
+
+# Chat thời gian thực (Django Channels)
+channels==4.0.0
+channels-redis==4.1.0
+
+# Xác thực email (SMTP hoặc Mailgun)
+django-anymail[mailgun]==10.2
+
+# Biểu đồ & Thống kê (nếu dùng với Chart.js hoặc Google Charts)
+matplotlib==3.8.2
+seaborn==0.13.2
+
+# Xử lý thời gian thực với Celery (nếu cần gửi email tự động hoặc task nền)
+celery==5.3.6
+redis==5.0.1
+
+# Thêm Swagger API docs
+drf-yasg==1.21.7
