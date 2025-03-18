@@ -15,7 +15,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -27,7 +26,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -37,7 +35,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'jobs',
+    'jobs.apps.JobsConfig',
+    'ckeditor',
+    'ckeditor_uploader',
+    'rest_framework',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -51,6 +53,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'jobapp.urls'
+
+CKEDITOR_UPLOAD_PATH = "ckeditors/"
 
 TEMPLATES = [
     {
@@ -70,17 +74,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'jobapp.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'jobdb',
+        'USER': 'root',
+        'PASSWORD': 'Admin@123',
+        'HOST': ''  # mặc định localhost
     }
 }
 
+import pymysql
+
+pymysql.install_as_MySQLdb()
+
+AUTH_USER_MODEL = 'jobs.User'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -100,7 +112,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -112,7 +123,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
@@ -122,3 +132,28 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+import cloudinary
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
+
+# Configuration
+cloudinary.config(
+    cloud_name="dnwyvuqej",
+    api_key="559324578186686",
+    api_secret="tjXbrfktUPN8lYMmE9SN-33QXjc",  # Click 'View API Keys' above to copy your API secret
+    secure=True
+)
+
+# Upload an image
+upload_result = cloudinary.uploader.upload("https://res.cloudinary.com/demo/image/upload/getting-started/shoes.jpg",
+                                           public_id="shoes")
+print(upload_result["secure_url"])
+
+# Optimize delivery by resizing and applying auto-format and auto-quality
+optimize_url, _ = cloudinary_url("shoes", fetch_format="auto", quality="auto")
+print(optimize_url)
+
+# Transform the image: auto-crop to square aspect_ratio
+auto_crop_url, _ = cloudinary_url("shoes", width=500, height=500, crop="auto", gravity="auto")
+print(auto_crop_url)
