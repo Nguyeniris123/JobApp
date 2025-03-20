@@ -5,7 +5,7 @@ from django.template.response import TemplateResponse
 from django.urls import path
 
 class MyAdminSite(admin.AdminSite):
-    site_header = 'Stats Jops App'
+    site_header = 'Jops App'
 
     def get_urls(self):
         return [
@@ -18,10 +18,10 @@ class MyAdminSite(admin.AdminSite):
 admin_site = MyAdminSite(name='admin')
 
 
-admin.site.register(User)
-admin.site.register(Company)
-admin.site.register(JobPost)
-admin.site.register(Application)
-admin.site.register(Review)
-admin.site.register(FollowCompany)
-admin.site.register(VerificationDocument)
+admin_site.register(User)
+admin_site.register(Company)
+admin_site.register(JobPost)
+admin_site.register(Application)
+admin_site.register(Review)
+admin_site.register(FollowCompany)
+admin_site.register(VerificationDocument)

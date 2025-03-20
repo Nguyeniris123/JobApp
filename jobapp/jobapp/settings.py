@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'ckeditor_uploader',
     'rest_framework',
     'drf_yasg',
+    'oauth2_provider',
+
 ]
 
 MIDDLEWARE = [
@@ -51,6 +53,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': ('oauth2_provider.contrib.rest_framework.OAuth2Authentication',)
+}
+
+OAUTH2_PROVIDER = { 'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore' }
+
 
 ROOT_URLCONF = 'jobapp.urls'
 
@@ -157,3 +166,16 @@ print(optimize_url)
 # Transform the image: auto-crop to square aspect_ratio
 auto_crop_url, _ = cloudinary_url("shoes", width=500, height=500, crop="auto", gravity="auto")
 print(auto_crop_url)
+
+CLIENT_ID = 'jjglFonuUiF2ObU7UmcJtwR2VHD6fwfVZaDa2qTx'
+CLIENT_SECRET = 'dlGToUtM2aP2Jz9EnE5caCeAMShj2HN3ScEeTnIfdnXJPIFL7xwIcd0Ky1ozCTJ3mN8yB1SMLoz808BKYrAD2lSDWan7sOmghlAOw1DQRhAPzG8Z0WAUB8z4385DI4Jn'
+
+#POSTMAN - cach lay token
+# http://127.0.0.1:8000/o/token/
+# {
+#     "client_id": "",
+#     "client_secret": "",
+#     "username": "admin",
+#     "password": "1",
+#     "grant_type": "password"
+# }

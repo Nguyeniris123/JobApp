@@ -6,7 +6,6 @@ from django.db import models
 from django.contrib.auth import get_user_model
 
 
-# BaseModel dùng chung
 class BaseModel(models.Model):
     active = models.BooleanField(default=True)
     created_date = models.DateTimeField(auto_now_add=True)
@@ -17,7 +16,6 @@ class BaseModel(models.Model):
         ordering = ['-id']
 
 
-# User model custom
 class User(AbstractUser):
     ROLE_CHOICES = (
         ('admin', 'Quản trị viên'),
@@ -25,14 +23,13 @@ class User(AbstractUser):
         ('candidate', 'Ứng viên'),
     )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    # avatar = CloudinaryField(null=True)
+    # avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    avatar = CloudinaryField(null=True)
 
     def __str__(self):
         return self.username
 
 
-# Company model
 class Company(BaseModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
@@ -46,10 +43,10 @@ class Company(BaseModel):
         return self.name
 
 
-# JobPost model
 class JobPost(BaseModel):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
+    Specialized = models.CharField(max_length=100, default="Chưa phân loại")
     description = models.TextField()
     salary = models.DecimalField(max_digits=10, decimal_places=2)
     working_hours = models.CharField(max_length=50)
@@ -59,7 +56,6 @@ class JobPost(BaseModel):
         return self.title
 
 
-# Application model
 class Application(BaseModel):
     applicant = models.ForeignKey(User, on_delete=models.CASCADE, related_name="applications")
     job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name="applications")
@@ -74,7 +70,6 @@ class Application(BaseModel):
         return f"{self.applicant.username} - {self.job.title}"
 
 
-# Review model
 class Review(BaseModel):
     reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="given_reviews")
     reviewed_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_reviews")
@@ -85,7 +80,6 @@ class Review(BaseModel):
         return f"{self.reviewer.username} đánh giá {self.reviewed_user.username}"
 
 
-# Follow Company model
 class FollowCompany(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="follows")
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="followers")
@@ -94,7 +88,6 @@ class FollowCompany(BaseModel):
         return f"{self.user.username} follows {self.company.name}"
 
 
-# Xác thực tài liệu
 class VerificationStatus(models.TextChoices):
     PENDING = "pending", "Chờ duyệt"
     APPROVED = "approved", "Đã duyệt"
