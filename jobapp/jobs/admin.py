@@ -1,3 +1,27 @@
 from django.contrib import admin
+from jobs.models import (User, Company, JobPost, Application, Review, FollowCompany, VerificationDocument)
+from django.db.models import Count
+from django.template.response import TemplateResponse
+from django.urls import path
 
-# Register your models here.
+class MyAdminSite(admin.AdminSite):
+    site_header = 'Jops App'
+
+    def get_urls(self):
+        return [
+            path('jobs-stats/', self.stats_view)
+        ] + super().get_urls()
+
+    def stats_view(self, request):
+        return TemplateResponse(request, 'admin/stats_view.html')
+
+admin_site = MyAdminSite(name='admin')
+
+
+admin_site.register(User)
+admin_site.register(Company)
+admin_site.register(JobPost)
+admin_site.register(Application)
+admin_site.register(Review)
+admin_site.register(FollowCompany)
+admin_site.register(VerificationDocument)
