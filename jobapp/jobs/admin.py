@@ -1,5 +1,5 @@
 from django.contrib import admin
-from jobs.models import (User, Company, JobPost, Application, Review, FollowCompany, VerificationDocument)
+from jobs.models import (User, Company, CompanyImage, JobPost, Application, Review, FollowCompany, VerificationDocument)
 from django.db.models import Count
 from django.template.response import TemplateResponse
 from django.urls import path
@@ -20,6 +20,7 @@ admin_site = MyAdminSite(name='admin')
 
 admin_site.register(User)
 admin_site.register(Company)
+admin_site.register(CompanyImage)
 admin_site.register(JobPost)
 admin_site.register(Application)
 admin_site.register(Review)
