@@ -7,7 +7,6 @@ from .models import User, Company, CompanyImage
 #         model = Company
 #         fields = ['name', 'tax_code', 'description', 'location', 'images']
 
-
 class CandidateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -31,17 +30,20 @@ class CandidateSerializer(serializers.ModelSerializer):
 
 
 class RecruiterSerializer(serializers.ModelSerializer):
-    company_name = serializers.CharField(required=True)
-    tax_code = serializers.CharField(required=True)
-    description = serializers.CharField(required=True)
-    location = serializers.CharField(required=True)
-    images = serializers.ListField(child=serializers.CharField(), required=True)
+    company_name = serializers.CharField(write_only=True, required=True)
+    tax_code = serializers.CharField(write_only=True, required=True)
+    description = serializers.CharField(write_only=True, required=True)
+    location = serializers.CharField(write_only=True, required=True)
+    images = serializers.ListField(child=serializers.CharField(), write_only=True, required=True)
+
+    company = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'first_name', 'last_name', 'username', 'password', 'avatar',
-            'company_name', 'tax_code', 'description', 'location', 'images'
+            'company_name', 'tax_code', 'description', 'location', 'images',
+            'company'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
@@ -49,7 +51,7 @@ class RecruiterSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        # Xử lý tách data
+        # Lấy và tách các trường liên quan tới Company
         images_data = validated_data.pop('images')
         company_info = {
             'name': validated_data.pop('company_name'),
@@ -67,21 +69,31 @@ class RecruiterSerializer(serializers.ModelSerializer):
         # Tạo company
         company = Company.objects.create(user=user, **company_info)
 
-        # Lưu từng ảnh môi trường làm việc
+        # Validate ảnh
+        if len(images_data) < 3:
+            raise serializers.ValidationError({"images": "Công ty phải có ít nhất 3 ảnh môi trường làm việc."})
+
+        # Lưu từng ảnh
         for image in images_data:
             CompanyImage.objects.create(company=company, image=image)
 
         return user
 
+    # Get - Lấy thông tin company từ bảng Company
+    def get_company(self, obj):
+        if hasattr(obj, 'company'):
+            return {
+                'name': obj.company.name,
+                'tax_code': obj.company.tax_code,
+                'description': obj.company.description,
+                'location': obj.company.location,
+                'is_verified': obj.company.is_verified,
+                'images': [img.image.url for img in obj.company.images.all()]
+            }
+        return None
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        # Thêm avatar vào GET
         data['avatar'] = instance.avatar.url if instance.avatar else ''
-        if hasattr(instance, 'company'):
-            data['company'] = {
-                'name': instance.company.name,
-                'tax_code': instance.company.tax_code,
-                'description': instance.company.description,
-                'location': instance.company.location,
-                'images': [img.image.url for img in instance.company.images.all()]
-            }
         return data
