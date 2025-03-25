@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Company, CompanyImage
+from .models import User, Company, CompanyImage, JobPost
 
 
 # class CompanySerializer(serializers.ModelSerializer):
@@ -97,3 +97,14 @@ class RecruiterSerializer(serializers.ModelSerializer):
         # Thêm avatar vào GET
         data['avatar'] = instance.avatar.url if instance.avatar else ''
         return data
+
+
+class JobPostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobPost
+        fields = ['title', 'specialized', 'description', 'salary', 'working_hours', 'location']
+
+    def create(self, validated_data):
+        # Gán recruiter là user hiện tại
+        validated_data['recruiter'] = self.context['request'].user
+        return super().create(validated_data)

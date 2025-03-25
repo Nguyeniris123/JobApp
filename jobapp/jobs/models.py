@@ -38,6 +38,9 @@ class Company(models.Model):
     location = models.CharField(max_length=255)
     is_verified = models.BooleanField(default=False)
 
+    def __str__(self):
+        return self.name
+
 class CompanyImage(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='images')
     image = CloudinaryField(null=True)
@@ -47,9 +50,9 @@ class CompanyImage(models.Model):
 
 
 class JobPost(BaseModel):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    recruiter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='job_posts')
     title = models.CharField(max_length=255)
-    Specialized = models.CharField(max_length=100, default="Chưa phân loại")
+    specialized = models.CharField(max_length=100, default="Chưa phân loại")
     description = models.TextField()
     salary = models.DecimalField(max_digits=10, decimal_places=2)
     working_hours = models.CharField(max_length=50)
