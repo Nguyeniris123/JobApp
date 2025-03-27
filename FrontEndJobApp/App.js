@@ -1,11 +1,13 @@
-import React from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
-import { AuthProvider } from './contexts/AuthContext.jsx';
-import { NotificationProvider } from './contexts/NotificationContext.jsx';
-import AppNavigator from './navigation/AppNavigator.jsx';
+import React from 'react';
 import { StatusBar } from 'react-native';
+import { DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from './contexts/AuthContext.js';
+import { NotificationProvider } from './contexts/NotificationContext.js';
+import { NavigationContainer } from '@react-navigation/native';
+import AppNavigator from './navigation/AppNavigator.js';
+import ProfileScreen from './screens/common/ProfileScreen.js';
 
 // Custom theme with your brand colors
 const theme = {

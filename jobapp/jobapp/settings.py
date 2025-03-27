@@ -24,7 +24,11 @@ SECRET_KEY = 'django-insecure-j0n1&48q#09*5d*#*&bbp$s^l=+bi*&n#9m^@eo!p(5(z#r)8p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "192.168.1.5",
+]
 
 # Application definition
 
@@ -41,7 +45,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'oauth2_provider',
+<<<<<<< Updated upstream
     'django_filters',
+=======
+    "corsheaders",
+>>>>>>> Stashed changes
 
 ]
 
@@ -53,17 +61,24 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ('oauth2_provider.contrib.rest_framework.OAuth2Authentication',)
 }
 
+<<<<<<< Updated upstream
 OAUTH2_PROVIDER = { 'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore', 'ALLOW_PUBLIC_CLIENTS': True }
 
 
 LOGIN_URL = '/admin/login/'
 
+=======
+OAUTH2_PROVIDER = {'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'}
+>>>>>>> Stashed changes
 
 ROOT_URLCONF = 'jobapp.urls'
 
@@ -179,7 +194,7 @@ print(auto_crop_url)
 CLIENT_ID = 'jjglFonuUiF2ObU7UmcJtwR2VHD6fwfVZaDa2qTx'
 CLIENT_SECRET = 'dlGToUtM2aP2Jz9EnE5caCeAMShj2HN3ScEeTnIfdnXJPIFL7xwIcd0Ky1ozCTJ3mN8yB1SMLoz808BKYrAD2lSDWan7sOmghlAOw1DQRhAPzG8Z0WAUB8z4385DI4Jn'
 
-#POSTMAN - cach lay token
+# POSTMAN - cach lay token
 # http://127.0.0.1:8000/o/token/
 # {
 #     "client_id": "",

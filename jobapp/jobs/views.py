@@ -25,7 +25,7 @@ class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
 class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.RecruiterSerializer
-    parser_classes = [parsers.MultiPartParser]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
     def get_permissions(self):
         if self.request.method in ['PUT', 'PATCH']:

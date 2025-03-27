@@ -1,13 +1,23 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, Linking } from 'react-native';
-import { Text, Button, Card, Title, Paragraph, Chip, Divider, Avatar, Badge, ActivityIndicator, useTheme, Portal, Dialog, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
+import * as DocumentPicker from 'expo-document-picker';
+import React, { useContext, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Linking, StyleSheet, View } from 'react-native';
+// import MapView, { Marker } from 'react-native-maps';
+import { Avatar, Chip, Dialog, Paragraph, Portal, Text, Title, useTheme } from 'react-native-paper';
 import { API_URL } from '../../config';
 import { AuthContext } from '../../contexts/AuthContext';
-import { useForm, Controller } from 'react-hook-form';
-import * as DocumentPicker from 'expo-document-picker';
-import MapView, { Marker } from 'react-native-maps';
+
+// Import components
+import FormButton from '../../components/form/FormButton';
+import ContentContainer from '../../components/layout/ContentContainer';
+import ScreenContainer from '../../components/layout/ScreenContainer';
+import ErrorState from '../../components/states/ErrorState';
+import LoadingState from '../../components/states/LoadingState';
+import AppButton from '../../components/ui/AppButton';
+import AppCard from '../../components/ui/AppCard';
+import AppDivider from '../../components/ui/AppDivider';
 
 const JobDetailScreen = ({ route, navigation }) => {
   const { jobId } = route.params;
@@ -21,7 +31,7 @@ const JobDetailScreen = ({ route, navigation }) => {
   const { user } = useContext(AuthContext);
   const theme = useTheme();
 
-  const { control, handleSubmit, formState: { errors } } = useForm();
+  const { control, handleSubmit } = useForm();
 
   useEffect(() => {
     fetchJobDetails();
@@ -111,12 +121,10 @@ const JobDetailScreen = ({ route, navigation }) => {
 
   const startChat = async () => {
     try {
-      // Create a chat room with the recruiter
       const response = await axios.post(`${API_URL}/api/chat-rooms/`, {
         job: jobId,
       });
 
-      // Navigate to chat screen
       navigation.navigate('ChatDetail', { roomId: response.data.id });
     } catch (error) {
       console.error('Error starting chat:', error);
@@ -150,29 +158,28 @@ const JobDetailScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading job details...</Text>
-      </View>
+      <ScreenContainer>
+        <LoadingState message="Loading job details..." />
+      </ScreenContainer>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <MaterialCommunityIcons name="alert-circle-outline" size={50} color="red" />
-        <Text style={styles.errorText}>{error}</Text>
-        <Button mode="contained" onPress={fetchJobDetails} style={styles.retryButton}>
-          Retry
-        </Button>
-      </View>
+      <ScreenContainer>
+        <ErrorState
+          message={error}
+          onRetry={fetchJobDetails}
+          retryButtonText="Retry"
+        />
+      </ScreenContainer>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Card style={styles.headerCard}>
-        <Card.Content>
+    <ScreenContainer>
+      <ContentContainer>
+        <AppCard style={styles.headerCard}>
           <Title style={styles.jobTitle}>{job.title}</Title>
 
           <View style={styles.companyRow}>
@@ -196,62 +203,60 @@ const JobDetailScreen = ({ route, navigation }) => {
 
           <View style={styles.actionButtons}>
             {applicationStatus ? (
-              <Button
+              <AppButton
                 mode="contained"
                 disabled={true}
                 style={styles.appliedButton}
               >
                 {applicationStatus === 'pending' ? 'Applied (Pending)' :
-                 applicationStatus === 'accepted' ? 'Application Accepted' : 'Application Rejected'}
-              </Button>
+                  applicationStatus === 'accepted' ? 'Application Accepted' : 'Application Rejected'}
+              </AppButton>
             ) : (
-              <Button
+              <AppButton
                 mode="contained"
                 onPress={handleApply}
                 style={styles.applyButton}
                 icon="send"
               >
                 Apply Now
-              </Button>
+              </AppButton>
             )}
 
             <View style={styles.iconButtonsRow}>
-              <IconButton
+              <AppButton
+                mode="text"
                 icon="chat-outline"
-                size={20}
                 onPress={startChat}
-                style={styles.iconButton}
+                compact
               />
-              <IconButton
+              <AppButton
+                mode="text"
                 icon="bookmark-outline"
-                size={20}
                 onPress={saveJob}
-                style={styles.iconButton}
+                compact
               />
-              <IconButton
+              <AppButton
+                mode="text"
                 icon="bell-outline"
-                size={20}
                 onPress={followCompany}
-                style={styles.iconButton}
+                compact
               />
-              <IconButton
+              <AppButton
+                mode="text"
                 icon="share-variant"
-                size={20}
                 onPress={() => {
                   Linking.share({
                     title: job.title,
                     message: `Check out this job: ${job.title} at ${job.company.name}`,
                   });
                 }}
-                style={styles.iconButton}
+                compact
               />
             </View>
           </View>
-        </Card.Content>
-      </Card>
+        </AppCard>
 
-      <Card style={styles.detailsCard}>
-        <Card.Content>
+        <AppCard style={styles.detailsCard}>
           <View style={styles.detailsRow}>
             <View style={styles.detailItem}>
               <MaterialCommunityIcons name="currency-usd" size={20} color="#666" />
@@ -279,18 +284,14 @@ const JobDetailScreen = ({ route, navigation }) => {
               </View>
             </View>
           </View>
-        </Card.Content>
-      </Card>
+        </AppCard>
 
-      <Card style={styles.card}>
-        <Card.Content>
+        <AppCard>
           <Title style={styles.sectionTitle}>Job Description</Title>
           <Paragraph style={styles.description}>{job.description}</Paragraph>
-        </Card.Content>
-      </Card>
+        </AppCard>
 
-      <Card style={styles.card}>
-        <Card.Content>
+        <AppCard>
           <Title style={styles.sectionTitle}>Required Skills</Title>
           <View style={styles.skillsContainer}>
             {job.skills && job.skills.map(skill => (
@@ -299,12 +300,10 @@ const JobDetailScreen = ({ route, navigation }) => {
               </Chip>
             ))}
           </View>
-        </Card.Content>
-      </Card>
+        </AppCard>
 
-      {job.location_details && (
-        <Card style={styles.card}>
-          <Card.Content>
+        {/* {job.location_details && (
+          <AppCard>
             <Title style={styles.sectionTitle}>Location</Title>
             <Text style={styles.locationText}>{job.location}</Text>
 
@@ -330,12 +329,10 @@ const JobDetailScreen = ({ route, navigation }) => {
                 </MapView>
               </View>
             )}
-          </Card.Content>
-        </Card>
-      )}
+          </AppCard>
+        )} */}
 
-      <Card style={styles.card}>
-        <Card.Content>
+        <AppCard>
           <Title style={styles.sectionTitle}>About the Company</Title>
           <View style={styles.companyDetailRow}>
             <Avatar.Image
@@ -344,61 +341,62 @@ const JobDetailScreen = ({ route, navigation }) => {
             />
             <View style={styles.companyDetailInfo}>
               <Text style={styles.companyDetailName}>{job.company.name}</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('CompanyDetail', { companyId: job.company.id })}>
-                <Text style={styles.viewProfileLink}>View Company Profile</Text>
-              </TouchableOpacity>
+              <AppButton
+                mode="text"
+                onPress={() => navigation.navigate('CompanyDetail', { companyId: job.company.id })}
+                style={styles.viewProfileButton}
+              >
+                View Company Profile
+              </AppButton>
             </View>
           </View>
-          <Divider style={styles.divider} />
+          <AppDivider />
           <Paragraph>{job.company.description}</Paragraph>
-        </Card.Content>
-      </Card>
+        </AppCard>
 
-      <Portal>
-        <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
-          <Dialog.Title>Apply for this job</Dialog.Title>
-          <Dialog.Content>
-            <Paragraph style={styles.dialogText}>
-              Upload your CV to apply for this position at {job?.company?.name}.
-            </Paragraph>
+        <Portal>
+          <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
+            <Dialog.Title>Apply for this job</Dialog.Title>
+            <Dialog.Content>
+              <Paragraph style={styles.dialogText}>
+                Upload your CV to apply for this position at {job?.company?.name}.
+              </Paragraph>
 
-            <Button
-              mode="outlined"
-              onPress={pickDocument}
-              style={styles.uploadButton}
-              icon="file-upload"
-            >
-              {cv ? 'Change CV' : 'Upload CV'}
-            </Button>
+              <AppButton
+                mode="outlined"
+                onPress={pickDocument}
+                style={styles.uploadButton}
+                icon="file-upload"
+              >
+                {cv ? 'Change CV' : 'Upload CV'}
+              </AppButton>
 
-            {cv && (
-              <View style={styles.fileRow}>
-                <MaterialCommunityIcons name="file-pdf-box" size={24} color={theme.colors.primary} />
-                <Text style={styles.fileName} numberOfLines={1}>{cv.name}</Text>
-              </View>
-            )}
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setDialogVisible(false)}>Cancel</Button>
-            <Button
-              onPress={submitApplication}
-              loading={applying}
-              disabled={applying || !cv}
-            >
-              Submit Application
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-    </ScrollView>
+              {cv && (
+                <View style={styles.fileRow}>
+                  <MaterialCommunityIcons name="file-pdf-box" size={24} color={theme.colors.primary} />
+                  <Text style={styles.fileName} numberOfLines={1}>{cv.name}</Text>
+                </View>
+              )}
+            </Dialog.Content>
+            <Dialog.Actions>
+              <AppButton mode="text" onPress={() => setDialogVisible(false)}>Cancel</AppButton>
+              <FormButton
+                onPress={submitApplication}
+                loading={applying}
+                disabled={applying || !cv}
+                style={styles.submitButton}
+              >
+                Submit Application
+              </FormButton>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
+      </ContentContainer>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
   headerCard: {
     marginBottom: 10,
     elevation: 4,
@@ -457,9 +455,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
-  iconButton: {
-    margin: 0,
-  },
   detailsCard: {
     marginBottom: 10,
   },
@@ -484,9 +479,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginLeft: 8,
-  },
-  card: {
-    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 18,
@@ -527,34 +519,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  viewProfileLink: {
-    color: '#1976d2',
-    marginTop: 5,
-  },
-  divider: {
-    marginVertical: 15,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    marginTop: 10,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 10,
+  viewProfileButton: {
+    margin: 0,
+    padding: 0,
   },
   dialogText: {
     marginBottom: 20,
@@ -573,6 +540,9 @@ const styles = StyleSheet.create({
   fileName: {
     marginLeft: 10,
     flex: 1,
+  },
+  submitButton: {
+    marginTop: 0,
   },
 });
 

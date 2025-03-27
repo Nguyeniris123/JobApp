@@ -1,164 +1,192 @@
-import React, { useContext, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Text, TextInput, Button, Surface, Title, Caption, useTheme } from 'react-native-paper';
-import { useForm, Controller } from 'react-hook-form';
-import { AuthContext } from '../../contexts/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useContext, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Image, StyleSheet, View } from 'react-native';
+import { Text, Title, useTheme } from 'react-native-paper';
+import { AuthContext } from '../../contexts/AuthContext';
+
+// Import components
+import FormButton from '../../components/form/FormButton';
+import FormField from '../../components/form/FormField';
+import ContentContainer from '../../components/layout/ContentContainer';
+import ScreenContainer from '../../components/layout/ScreenContainer';
+import AppButton from '../../components/ui/AppButton';
+import AppDivider from '../../components/ui/AppDivider';
 
 const LoginScreen = ({ navigation }) => {
-  const { login, loading, error } = useContext(AuthContext);
-  const [secureTextEntry, setSecureTextEntry] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { setUser } = useContext(AuthContext);
   const theme = useTheme();
 
   const { control, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
-      username: '',
+      email: '',
       password: '',
     }
   });
 
   const onSubmit = async (data) => {
-    const success = await login(data.username, data.password);
-    if (!success) {
-      // Error is handled by the AuthContext
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await axios.post(`${API_URL}/api/auth/login/`, data);
+
+      // Store token and user data
+      setUser({
+        id: response.data.user.id,
+        token: response.data.token,
+        ...response.data.user
+      });
+
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(
+        error.response?.data?.message ||
+        'Failed to login. Please check your credentials and try again.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Surface style={styles.formContainer}>
+    <ScreenContainer>
+      <ContentContainer scrollable={false} style={styles.container}>
         <View style={styles.logoContainer}>
           <Image
-            source={require('../../assets/logo.png')}
+            source={require('../../assets/logo.jpg')}
             style={styles.logo}
             resizeMode="contain"
           />
-          <Title style={styles.title}>Part-Time Job Finder</Title>
-          <Caption style={styles.subtitle}>Find your perfect part-time job</Caption>
+          <Title style={styles.title}>Welcome Back</Title>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
         </View>
-
-        <Controller
-          control={control}
-          rules={{
-            required: 'Username is required',
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              label="Username"
-              mode="outlined"
-              left={<TextInput.Icon icon="account" />}
-              style={styles.input}
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              error={!!errors.username}
-            />
-          )}
-          name="username"
-        />
-        {errors.username && (
-          <Text style={styles.errorText}>{errors.username.message}</Text>
-        )}
-
-        <Controller
-          control={control}
-          rules={{
-            required: 'Password is required',
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              label="Password"
-              mode="outlined"
-              left={<TextInput.Icon icon="lock" />}
-              right={
-                <TextInput.Icon
-                  icon={secureTextEntry ? "eye" : "eye-off"}
-                  onPress={() => setSecureTextEntry(!secureTextEntry)}
-                />
-              }
-              secureTextEntry={secureTextEntry}
-              style={styles.input}
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              error={!!errors.password}
-            />
-          )}
-          name="password"
-        />
-        {errors.password && (
-          <Text style={styles.errorText}>{errors.password.message}</Text>
-        )}
 
         {error && (
-          <Text style={styles.errorText}>{error}</Text>
+          <View style={styles.errorContainer}>
+            <MaterialCommunityIcons name="alert-circle" size={20} color={theme.colors.error} />
+            <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+          </View>
         )}
 
-        <Button
-          mode="contained"
-          onPress={handleSubmit(onSubmit)}
-          style={styles.button}
-          loading={loading}
-          disabled={loading}
-        >
-          Login
-        </Button>
+        <View style={styles.formContainer}>
+          <FormField
+            control={control}
+            name="email"
+            label="Email"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            rules={{
+              required: 'Email is required',
+              pattern: {
+                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                message: 'Invalid email address'
+              }
+            }}
+            left={<MaterialCommunityIcons name="email" size={20} color="#666" />}
+          />
 
-        <View style={styles.footer}>
-          <Text>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={{ color: theme.colors.primary }}>Register</Text>
-          </TouchableOpacity>
+          <FormField
+            control={control}
+            name="password"
+            label="Password"
+            secureTextEntry
+            rules={{ required: 'Password is required' }}
+            left={<MaterialCommunityIcons name="lock" size={20} color="#666" />}
+          />
+
+          <AppButton
+            mode="text"
+            onPress={() => navigation.navigate('ForgotPassword')}
+            style={styles.forgotPasswordButton}
+          >
+            Forgot Password?
+          </AppButton>
+
+          <FormButton
+            onPress={handleSubmit(onSubmit)}
+            loading={loading}
+            disabled={loading}
+            icon="login"
+          >
+            Sign In
+          </FormButton>
+
+          <AppDivider style={styles.divider} />
+
+          <View style={styles.registerContainer}>
+            <Text style={styles.registerText}>Don't have an account?</Text>
+            <AppButton
+              mode="text"
+              onPress={() => navigation.navigate('Register')}
+              style={styles.registerButton}
+            >
+              Sign Up
+            </AppButton>
+          </View>
         </View>
-      </Surface>
-    </View>
+      </ContentContainer>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  formContainer: {
-    padding: 20,
-    borderRadius: 10,
-    elevation: 4,
   },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 30,
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 10,
+    width: 120,
+    height: 120,
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
   },
   subtitle: {
+    fontSize: 16,
+    color: '#666',
     marginTop: 5,
-    textAlign: 'center',
   },
-  input: {
-    marginBottom: 10,
+  formContainer: {
+    width: '100%',
   },
-  button: {
-    marginTop: 20,
-    paddingVertical: 8,
-  },
-  footer: {
+  errorContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
+    alignItems: 'center',
+    backgroundColor: '#ffebee',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 20,
   },
   errorText: {
-    color: 'red',
+    marginLeft: 10,
+    flex: 1,
+  },
+  forgotPasswordButton: {
+    alignSelf: 'flex-end',
+    marginTop: -5,
     marginBottom: 10,
+  },
+  divider: {
+    marginVertical: 20,
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  registerText: {
+    color: '#666',
+  },
+  registerButton: {
+    marginLeft: 5,
   },
 });
 
