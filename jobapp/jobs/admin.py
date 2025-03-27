@@ -7,6 +7,7 @@ from django.urls import path
 class MyAdminSite(admin.AdminSite):
     site_header = 'Jops App'
 
+    # http://127.0.0.1:8000/admin/jobs-stats/
     def get_urls(self):
         return [
             path('jobs-stats/', self.stats_view)

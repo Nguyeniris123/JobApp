@@ -9,5 +9,5 @@ router.register('jobpost', views.JobPostViewSet, basename='jobposts')
 
 
 urlpatterns = [
-    path('', include(router.urls))
+    path('', include(router.urls)),
 ]

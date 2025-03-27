@@ -10,7 +10,7 @@ from .models import User, Company, CompanyImage, JobPost
 class CandidateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'username', 'password', 'avatar']
+        fields = ['first_name', 'last_name', 'username', 'password', 'email', 'avatar']
         extra_kwargs = {
             'password': {'write_only': True},
             'avatar': {'required': True}
@@ -41,7 +41,7 @@ class RecruiterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'first_name', 'last_name', 'username', 'password', 'avatar',
+            'first_name', 'last_name', 'username', 'password', 'email', 'avatar',
             'company_name', 'tax_code', 'description', 'location', 'images',
             'company'
         ]
@@ -69,9 +69,9 @@ class RecruiterSerializer(serializers.ModelSerializer):
         # Tạo company
         company = Company.objects.create(user=user, **company_info)
 
-        # Validate ảnh
-        if len(images_data) < 3:
-            raise serializers.ValidationError({"images": "Công ty phải có ít nhất 3 ảnh môi trường làm việc."})
+        # # Validate ảnh
+        # if len(images_data) < 3:
+        #     raise serializers.ValidationError({"images": "Công ty phải có ít nhất 3 ảnh môi trường làm việc."})
 
         # Lưu từng ảnh
         for image in images_data:

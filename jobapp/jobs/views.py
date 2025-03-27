@@ -50,6 +50,7 @@ class JobPostViewSet(viewsets.ModelViewSet):
         'working_hours': ['gte', 'lte'],  # Lọc số giờ làm việc từ - đến
         'location': ['icontains'],  # Tìm kiếm gần đúng theo địa điểm
     }
+    # vd: http://127.0.0.1:8000/job-posts/?specialized=IT&salary__gte=5000&salary__lte=10000
 
     # Sắp xếp theo lương, số giờ làm việc, ngày đăng
     ordering_fields = ['salary', 'working_hours', 'created_date']
