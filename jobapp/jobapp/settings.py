@@ -59,7 +59,10 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ('oauth2_provider.contrib.rest_framework.OAuth2Authentication',)
 }
 
-OAUTH2_PROVIDER = { 'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore' }
+OAUTH2_PROVIDER = { 'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore', 'ALLOW_PUBLIC_CLIENTS': True }
+
+
+LOGIN_URL = '/admin/login/'
 
 
 ROOT_URLCONF = 'jobapp.urls'
@@ -121,6 +124,11 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+SWAGGER_SETTINGS = {
+    'USE_SESSION_AUTH': False,  # Tắt yêu cầu đăng nhập
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
