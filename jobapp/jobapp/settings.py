@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'oauth2_provider',
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     'django_filters',
 =======
     "corsheaders",
@@ -70,6 +71,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ('oauth2_provider.contrib.rest_framework.OAuth2Authentication',)
 }
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 OAUTH2_PROVIDER = { 'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore', 'ALLOW_PUBLIC_CLIENTS': True }
 

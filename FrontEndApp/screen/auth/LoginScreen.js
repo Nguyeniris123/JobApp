@@ -53,6 +53,10 @@ const LoginScreen = ({ navigation }) => {
             formData.append("username", data.email)
             formData.append("password", data.password)
 >>>>>>> Stashed changes
+=======
+            formData.append("username", data.email)
+            formData.append("password", data.password)
+>>>>>>> Stashed changes
             console.log("API_URL:" + API_URL + "/o/token/");
             console.log("FormData:", formData);
 
