@@ -1,9 +1,11 @@
-from rest_framework import viewsets, status, generics, parsers, permissions
+from rest_framework import viewsets, status, generics, parsers, permissions, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action, permission_classes
-from . import serializers, perms
+from . import serializers, perms, paginators
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer
 from .models import User, JobPost
+from django_filters.rest_framework import DjangoFilterBackend
+
 
 
 class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
@@ -37,6 +39,25 @@ class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
 class JobPostViewSet(viewsets.ModelViewSet):
     queryset = JobPost.objects.filter(active=True)
     serializer_class = serializers.JobPostSerializer
+    pagination_class = paginators.JobPostPaginator
+
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+
+    # Lọc theo ngành nghề, mức lương, số giờ làm việc, địa điểm
+    filterset_fields = {
+        'specialized': ['icontains'],  # Tìm kiếm gần đúng theo ngành nghề
+        'salary': ['gte', 'lte'],  # Lọc mức lương từ - đến
+        'working_hours': ['gte', 'lte'],  # Lọc số giờ làm việc từ - đến
+        'location': ['icontains'],  # Tìm kiếm gần đúng theo địa điểm
+    }
+
+    # Sắp xếp theo lương, số giờ làm việc, ngày đăng
+    ordering_fields = ['salary', 'working_hours', 'created_date']
+    ordering = ['-created_date']  # Mặc định sắp xếp theo ngày đăng giảm dần
+
+    # Tìm kiếm theo tiêu đề, ngành nghề, địa điểm
+    search_fields = ['title', 'specialized', 'location']
+
 
     def get_permissions(self):
         # Chỉ recruiter mới được đăng, sửa, xóa
