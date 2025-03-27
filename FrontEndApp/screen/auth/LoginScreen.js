@@ -44,6 +44,7 @@ const LoginScreen = ({ navigation }) => {
 
             const formData = new FormData();
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             formData.append("client_id","5Ij2qZoARk5FABxYjlDdvl2hcdJZuT8qsGndyLSv")
             formData.append("client_secret", "qwS46Po2kd3rQ6fSv06pJ9WX5pDKiaTuCxzNVd6b8eTQEKGqOS0PLbGqA1pMZsysukCnMWrATw61Hkw1DT52a3qo53K5ibuOTeO63zejzQTqxvmSKQK8m4mBUr00kLpa")
             formData.append("username", data.email)
