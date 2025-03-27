@@ -51,9 +51,6 @@ INSTALLED_APPS = [
 =======
     "corsheaders",
 >>>>>>> Stashed changes
-=======
-    "corsheaders",
->>>>>>> Stashed changes
 
 ]
 
@@ -78,9 +75,6 @@ REST_FRAMEWORK = {
 <<<<<<< Updated upstream
 OAUTH2_PROVIDER = { 'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore', 'ALLOW_PUBLIC_CLIENTS': True }
 
-=======
-OAUTH2_PROVIDER = {'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'}
->>>>>>> Stashed changes
 
 LOGIN_URL = '/admin/login/'
 
