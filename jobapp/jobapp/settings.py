@@ -32,6 +32,8 @@ ALLOWED_HOSTS = [
 
 # Application definition
 
+
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -45,12 +47,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'oauth2_provider',
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
     'django_filters',
-=======
     "corsheaders",
->>>>>>> Stashed changes
 
 ]
 
@@ -71,16 +69,11 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ('oauth2_provider.contrib.rest_framework.OAuth2Authentication',)
 }
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 OAUTH2_PROVIDER = { 'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore', 'ALLOW_PUBLIC_CLIENTS': True }
 
 
 LOGIN_URL = '/admin/login/'
 
-=======
-OAUTH2_PROVIDER = {'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'}
->>>>>>> Stashed changes
 
 ROOT_URLCONF = 'jobapp.urls'
 
@@ -142,9 +135,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-SWAGGER_SETTINGS = {
-    'USE_SESSION_AUTH': False,  # Tắt yêu cầu đăng nhập
-}
 
 
 # Internationalization
