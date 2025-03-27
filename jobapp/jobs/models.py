@@ -65,16 +65,18 @@ class JobPost(BaseModel):
 class Application(BaseModel):
     applicant = models.ForeignKey(User, on_delete=models.CASCADE, related_name="applications")
     job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name="applications")
-    cv = models.FileField(upload_to="cv/")
+    cv = CloudinaryField(null=True)
     status = models.CharField(
         max_length=20,
         choices=[("pending", "Đang chờ duyệt"), ("accepted", "Đã chấp nhận"), ("rejected", "Đã từ chối")],
         default="pending"
     )
 
-    def __str__(self):
-        return f"{self.applicant.username} - {self.job.title}"
+    class Meta:
+        unique_together = ("applicant", "job")  # Ngăn ứng viên ứng tuyển nhiều lần vào 1 công việc
 
+    def __str__(self):
+        return f"{self.applicant.username} - {self.job.title} - {self.status}"
 
 class Review(BaseModel):
     reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="given_reviews")

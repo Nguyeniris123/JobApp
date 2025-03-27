@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Company, CompanyImage, JobPost
+from .models import User, Company, CompanyImage, JobPost, Application
 
 
 # class CompanySerializer(serializers.ModelSerializer):
@@ -108,3 +108,8 @@ class JobPostSerializer(serializers.ModelSerializer):
         # Gán recruiter là user hiện tại
         validated_data['recruiter'] = self.context['request'].user
         return super().create(validated_data)
+
+class ApplicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Application
+        fields = ["applicant", "job", "cv", "status"]

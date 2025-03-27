@@ -2,8 +2,9 @@ from rest_framework import viewsets, status, generics, parsers, permissions, fil
 from rest_framework.response import Response
 from rest_framework.decorators import action, permission_classes
 from . import serializers, perms, paginators
+from .perms import ApplicationCandidatePerms
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer
-from .models import User, JobPost
+from .models import User, JobPost, Application
 from django_filters.rest_framework import DjangoFilterBackend
 
 
@@ -67,3 +68,11 @@ class JobPostViewSet(viewsets.ModelViewSet):
         # Ai cũng xem được danh sách và chi tiết tin tuyển dụng
         return [permissions.AllowAny()]
 
+class AppliationViewSet(viewsets.ModelViewSet):
+    queryset = Application.objects.filter(active=True)
+    serializer_class = serializers.ApplicationSerializer
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [ApplicationCandidatePerms()]
+        return [permissions.IsAuthenticated()]
