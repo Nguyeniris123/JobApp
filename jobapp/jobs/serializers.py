@@ -112,4 +112,21 @@ class JobPostSerializer(serializers.ModelSerializer):
 class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
-        fields = ["applicant", "job", "cv", "status"]
+        fields = ["job", "cv"]
+
+    def create(self, validated_data):
+        validated_data["applicant"] = self.context["request"].user  # Gán ứng viên vào đơn ứng tuyển
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        user = self.context["request"].user
+
+        if user.role == "candidate":
+            # Ứng viên chỉ có thể cập nhật CV của họ
+            validated_data.pop("status", None)  # Loại bỏ `status` khỏi dữ liệu cập nhật
+            return super().update(instance, validated_data)
+
+        elif user.role == "recruiter":
+            # Nhà tuyển dụng chỉ có thể cập nhật trạng thái ứng tuyển
+            validated_data.pop("cv", None)  # Loại bỏ `cv` khỏi dữ liệu cập nhật
+            return super().update(instance, validated_data)

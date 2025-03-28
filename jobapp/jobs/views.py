@@ -2,8 +2,8 @@ from rest_framework import viewsets, status, generics, parsers, permissions, fil
 from rest_framework.response import Response
 from rest_framework.decorators import action, permission_classes
 from . import serializers, perms, paginators
-from .perms import ApplicationCandidatePerms
-from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer
+from .perms import ApplicationPerms
+from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer
 from .models import User, JobPost, Application
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -68,11 +68,29 @@ class JobPostViewSet(viewsets.ModelViewSet):
         # Ai cũng xem được danh sách và chi tiết tin tuyển dụng
         return [permissions.AllowAny()]
 
-class AppliationViewSet(viewsets.ModelViewSet):
-    queryset = Application.objects.filter(active=True)
-    serializer_class = serializers.ApplicationSerializer
+class ApplicationViewSet(viewsets.ModelViewSet):
+    serializer_class = ApplicationSerializer
+    permission_classes = [ApplicationPerms]
 
-    def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy"]:
-            return [ApplicationCandidatePerms()]
-        return [permissions.IsAuthenticated()]
+    def get_queryset(self):
+        # Lọc danh sách đơn ứng tuyển dựa trên role của user
+        user = self.request.user #lấy thông tin user hiện tại
+        if user.role == "candidate":
+            return Application.objects.filter(applicant=user, active=True)
+        elif user.role == "recruiter":
+            return Application.objects.filter(job__recruiter=user, active=True)
+        return Application.objects.none() #Nếu không phải candidate hoặc recruiter, trả về queryset rỗng, không thấy đơn ứng tuyển nào
+
+    @action(detail=True, methods=["patch"], permission_classes=[ApplicationPerms])
+    def update_status(self, request, pk=None):
+        # Nhà tuyển dụng cập nhật trạng thái đơn ứng tuyển
+        application = self.get_object()
+
+        # Không cần kiểm tra quyền vì đã có `ApplicationPerms`
+        new_status = request.data.get("status")
+        if new_status not in ["pending", "accepted", "rejected"]:
+            return Response({"error": "Trạng thái không hợp lệ!"}, status=status.HTTP_400_BAD_REQUEST)
+
+        application.status = new_status
+        application.save(update_fields=["status"])
+        return Response(ApplicationSerializer(application).data, status=status.HTTP_200_OK)
