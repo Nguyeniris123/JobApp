@@ -1,11 +1,16 @@
+from django.http import JsonResponse
 from rest_framework import viewsets, status, generics, parsers, permissions, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action, permission_classes
 from . import serializers, perms, paginators
-from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer
-from .models import User, JobPost
+from .perms import ApplicationPerms
+from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, \
+    CustomOAuth2TokenSerializer
+from .models import User, JobPost, Application
 from django_filters.rest_framework import DjangoFilterBackend
-
+from oauth2_provider.models import AccessToken
+from oauth2_provider.views import TokenView
+import json
 
 
 class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
@@ -36,6 +41,27 @@ class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
     def get_current_user(self, request):
         return Response(self.serializer_class(request.user).data)
 
+class CustomOAuth2TokenView(TokenView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+
+        # Chuyển response thành JSON để xử lý
+        if response.status_code == 200:
+            response_data = json.loads(response.content)
+
+            access_token = response_data.get("access_token")
+            if access_token:
+                try:
+                    token_obj = AccessToken.objects.get(token=access_token)
+                    response_data["user"] = CustomOAuth2TokenSerializer(token_obj).data["user"]
+                except AccessToken.DoesNotExist:
+                    pass
+
+            return JsonResponse(response_data, status=200)
+
+        return response
+
+
 class JobPostViewSet(viewsets.ModelViewSet):
     queryset = JobPost.objects.filter(active=True)
     serializer_class = serializers.JobPostSerializer
@@ -50,6 +76,7 @@ class JobPostViewSet(viewsets.ModelViewSet):
         'working_hours': ['gte', 'lte'],  # Lọc số giờ làm việc từ - đến
         'location': ['icontains'],  # Tìm kiếm gần đúng theo địa điểm
     }
+    # vd: http://127.0.0.1:8000/job-posts/?specialized=IT&salary__gte=5000&salary__lte=10000
 
     # Sắp xếp theo lương, số giờ làm việc, ngày đăng
     ordering_fields = ['salary', 'working_hours', 'created_date']
@@ -66,3 +93,29 @@ class JobPostViewSet(viewsets.ModelViewSet):
         # Ai cũng xem được danh sách và chi tiết tin tuyển dụng
         return [permissions.AllowAny()]
 
+class ApplicationViewSet(viewsets.ModelViewSet):
+    serializer_class = ApplicationSerializer
+    permission_classes = [ApplicationPerms]
+
+    def get_queryset(self):
+        # Lọc danh sách đơn ứng tuyển dựa trên role của user
+        user = self.request.user #lấy thông tin user hiện tại
+        if user.role == "candidate":
+            return Application.objects.filter(applicant=user, active=True)
+        elif user.role == "recruiter":
+            return Application.objects.filter(job__recruiter=user, active=True)
+        return Application.objects.none() #Nếu không phải candidate hoặc recruiter, trả về queryset rỗng, không thấy đơn ứng tuyển nào
+
+    @action(detail=True, methods=["patch"], permission_classes=[ApplicationPerms])
+    def update_status(self, request, pk=None):
+        # Nhà tuyển dụng cập nhật trạng thái đơn ứng tuyển
+        application = self.get_object()
+
+        # Không cần kiểm tra quyền vì đã có `ApplicationPerms`
+        new_status = request.data.get("status")
+        if new_status not in ["pending", "accepted", "rejected"]:
+            return Response({"error": "Trạng thái không hợp lệ!"}, status=status.HTTP_400_BAD_REQUEST)
+
+        application.status = new_status
+        application.save(update_fields=["status"])
+        return Response(ApplicationSerializer(application).data, status=status.HTTP_200_OK)

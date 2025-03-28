@@ -1,5 +1,7 @@
+from django.contrib.auth import get_user_model
+from oauth2_provider.models import AccessToken
 from rest_framework import serializers
-from .models import User, Company, CompanyImage, JobPost
+from .models import User, Company, CompanyImage, JobPost, Application
 
 
 # class CompanySerializer(serializers.ModelSerializer):
@@ -10,7 +12,7 @@ from .models import User, Company, CompanyImage, JobPost
 class CandidateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'username', 'password', 'avatar']
+        fields = ['first_name', 'last_name', 'username', 'password', 'email', 'avatar']
         extra_kwargs = {
             'password': {'write_only': True},
             'avatar': {'required': True}
@@ -41,7 +43,7 @@ class RecruiterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'first_name', 'last_name', 'username', 'password', 'avatar',
+            'first_name', 'last_name', 'username', 'password', 'email', 'avatar',
             'company_name', 'tax_code', 'description', 'location', 'images',
             'company'
         ]
@@ -69,9 +71,9 @@ class RecruiterSerializer(serializers.ModelSerializer):
         # Tạo company
         company = Company.objects.create(user=user, **company_info)
 
-        # Validate ảnh
-        if len(images_data) < 3:
-            raise serializers.ValidationError({"images": "Công ty phải có ít nhất 3 ảnh môi trường làm việc."})
+        # # Validate ảnh
+        # if len(images_data) < 3:
+        #     raise serializers.ValidationError({"images": "Công ty phải có ít nhất 3 ảnh môi trường làm việc."})
 
         # Lưu từng ảnh
         for image in images_data:
@@ -98,6 +100,24 @@ class RecruiterSerializer(serializers.ModelSerializer):
         data['avatar'] = instance.avatar.url if instance.avatar else ''
         return data
 
+User = get_user_model()
+class CustomOAuth2TokenSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AccessToken
+        fields = ["token", "expires", "user"]
+
+    def get_user(self, obj):
+        return {
+            "id": obj.user.id,
+            "first_name": obj.user.first_name,
+            "last_name": obj.user.last_name,
+            "username": obj.user.username,
+            "email": obj.user.email,
+            "role": obj.user.role,
+            "avatar": obj.user.avatar.url if obj.user.avatar else "",
+        }
 
 class JobPostSerializer(serializers.ModelSerializer):
     class Meta:
@@ -108,3 +128,25 @@ class JobPostSerializer(serializers.ModelSerializer):
         # Gán recruiter là user hiện tại
         validated_data['recruiter'] = self.context['request'].user
         return super().create(validated_data)
+
+class ApplicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Application
+        fields = ["job", "cv"]
+
+    def create(self, validated_data):
+        validated_data["applicant"] = self.context["request"].user  # Gán ứng viên vào đơn ứng tuyển
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        user = self.context["request"].user
+
+        if user.role == "candidate":
+            # Ứng viên chỉ có thể cập nhật CV của họ
+            validated_data.pop("status", None)  # Loại bỏ `status` khỏi dữ liệu cập nhật
+            return super().update(instance, validated_data)
+
+        elif user.role == "recruiter":
+            # Nhà tuyển dụng chỉ có thể cập nhật trạng thái ứng tuyển
+            validated_data.pop("cv", None)  # Loại bỏ `cv` khỏi dữ liệu cập nhật
+            return super().update(instance, validated_data)

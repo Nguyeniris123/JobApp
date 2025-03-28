@@ -5,9 +5,9 @@ from . import views
 router = DefaultRouter()
 router.register('candidates', views.CandidateViewSet, basename='candidate')
 router.register('recruiters', views.RecruiterViewSet, basename='recruiter')
-router.register('jobpost', views.JobPostViewSet, basename='jobposts')
-
+router.register('jobposts', views.JobPostViewSet, basename='jobpost')
+router.register('applications', views.ApplicationViewSet, basename='application')
 
 urlpatterns = [
-    path('', include(router.urls))
+    path('', include(router.urls)),
 ]

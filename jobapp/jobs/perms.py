@@ -14,4 +14,15 @@ class JobPostPerms(permissions.IsAuthenticated):
 
     def has_object_permission(self, request, view, obj):
         # Chỉ recruiter đăng bài mới được sửa/xóa bài của chính mình
-        return request.user.role == 'recruiter' and obj.recruiter == request.user
+        return obj.recruiter == request.user
+
+class ApplicationPerms(permissions.IsAuthenticated):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        if request.user.role == "candidate":
+            return obj.applicant == request.user  # Ứng viên chỉ xem đơn của chính họ
+        elif request.user.role == "recruiter":
+            return obj.job.recruiter == request.user  # Nhà tuyển dụng duyệt đơn ứng tuyển vào job của họ
+        return False
