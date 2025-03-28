@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }) => {
     const fetchUserProfile = async () => {
         try {
             // Giả sử có API kiểm tra role user
-            const userRole = await axios.get(`${API_URL}/api/user-role`, {
+            const userRole = await axios.get(`${API_URL}/user-role`, {
                 headers: { Authorization: `Bearer ${accessToken}` }
             });
 
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }) => {
             setLoading(true);
             setError(null);
 
-            const response = await axios.post(`${API_URL}/api/token/`, { username, password });
+            const response = await axios.post(`${API_URL}/o/token/`, { username, password });
             const { access, refresh } = response.data;
 
             await AsyncStorage.setItem('accessToken', access);

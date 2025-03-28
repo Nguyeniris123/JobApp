@@ -1,9 +1,9 @@
-import { useContext, useState } from "react"
-import { FlatList, StyleSheet, View } from "react-native"
-import { ActivityIndicator, Button, Text } from "react-native-paper"
-import JobCard from "../../components/candidate/JobCard"
+import { useContext, useState } from "react";
+import { FlatList, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Button, Text } from "react-native-paper";
+import JobCard from "../../components/ui/JobCard";
 import { AuthContext } from "../../contexts/AuthContext"; // Thêm AuthContext để kiểm tra trạng thái đăng nhập
-import { JobContext } from "../../contexts/JobContext"
+import { JobContext } from "../../contexts/JobContext";
 
 const FavoriteScreen = ({ navigation }) => {
     const { state, removeFromFavorites } = useContext(JobContext)

@@ -1,95 +1,79 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { createStackNavigator } from "@react-navigation/stack"
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { useMemo } from "react";
 
 // Screens
-import CandidateListScreen from "../screens/recruiter/CandidateListScreen"
-import ChatScreen from "../screens/recruiter/ChatScreen"
-import CompanyProfileScreen from "../screens/recruiter/CompanyProfileScreen"
-import FavoriteCandidatesScreen from "../screens/recruiter/FavoriteCandidatesScreen"
-import HomeScreen from "../screens/recruiter/HomeScreen"
-import JobDetailScreen from "../screens/recruiter/JobDetailScreen"
-import NotificationScreen from "../screens/recruiter/NotificationScreen"
-import PostJobScreen from "../screens/recruiter/PostJobScreen"
-import ReviewScreen from "../screens/recruiter/ReviewScreen"
-import SettingsScreen from "../screens/recruiter/SettingsScreen"
+// import ChatScreen from "../screens/recruiter/ChatScreen";
+import NotificationScreen from "../screens/recruiter/NotificationScreen";
+// import ReviewScreen from "../screens/recruiter/ReviewScreen";
 
-const Tab = createBottomTabNavigator()
-const Stack = createStackNavigator()
+const Tab = createBottomTabNavigator();
+// const Stack = createStackNavigator();
 
-const HomeStack = () => {
-    return (
-        <Stack.Navigator
-            screenOptions={{
-                headerShown: false,
-            }}
-        >
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="PostJob" component={PostJobScreen} />
-            <Stack.Screen name="JobDetail" component={JobDetailScreen} />
-            <Stack.Screen name="Review" component={ReviewScreen} />
-        </Stack.Navigator>
-    )
-}
+// Component tái sử dụng cho Stack
+// const StackScreen = ({ children }) => (
+//     <Stack.Navigator screenOptions={{ headerShown: false }}>
+//         {children}
+//     </Stack.Navigator>
+// );
 
-const CandidateStack = () => {
-    return (
-        <Stack.Navigator
-            screenOptions={{
-                headerShown: false,
-            }}
-        >
-            <Stack.Screen name="CandidateList" component={CandidateListScreen} />
-            <Stack.Screen name="FavoriteCandidates" component={FavoriteCandidatesScreen} />
-            <Stack.Screen name="Chat" component={ChatScreen} />
-        </Stack.Navigator>
-    )
-}
+// Home Stack
+// const HomeStack = () => (
+//     <StackScreen>
+//         <Stack.Screen name="Home" component={HomeScreen} />
+//         <Stack.Screen name="PostJob" component={PostJobScreen} />
+//         <Stack.Screen name="JobDetail" component={JobDetailScreen} />
+//         {/* <Stack.Screen name="Review" component={ReviewScreen} /> */}
+//     </StackScreen>
+// );
 
-const ProfileStack = () => {
-    return (
-        <Stack.Navigator
-            screenOptions={{
-                headerShown: false,
-            }}
-        >
-            <Stack.Screen name="CompanyProfile" component={CompanyProfileScreen} />
-            <Stack.Screen name="Settings" component={SettingsScreen} />
-        </Stack.Navigator>
-    )
-}
+// Candidate Stack
+// const CandidateStack = () => (
+//     <StackScreen>
+//         <Stack.Screen name="CandidateList" component={CandidateListScreen} />
+//         <Stack.Screen name="FavoriteCandidates" component={FavoriteCandidatesScreen} />
+//         {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
+//     </StackScreen>
+// );
 
+// Profile Stack
+// const ProfileStack = () => (
+//     <StackScreen>
+//         <Stack.Screen name="CompanyProfile" component={CompanyProfileScreen} />
+//         <Stack.Screen name="Settings" component={SettingsScreen} />
+//     </StackScreen>
+// );
+
+// Recruiter Navigator
 const RecruiterNavigator = () => {
     return (
         <Tab.Navigator
-            screenOptions={({ route }) => ({
-                tabBarIcon: ({ focused, color, size }) => {
-                    let iconName
+            screenOptions={({ route }) => {
+                // Tối ưu `tabBarIcon` bằng `useMemo`
+                const getIcon = useMemo(() => {
+                    return {
+                        Home: (focused) => (focused ? "briefcase" : "briefcase-outline"),
+                        Candidates: (focused) => (focused ? "account-group" : "account-group-outline"),
+                        Notifications: (focused) => (focused ? "bell" : "bell-outline"),
+                        Company: () => "domain", // Không thay đổi khi focus
+                    };
+                }, []);
 
-                    if (route.name === "HomeTab") {
-                        iconName = focused ? "briefcase" : "briefcase-outline"
-                    } else if (route.name === "CandidateTab") {
-                        iconName = focused ? "account-group" : "account-group-outline"
-                    } else if (route.name === "NotificationTab") {
-                        iconName = focused ? "bell" : "bell-outline"
-                    } else if (route.name === "ProfileTab") {
-                        iconName = focused ? "domain" : "domain"
-                    }
-
-                    return <MaterialCommunityIcons name={iconName} size={size} color={color} />
-                },
-            })}
-            tabBarOptions={{
-                activeTintColor: "#1E88E5",
-                inactiveTintColor: "gray",
+                return {
+                    tabBarIcon: ({ focused, color, size }) => (
+                        <MaterialCommunityIcons name={getIcon[route.name](focused)} size={size} color={color} />
+                    ),
+                    tabBarActiveTintColor: "#1E88E5",
+                    tabBarInactiveTintColor: "gray",
+                };
             }}
         >
-            <Tab.Screen name="HomeTab" component={HomeStack} options={{ tabBarLabel: "Tin tuyển dụng" }} />
-            <Tab.Screen name="CandidateTab" component={CandidateStack} options={{ tabBarLabel: "Ứng viên" }} />
-            <Tab.Screen name="NotificationTab" component={NotificationScreen} options={{ tabBarLabel: "Thông báo" }} />
-            <Tab.Screen name="ProfileTab" component={ProfileStack} options={{ tabBarLabel: "Công ty" }} />
+            {/* <Tab.Screen name="Home" component={HomeStack} options={{ tabBarLabel: "Tin tuyển dụng" }} /> */}
+            {/* <Tab.Screen name="Candidates" component={CandidateStack} options={{ tabBarLabel: "Ứng viên" }} /> */}
+            <Tab.Screen name="Notifications" component={NotificationScreen} options={{ tabBarLabel: "Thông báo" }} />
+            {/* <Tab.Screen name="Company" component={ProfileStack} options={{ tabBarLabel: "Công ty" }} /> */}
         </Tab.Navigator>
-    )
-}
+    );
+};
 
-export default RecruiterNavigator
+export default RecruiterNavigator;

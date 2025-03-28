@@ -24,9 +24,9 @@ const loginSchema = yup.object().shape({
 
 const LoginScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
+    const [role, setRole] = useState("recruiter"); // Mặc định là nhà tuyển dụng
 
     const { login, error } = useContext(AuthContext);
-    const [role, setRole] = useState("Recruiter")
     const theme = useTheme();
 
     const { control, handleSubmit, formState: { errors } } = useForm({
@@ -38,18 +38,13 @@ const LoginScreen = ({ navigation }) => {
         },
     });
 
-    // ✅ Hàm xử lý đăng nhập
+    // ✅ Xử lý đăng nhập
     const onSubmit = async (data) => {
+        setLoading(true);
         try {
-            setLoading(true);
-            login(data.email, data.password, role)
-
+            await login(data.email, data.password, role);
         } catch (error) {
             console.error('Lỗi đăng nhập:', error);
-            setError(
-                error.response?.data?.message ||
-                'Đăng nhập thất bại. Vui lòng kiểm tra thông tin và thử lại!'
-            );
         } finally {
             setLoading(false);
         }
@@ -58,6 +53,7 @@ const LoginScreen = ({ navigation }) => {
     return (
         <ScreenContainer>
             <ContentContainer scrollable={false} style={styles.container}>
+                {/* Logo và tiêu đề */}
                 <View style={styles.logoContainer}>
                     <Image
                         source={require('../../assets/logo.png')}
@@ -76,22 +72,25 @@ const LoginScreen = ({ navigation }) => {
                     </View>
                 )}
 
+                {/* Chọn vai trò */}
+                <View style={styles.roleContainer}>
+                    <AppButton
+                        mode={role === "recruiter" ? "contained" : "outlined"}
+                        onPress={() => setRole("recruiter")}
+                        style={styles.toggleButton}
+                    >
+                        Nhà tuyển dụng
+                    </AppButton>
+                    <AppButton
+                        mode={role === "candidate" ? "contained" : "outlined"}
+                        onPress={() => setRole("candidate")}
+                        style={styles.toggleButton}
+                    >
+                        Người tìm việc
+                    </AppButton>
+                </View>
 
-                <AppButton
-                    mode={role === "recruiter" ? "contained" : "outlined"}
-                    onPress={() => setRole("recruiter")}
-                    style={styles.toggleButton}
-                >
-                    Nhà tuyển dụng
-                </AppButton>
-                <AppButton
-                    mode={role === "candidate" ? "contained" : "outlined"}
-                    onPress={() => setRole("candidate")}
-                    style={styles.toggleButton}
-                >
-                    Người tìm việc
-                </AppButton>
-
+                {/* Form đăng nhập */}
                 <View style={styles.formContainer}>
                     {/* ✅ Email */}
                     <FormField
@@ -179,6 +178,14 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#666',
         marginTop: 5,
+    },
+    roleContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginBottom: 20,
+    },
+    toggleButton: {
+        marginHorizontal: 10,
     },
     formContainer: {
         width: '100%',

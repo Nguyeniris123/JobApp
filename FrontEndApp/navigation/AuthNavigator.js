@@ -5,14 +5,14 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { useEffect, useState } from "react";
 
 // Screens
-import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
-import LoginScreen from "../screens/auth/LoginScreen";
-import RegisterScreen from "../screens/auth/RegisterScreen";
-import FavoriteScreen from "../screens/candidate/FavoriteScreen";
-import HomeScreen from "../screens/candidate/HomeScreen";
-import NotificationScreen from "../screens/candidate/NotificationScreen";
-import OnboardingScreen from "../screens/common/OnboardingScreen";
-import SettingScreen from "../screens/common/SettingScreen";
+import ForgotPasswordScreen from "../screen/auth/ForgotPasswordScreen";
+import LoginScreen from "../screen/auth/LoginScreen";
+import RegisterScreen from "../screen/auth/RegisterScreen";
+import FavoriteScreen from "../screen/candidate/FavoriteScreen";
+import HomeScreen from "../screen/candidate/HomeScreen";
+import NotificationScreen from "../screen/candidate/NotificationScreen";
+import OnboardingScreen from "../screen/common/OnboardingScreen";
+import SettingScreen from "../screen/common/SettingScreen";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
