@@ -1,12 +1,16 @@
+from django.http import JsonResponse
 from rest_framework import viewsets, status, generics, parsers, permissions, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action, permission_classes
 from . import serializers, perms, paginators
 from .perms import ApplicationPerms
-from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer
+from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, \
+    CustomOAuth2TokenSerializer
 from .models import User, JobPost, Application
 from django_filters.rest_framework import DjangoFilterBackend
-
+from oauth2_provider.models import AccessToken
+from oauth2_provider.views import TokenView
+import json
 
 
 class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
@@ -36,6 +40,27 @@ class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
     @action(methods=['get'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
         return Response(self.serializer_class(request.user).data)
+
+class CustomOAuth2TokenView(TokenView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+
+        # Chuyển response thành JSON để xử lý
+        if response.status_code == 200:
+            response_data = json.loads(response.content)
+
+            access_token = response_data.get("access_token")
+            if access_token:
+                try:
+                    token_obj = AccessToken.objects.get(token=access_token)
+                    response_data["user"] = CustomOAuth2TokenSerializer(token_obj).data["user"]
+                except AccessToken.DoesNotExist:
+                    pass
+
+            return JsonResponse(response_data, status=200)
+
+        return response
+
 
 class JobPostViewSet(viewsets.ModelViewSet):
     queryset = JobPost.objects.filter(active=True)

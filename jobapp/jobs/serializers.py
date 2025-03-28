@@ -1,3 +1,5 @@
+from django.contrib.auth import get_user_model
+from oauth2_provider.models import AccessToken
 from rest_framework import serializers
 from .models import User, Company, CompanyImage, JobPost, Application
 
@@ -98,6 +100,24 @@ class RecruiterSerializer(serializers.ModelSerializer):
         data['avatar'] = instance.avatar.url if instance.avatar else ''
         return data
 
+User = get_user_model()
+class CustomOAuth2TokenSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AccessToken
+        fields = ["token", "expires", "user"]
+
+    def get_user(self, obj):
+        return {
+            "id": obj.user.id,
+            "first_name": obj.user.first_name,
+            "last_name": obj.user.last_name,
+            "username": obj.user.username,
+            "email": obj.user.email,
+            "role": obj.user.role,
+            "avatar": obj.user.avatar.url if obj.user.avatar else "",
+        }
 
 class JobPostSerializer(serializers.ModelSerializer):
     class Meta:
