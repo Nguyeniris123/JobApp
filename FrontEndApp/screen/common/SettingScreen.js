@@ -1,97 +1,40 @@
-
-import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useContext } from "react";
-import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
-} from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { AuthContext } from "../../contexts/AuthContext";
 
 const SettingScreen = () => {
-    const { isAuthenticated, user, logout } = useContext(AuthContext);
-
+    const { isAuthenticated } = useContext(AuthContext);
     const navigation = useNavigation();
 
     return (
-        <ScrollView style={styles.container}>
-            {/* Header với gradient + search */}
+        <View style={styles.container}>
             <LinearGradient colors={["#0033ff", "#00aaff"]} style={styles.header}>
-                <Text style={styles.menuText}>Menu</Text>
-                <Ionicons name="search-outline" size={24} color="white" />
+                <Text style={styles.menuText}>Settings</Text>
             </LinearGradient>
 
-            {
-                isAuthenticated == false ? (
-                    <View style={styles.signInContainer}>
-                        <Image
-                            source={{ uri: "https://i.pravatar.cc/150" }} // Thay bằng ảnh của bạn
-                            style={styles.avatar}
-                        />
-                        <Text style={styles.signInText}>Sign in to apply!</Text>
-                        <TouchableOpacity
-                            style={styles.signInButton}
-                            onPress={() => navigation.navigate("Login")}
-                        >
-                            <Text style={styles.signInButtonText}>Sign In</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <View style={styles.userContainer}>
-                        {/* <Image source={{ uri: user.avatar }} style={styles.avatar} /> */}
-                        {/* <Text style={styles.username}>{user.name}</Text> */}
-                        <TouchableOpacity style={styles.signOutButton} onPress={logout}>
-                            <Text style={styles.signOutText}>Logout</Text>
-                        </TouchableOpacity>
-                    </View>
-                )
-            }
-
-            {/* Featured Companies (Giao diện, chưa có API) */}
-            <Text style={styles.sectionTitle}>Featured Companies</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.companyCard}>
+            {!isAuthenticated ? (
+                <View style={styles.signInContainer}>
                     <Image
-                        source={{
-                            uri: "https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png",
-                        }}
-                        style={styles.companyLogo}
+                        source={{ uri: "https://i.pravatar.cc/200" }}
+                        style={styles.avatar}
                     />
-                    <Text style={styles.companyName}>JavaScript Corp</Text>
-                    <Text style={styles.newJobTag}>New job</Text>
+                    <Text style={styles.signInText}>Sign in to unlock features!</Text>
+                    <TouchableOpacity
+                        style={styles.signInButton}
+                        onPress={() => navigation.navigate("Login")}
+                    >
+                        <Text style={styles.signInButtonText}>Sign In</Text>
+                    </TouchableOpacity>
                 </View>
-
-                <View style={styles.companyCard}>
-                    <Image
-                        source={{
-                            uri: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
-                        }}
-                        style={styles.companyLogo}
-                    />
-                    <Text style={styles.companyName}>React Ltd</Text>
-                    <Text style={styles.newJobTag}>New job</Text>
+            ) : (
+                <View style={styles.loggedInContainer}>
+                    <Text style={styles.welcomeText}>Welcome back!</Text>
+                    {/* Thêm nội dung khác sau khi đăng nhập */}
                 </View>
-            </ScrollView>
-
-            {/* Account Settings */}
-            <Text style={styles.sectionTitle}>Account Setting</Text>
-            <TouchableOpacity style={styles.settingItem}>
-                <Ionicons name="globe-outline" size={22} color="#333" />
-                <Text style={styles.settingText}>Language</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingItem}>
-                <Ionicons name="help-circle-outline" size={22} color="#333" />
-                <Text style={styles.settingText}>FAQ</Text>
-            </TouchableOpacity>
-
-            {/* Phiên bản */}
-            <Text style={styles.version}>Version 3.7.0</Text>
-        </ScrollView>
+            )}
+        </View>
     );
 };
 
@@ -100,82 +43,37 @@ const styles = StyleSheet.create({
 
     // Header
     header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
         padding: 40,
+        alignItems: "center",
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
     },
     menuText: { fontSize: 22, color: "white", fontWeight: "bold" },
-    signInText: { fontSize: 16, fontWeight: "bold", marginVertical: 10 },
-    avatar: { width: 50, height: 50, borderRadius: 25 },
+
+    // Khi chưa đăng nhập
+    signInContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 20 },
+    signInText: { fontSize: 18, fontWeight: "bold", color: "#333", marginBottom: 10 },
     signInButton: {
         backgroundColor: "#ff7043",
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 5,
-        marginTop: 10,
-    },
-    signInButtonText: { color: "white", fontWeight: "bold" },
-    userContainer: {
-        alignItems: "center",
-        padding: 20,
-        backgroundColor: "#fff",
-        borderRadius: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        borderRadius: 25,
         elevation: 5,
-        width: "90%",
     },
-    username: { fontSize: 18, fontWeight: "bold", color: "#333", marginTop: 10 },
-    signOutButton: {
-        backgroundColor: "#d9534f",
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 10,
-        marginTop: 10,
-    },
-    signOutText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-    // Section Title
-    sectionTitle: { fontSize: 18, fontWeight: "bold", margin: 20 },
+    signInButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
 
-    // Featured Companies
-    companyCard: {
-        backgroundColor: "#f9f9f9",
-        padding: 15,
-        borderRadius: 10,
+    // Khi đã đăng nhập
+    loggedInContainer: {
+        flex: 1,
+        justifyContent: "center",
         alignItems: "center",
-        marginHorizontal: 10,
     },
-    companyLogo: { width: 50, height: 50, marginBottom: 5 },
-    companyName: { fontSize: 14, fontWeight: "bold", color: "#333" },
-    newJobTag: {
-        backgroundColor: "#007aff",
-        color: "#fff",
-        fontSize: 12,
-        paddingVertical: 2,
-        paddingHorizontal: 10,
-        borderRadius: 5,
-        marginTop: 5,
-    },
-
-    // Account Settings
-    settingItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        padding: 15,
-        borderBottomWidth: 1,
-        borderColor: "#ddd",
-    },
-    settingText: { fontSize: 16, marginLeft: 10, color: "#333" },
-
-    // Version
-    version: {
-        textAlign: "center",
-        color: "#aaa",
-        fontSize: 14,
-        marginVertical: 20,
-    },
+    welcomeText: { fontSize: 20, fontWeight: "bold", color: "#333" },
 });
 
 export default SettingScreen;
-

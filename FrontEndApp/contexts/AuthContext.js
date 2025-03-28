@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, { createContext, useEffect, useState } from 'react';
+import { getCandidateUser, getRecruiterUser } from '../apiService';
 import { API_URL } from '../config';
 
 export const AuthContext = createContext();
@@ -24,6 +25,8 @@ export const AuthProvider = ({ children }) => {
                     setAccessToken(storedAccessToken);
                     setRefreshToken(storedRefreshToken);
                     axios.defaults.headers.common['Authorization'] = `Bearer ${storedAccessToken}`;
+
+                    // Fetch user info dựa trên token
                     await fetchUserProfile();
                     setIsAuthenticated(true);
                 }
@@ -59,31 +62,44 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Interceptor xử lý khi token hết hạn
-    axios.interceptors.response.use(
-        (response) => response,
-        async (error) => {
-            if (error.response?.status === 401) {
-                try {
-                    const newAccessToken = await refreshAccessToken();
-                    error.config.headers['Authorization'] = `Bearer ${newAccessToken}`;
-                    return axios(error.config);
-                } catch (err) {
-                    logout();
+    // Thêm interceptor để tự động refresh token khi hết hạn
+    useEffect(() => {
+        const interceptor = axios.interceptors.response.use(
+            (response) => response,
+            async (error) => {
+                if (error.response?.status === 401) {
+                    try {
+                        const newAccessToken = await refreshAccessToken();
+                        error.config.headers['Authorization'] = `Bearer ${newAccessToken}`;
+                        return axios(error.config);
+                    } catch (err) {
+                        logout();
+                    }
                 }
+                return Promise.reject(error);
             }
-            return Promise.reject(error);
-        }
-    );
+        );
 
-    // Fetch thông tin user
+        return () => axios.interceptors.response.eject(interceptor);
+    }, [refreshToken]);
+
+    // Lấy thông tin user dựa trên role
     const fetchUserProfile = async () => {
         try {
-            const response = await axios.get(`${API_URL}/api/users/me/`);
-            setUser(response.data);
+            // Giả sử có API kiểm tra role user
+            const userRole = await axios.get(`${API_URL}/api/user-role`, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+
+            if (userRole.data.role === 'Recruiter') {
+                const response = await getRecruiterUser(accessToken);
+                setUser(response);
+            } else {
+                const response = await getCandidateUser(accessToken);
+                setUser(response);
+            }
         } catch (error) {
-            console.error('Lỗi khi lấy thông tin user:', error);
-            logout();
+            console.error('Lỗi khi lấy thông tin người dùng:', error);
         }
     };
 
@@ -93,11 +109,7 @@ export const AuthProvider = ({ children }) => {
             setLoading(true);
             setError(null);
 
-            const response = await axios.post(`${API_URL}/api/token/`, {
-                username,
-                password,
-            });
-
+            const response = await axios.post(`${API_URL}/api/token/`, { username, password });
             const { access, refresh } = response.data;
 
             await AsyncStorage.setItem('accessToken', access);
@@ -109,7 +121,7 @@ export const AuthProvider = ({ children }) => {
 
             await fetchUserProfile();
             setIsAuthenticated(true);
-            return true;
+            return response;
         } catch (error) {
             setError(error.response?.data?.detail || 'Đăng nhập thất bại!');
             return false;
@@ -125,7 +137,6 @@ export const AuthProvider = ({ children }) => {
             setError(null);
 
             await axios.post(`${API_URL}/api/users/`, userData);
-
             return await login(userData.username, userData.password);
         } catch (error) {
             setError(error.response?.data?.detail || 'Đăng ký thất bại!');
@@ -161,7 +172,6 @@ export const AuthProvider = ({ children }) => {
                 login,
                 register,
                 logout,
-                updateProfile: fetchUserProfile,
             }}
         >
             {children}

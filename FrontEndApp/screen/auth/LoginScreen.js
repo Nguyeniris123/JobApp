@@ -1,12 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
-import axios from 'axios';
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Image, StyleSheet, View } from 'react-native';
 import { Text, Title, useTheme } from 'react-native-paper';
 import * as yup from 'yup';
-import { API_URL } from "../../config";
+
+import { AuthContext } from "../../contexts/AuthContext";
 
 // Import components
 import FormButton from '../../components/form/FormButton';
@@ -24,7 +24,9 @@ const loginSchema = yup.object().shape({
 
 const LoginScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+
+    const { login, error } = useContext(AuthContext);
+    const [role, setRole] = useState("Recruiter")
     const theme = useTheme();
 
     const { control, handleSubmit, formState: { errors } } = useForm({
@@ -40,38 +42,7 @@ const LoginScreen = ({ navigation }) => {
     const onSubmit = async (data) => {
         try {
             setLoading(true);
-            setError(null);
-
-            const formData = new FormData();
-<<<<<<< Updated upstream
-            formData.append("client_id","5Ij2qZoARk5FABxYjlDdvl2hcdJZuT8qsGndyLSv")
-            formData.append("client_secret", "qwS46Po2kd3rQ6fSv06pJ9WX5pDKiaTuCxzNVd6b8eTQEKGqOS0PLbGqA1pMZsysukCnMWrATw61Hkw1DT52a3qo53K5ibuOTeO63zejzQTqxvmSKQK8m4mBUr00kLpa")
-            formData.append("username", data.email)
-            formData.append("password", data.password)
-            formData.append("grant_type", "password")
-=======
-            formData.append("username", data.email)
-            formData.append("password", data.password)
->>>>>>> Stashed changes
-=======
-            formData.append("username", data.email)
-            formData.append("password", data.password)
->>>>>>> Stashed changes
-            console.log("API_URL:" + API_URL + "/o/token/");
-            console.log("FormData:", formData);
-
-            const response = await axios.post(`${API_URL}/o/token/`, formData);
-            const userData = response.data.user;
-            const accessToken = response.data.token;
-
-            // Lưu thông tin vào AsyncStorage
-            await AsyncStorage.setItem('user', JSON.stringify(userData));
-            await AsyncStorage.setItem('accessToken', accessToken);
-
-            console.log('Đăng nhập thành công:', userData);
-
-            // Chuyển hướng đến trang chính
-            navigation.replace('Applications');
+            login(data.email, data.password, role)
 
         } catch (error) {
             console.error('Lỗi đăng nhập:', error);
@@ -104,6 +75,22 @@ const LoginScreen = ({ navigation }) => {
                         <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
                     </View>
                 )}
+
+
+                <AppButton
+                    mode={role === "recruiter" ? "contained" : "outlined"}
+                    onPress={() => setRole("recruiter")}
+                    style={styles.toggleButton}
+                >
+                    Nhà tuyển dụng
+                </AppButton>
+                <AppButton
+                    mode={role === "candidate" ? "contained" : "outlined"}
+                    onPress={() => setRole("candidate")}
+                    style={styles.toggleButton}
+                >
+                    Người tìm việc
+                </AppButton>
 
                 <View style={styles.formContainer}>
                     {/* ✅ Email */}

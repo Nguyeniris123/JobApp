@@ -126,8 +126,8 @@ const RegisterScreen = ({ navigation }) => {
             }
     
             const formData = new FormData();
-            formData.append("firstname", data.firstname);
-            formData.append("lastname", data.lastname);
+            formData.append("first_name", data.firstname);
+            formData.append("last_name", data.lastname);
             formData.append("username", data.email);
             formData.append("password", data.password);
     
