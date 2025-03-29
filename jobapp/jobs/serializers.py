@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from oauth2_provider.models import AccessToken
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
+
 from .models import User, Company, CompanyImage, JobPost, Application
 
 
@@ -132,21 +134,26 @@ class JobPostSerializer(serializers.ModelSerializer):
 class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
-        fields = ["job", "cv"]
+        fields = ["job", "cv", "status"]
 
     def create(self, validated_data):
-        validated_data["applicant"] = self.context["request"].user  # Gán ứng viên vào đơn ứng tuyển
+        request = self.context["request"]
+        user = request.user
+
+        validated_data["applicant"] = user
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         user = self.context["request"].user
 
         if user.role == "candidate":
-            # Ứng viên chỉ có thể cập nhật CV của họ
-            validated_data.pop("status", None)  # Loại bỏ `status` khỏi dữ liệu cập nhật
+            if "status" in validated_data:
+                raise PermissionDenied("Ứng viên không thể thay đổi trạng thái đơn ứng tuyển!")
             return super().update(instance, validated_data)
 
         elif user.role == "recruiter":
-            # Nhà tuyển dụng chỉ có thể cập nhật trạng thái ứng tuyển
-            validated_data.pop("cv", None)  # Loại bỏ `cv` khỏi dữ liệu cập nhật
+            if "cv" in validated_data:
+                raise PermissionDenied("Nhà tuyển dụng không thể thay đổi CV của ứng viên!")
             return super().update(instance, validated_data)
+
+        raise PermissionDenied("Bạn không có quyền cập nhật đơn ứng tuyển này!")
