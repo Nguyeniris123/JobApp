@@ -6,8 +6,8 @@ from rest_framework.decorators import action, permission_classes
 from . import serializers, perms, paginators
 from .perms import ApplicationPerms, IsCandidate
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, \
-    CustomOAuth2TokenSerializer
-from .models import User, JobPost, Application
+    CustomOAuth2TokenSerializer, FollowSerializer
+from .models import User, JobPost, Application, Follow
 from django_filters.rest_framework import DjangoFilterBackend
 from oauth2_provider.models import AccessToken
 from oauth2_provider.views import TokenView
@@ -127,3 +127,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     #     application.status = new_status
     #     application.save(update_fields=["status"])
     #     return Response(ApplicationSerializer(application).data, status=status.HTTP_200_OK)
+
+class FollowViewSet(viewsets.ModelViewSet):
+    serializer_class = FollowSerializer
+    permission_classes = [IsCandidate]
+    http_method_names = ["get", "post", "delete"]
+
+    def get_queryset(self):
+        # Ứng viên chỉ xem danh sách những nhà tuyển dụng mình đang theo dõi
+        return Follow.objects.filter(follower=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        # Ứng viên có thể bỏ theo dõi nhà tuyển dụng
+        instance = self.get_object()
+        instance.delete()
+        return Response({"detail": "Đã hủy theo dõi"}, status=status.HTTP_204_NO_CONTENT)

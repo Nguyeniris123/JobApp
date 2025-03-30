@@ -3,7 +3,7 @@ from oauth2_provider.models import AccessToken
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
-from .models import User, Company, CompanyImage, JobPost, Application
+from .models import User, Company, CompanyImage, JobPost, Application, Follow
 
 
 # class CompanySerializer(serializers.ModelSerializer):
@@ -157,3 +157,32 @@ class ApplicationSerializer(serializers.ModelSerializer):
             return super().update(instance, validated_data)
 
         raise PermissionDenied("Bạn không có quyền cập nhật đơn ứng tuyển này!")
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Follow
+        fields = ["id", "follower", "recruiter", "created_date"]
+        read_only_fields = ["follower"]  # Đảm bảo user không thể chỉnh follower (chỉ theo dõi chính mình)
+
+    def validate(self, attrs):
+        # Ứng viên không thể tự theo dõi mình hoặc theo dõi người không phải nhà tuyển dụng
+        request = self.context["request"]
+        recruiter = attrs["recruiter"]
+
+        if request.user == recruiter:
+            raise serializers.ValidationError("Bạn không thể tự theo dõi chính mình.")
+
+        if recruiter.role != "recruiter":
+            raise serializers.ValidationError("Bạn chỉ có thể theo dõi nhà tuyển dụng.")
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        validated_data["follower"] = request.user  # Gán user hiện tại làm follower
+
+        # Kiểm tra nếu đã tồn tại follow
+        if Follow.objects.filter(follower=request.user, recruiter=validated_data["recruiter"]).exists():
+            raise serializers.ValidationError({"detail": "Bạn đã theo dõi nhà tuyển dụng này!"})
+
+        return super().create(validated_data)

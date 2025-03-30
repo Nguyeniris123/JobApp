@@ -17,7 +17,7 @@ class IsRecruiter(permissions.IsAuthenticated):
         return obj.recruiter == request.user
 
 class IsCandidate(permissions.BasePermission):
-   # Chỉ cho phép ứng viên (candidate) tạo đơn ứng tuyển.
+   # Chỉ cho phép ứng viên (candidate) tạo đơn ứng tuyển, theo dõi recruiter
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == "candidate"
 

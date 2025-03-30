@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'oauth2_provider',
     'django_filters',
     "corsheaders",
-
+    "send_email.apps.SendEmailConfig",
 ]
 
 MIDDLEWARE = [
@@ -195,3 +195,12 @@ CLIENT_SECRET = 'dlGToUtM2aP2Jz9EnE5caCeAMShj2HN3ScEeTnIfdnXJPIFL7xwIcd0Ky1ozCTJ
 #     "password": "1",
 #     "grant_type": "password"
 # }
+
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"  # Hoặc SMTP của dịch vụ bạn dùng
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "nguyendeptraiiris@gmail.com"
+EMAIL_HOST_PASSWORD = "cwnh vvkf muis ijir"
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
