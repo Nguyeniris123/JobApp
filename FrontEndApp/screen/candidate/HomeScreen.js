@@ -1,19 +1,29 @@
 import { useContext, useEffect, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
-import { Avatar, Chip, Divider, Text } from "react-native-paper";
+import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { Avatar, Divider, Searchbar, Text } from "react-native-paper";
 import AppButton from "../../components/ui/AppButton";
 import AppCard from "../../components/ui/AppCard";
 import { AuthContext } from "../../contexts/AuthContext";
 import { JobContext } from "../../contexts/JobContext";
 
 const HomeScreen = ({ navigation }) => {
-  const { loading, fetchJobs, setFilters, clearFilters } = useContext(JobContext);
+  const { loading, jobs, fetchJobs } = useContext(JobContext);
   const { user } = useContext(AuthContext);
-
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const scrollY = new Animated.Value(0);
 
-  const categories = ["Tất cả", "Bán hàng", "Giáo dục", "Dịch vụ", "IT", "Marketing"];
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [100, 0],
+    extrapolate: 'clamp',
+  });
+
+  const searchPaddingTop = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [16, 0],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
     fetchJobs();
@@ -25,29 +35,20 @@ const HomeScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const handleCategorySelect = (category) => {
-    if (category === "Tất cả" || category === selectedCategory) {
-      setSelectedCategory(null);
-      clearFilters();
-    } else {
-      setSelectedCategory(category);
-      setFilters({ category });
-    }
-  };
-
   const renderJobItem = ({ item }) => (
     <AppCard style={styles.card}>
       <View style={styles.headerRow}>
-        <Avatar.Image size={40} source={{ uri: item.company.logo }} />
+        <Avatar.Icon size={40} icon="briefcase" />
         <View style={styles.headerInfo}>
           <Text style={styles.jobTitle}>{item.title}</Text>
-          <Text style={styles.companyName}>{item.company.name}</Text>
+          <Text style={styles.specialized}>{item.specialized}</Text>
         </View>
       </View>
       <Divider style={styles.divider} />
       <View style={styles.detailsRow}>
         <Text style={styles.detailText}>📍 {item.location}</Text>
-        <Text style={styles.detailText}>💰 {item.salary}</Text>
+        <Text style={styles.detailText}>💰 {Number(item.salary).toLocaleString('vi-VN')} VNĐ</Text>
+        <Text style={styles.detailText}>⏰ {item.working_hours}</Text>
       </View>
       <Divider style={styles.divider} />
       <View style={styles.buttonRow}>
@@ -72,48 +73,43 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, { height: headerHeight, overflow: 'hidden' }]}>
         <Text style={styles.greeting}>Xin chào!</Text>
         <Text style={styles.subtitle}>Tìm việc làm bán thời gian phù hợp với bạn</Text>
-      </View>
+      </Animated.View>
 
-      <View style={styles.categoriesContainer}>
-        <FlatList
-          data={categories}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item}
-          renderItem={({ item }) => (
-            <Chip
-              selected={item === selectedCategory}
-              onPress={() => handleCategorySelect(item)}
-              style={styles.categoryChip}
-              selectedColor="#1E88E5"
-            >
-              {item}
-            </Chip>
-          )}
+      <Animated.View style={[styles.searchContainer, { paddingTop: searchPaddingTop }]}>
+        <Searchbar
+          placeholder="Tìm kiếm công việc..."
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={styles.searchBar}
         />
-      </View>
+      </Animated.View>
 
-      {/* {loading ? (
+      {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1E88E5" />
         </View>
-      ) : filteredJobs.length === 0 ? (
+      ) : jobs.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Không tìm thấy công việc phù hợp</Text>
         </View>
       ) : (
         <FlatList
-          data={filteredJobs}
+          data={jobs}
           renderItem={renderJobItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.jobList}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          scrollEventThrottle={16}
         />
-      )} */}
+      )}
     </View>
   );
 };
@@ -124,8 +120,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
   },
   header: {
-    padding: 20,
-    paddingTop: 40,
+    padding: 10,
+    paddingTop: 20,
     backgroundColor: "#1E88E5",
   },
   greeting: {
@@ -139,13 +135,14 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     opacity: 0.8,
   },
-  categoriesContainer: {
+  searchContainer: {
     paddingHorizontal: 16,
-    marginBottom: 10,
+    backgroundColor: '#1E88E5',
+    paddingBottom: 20,
   },
-  categoryChip: {
-    marginRight: 8,
-    marginBottom: 8,
+  searchBar: {
+    elevation: 0,
+    borderRadius: 8,
   },
   jobList: {
     padding: 16,
@@ -179,6 +176,15 @@ const styles = StyleSheet.create({
   },
   jobTitle: {
     fontSize: 16,
+  },
+  specialized: {
+    fontSize: 14,
+    color: '#666',
+  },
+  detailsRow: {
+    flexDirection: 'column',
+    gap: 8,
+    paddingVertical: 8,
   },
 });
 

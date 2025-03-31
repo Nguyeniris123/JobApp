@@ -4,7 +4,7 @@ import { Provider as PaperProvider } from "react-native-paper"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { AuthProvider } from "./contexts/AuthContext"
 import { JobProvider } from "./contexts/JobContext"
-import { NotificationProvider } from "./contexts/NotificationContext"
+// import { NotificationProvider } from "./contexts/NotificationContext"
 import AppNavigator from "./navigation/AppNavigator"
 import { theme } from "./theme"
 
@@ -15,12 +15,12 @@ const App = () => {
             <PaperProvider theme={theme}>
                 <AuthProvider>
                     <JobProvider>
-                        <NotificationProvider>
+                        {/* <NotificationProvider> */}
                             <NavigationContainer>
                                 <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
                                 <AppNavigator />
                             </NavigationContainer>
-                        </NotificationProvider>
+                        {/* </NotificationProvider> */}
                     </JobProvider>
                 </AuthProvider>
             </PaperProvider>

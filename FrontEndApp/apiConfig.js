@@ -1,4 +1,4 @@
-export const API_URL = 'http://192.168.1.5:8000';
+export const API_URL = 'http://192.168.1.200:8000';
 
 export const API_ENDPOINTS = {
   LOGIN: `${API_URL}/o/token/`,

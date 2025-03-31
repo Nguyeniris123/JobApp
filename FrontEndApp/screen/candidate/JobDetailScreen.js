@@ -1,17 +1,21 @@
 import { useRoute } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
+import { JobContext } from '../../contexts/JobContext';
 
 const JobDetailScreen = () => {
     const route = useRoute();
     const { jobId } = route.params;
     const [jobDetail, setJobDetail] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { fetchJobById } = useContext(JobContext);
     
     useEffect(() => {
         const loadJobDetail = async () => {
             try {
-                const data = await fetchJobDetail(jobId);
+                console.log("Đang tải chi tiết công việc với ID:", jobId);
+                const data = await fetchJobById(jobId);
+                console.log("Đã nhận được dữ liệu chi tiết:", data);
                 setJobDetail(data);
             } catch (error) {
                 console.error('Error fetching job details:', error);
@@ -20,7 +24,7 @@ const JobDetailScreen = () => {
             }
         };
         loadJobDetail();
-    }, [jobId]);
+    }, [jobId, fetchJobById]);
 
     if (loading) {
         return <ActivityIndicator size="large" color="#0000ff" />;

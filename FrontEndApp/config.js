@@ -1,5 +1,5 @@
 // API URL configuration
-export const API_URL = 'http://192.168.1.5:8000';
+export const API_URL = 'http://192.168.1.200:8000';
 
 // Firebase configuration
 // export const FIREBASE_CONFIG = {
