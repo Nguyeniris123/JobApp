@@ -5,11 +5,6 @@ from rest_framework.exceptions import PermissionDenied
 from .models import User, Company, CompanyImage, JobPost, Application, Follow
 
 
-# class CompanySerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Company
-#         fields = ['name', 'tax_code', 'description', 'location', 'images']
-
 class CandidateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -120,10 +115,17 @@ class CustomOAuth2TokenSerializer(serializers.ModelSerializer):
             "avatar": obj.user.avatar.url if obj.user.avatar else "",
         }
 
+class CompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        fields = ['name', 'tax_code', 'description', 'location', 'is_verified']
+
 class JobPostSerializer(serializers.ModelSerializer):
+    company = CompanySerializer(source='recruiter.company', read_only=True)  # Lấy thông tin công ty từ recruiter
+
     class Meta:
         model = JobPost
-        fields = ['id','title', 'specialized', 'description', 'salary', 'working_hours', 'location']
+        fields = ['id', 'title', 'specialized', 'description', 'salary', 'working_hours', 'location', 'company']
 
     def create(self, validated_data):
         # Gán recruiter là user hiện tại
