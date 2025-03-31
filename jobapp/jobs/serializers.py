@@ -115,10 +115,17 @@ class CustomOAuth2TokenSerializer(serializers.ModelSerializer):
             "avatar": obj.user.avatar.url if obj.user.avatar else "",
         }
 
+class CompanyImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanyImage
+        fields = ['image']  # Chỉ lấy URL ảnh
+
 class CompanySerializer(serializers.ModelSerializer):
+    images = CompanyImageSerializer(source='images.all', many=True, read_only=True)  # Lấy danh sách ảnh của công ty
+
     class Meta:
         model = Company
-        fields = ['name', 'tax_code', 'description', 'location', 'is_verified']
+        fields = ['name', 'tax_code', 'description', 'location', 'is_verified', 'images']  # Thêm images vào fields
 
 class JobPostSerializer(serializers.ModelSerializer):
     company = CompanySerializer(source='recruiter.company', read_only=True)  # Lấy thông tin công ty từ recruiter
@@ -128,8 +135,7 @@ class JobPostSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'specialized', 'description', 'salary', 'working_hours', 'location', 'company']
 
     def create(self, validated_data):
-        # Gán recruiter là user hiện tại
-        validated_data['recruiter'] = self.context['request'].user
+        validated_data['recruiter'] = self.context['request'].user  # Gán recruiter là user hiện tại
         return super().create(validated_data)
 
 class ApplicationSerializer(serializers.ModelSerializer):
