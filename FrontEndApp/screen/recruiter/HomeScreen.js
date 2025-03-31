@@ -1,11 +1,9 @@
-
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useEffect, useState } from "react"
 import { ScrollView, TouchableOpacity, View } from "react-native"
 import { ActivityIndicator, Avatar, Button, Card, Chip, FAB, Text } from "react-native-paper"
-
-const API_URL = "https://your-api.com/api/jobs" // Cập nhật đường dẫn API
+import { API_URL } from "../../config"
 
 const HomeScreen = ({ navigation }) => {
     const [jobs, setJobs] = useState([])
@@ -194,6 +192,143 @@ const HomeScreen = ({ navigation }) => {
             />
         </View>
     )
+}
+
+const styles = {
+    container: {
+        flex: 1,
+        backgroundColor: '#f5f5f5',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    header: {
+        padding: 16,
+        backgroundColor: '#fff',
+    },
+    headerTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    greeting: {
+        fontSize: 16,
+        color: '#757575',
+    },
+    companyName: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#212121',
+    },
+    statsContainer: {
+        padding: 16,
+    },
+    statsCard: {
+        elevation: 4,
+    },
+    statsContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    statItem: {
+        alignItems: 'center',
+    },
+    statValue: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#1E88E5',
+    },
+    statLabel: {
+        fontSize: 12,
+        color: '#757575',
+    },
+    statDivider: {
+        width: 1,
+        backgroundColor: '#E0E0E0',
+    },
+    section: {
+        padding: 16,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#212121',
+    },
+    viewAll: {
+        color: '#1E88E5',
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        padding: 24,
+    },
+    emptyText: {
+        fontSize: 16,
+        color: '#757575',
+        marginBottom: 16,
+    },
+    postButton: {
+        backgroundColor: '#1E88E5',
+    },
+    jobCard: {
+        marginBottom: 16,
+        elevation: 2,
+    },
+    jobHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    jobTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        flex: 1,
+        marginRight: 8,
+    },
+    statusChip: {
+        height: 24,
+    },
+    jobDetails: {
+        marginBottom: 8,
+    },
+    jobDetail: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    jobDetailText: {
+        marginLeft: 4,
+        color: '#757575',
+    },
+    jobStats: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        borderTopWidth: 1,
+        borderTopColor: '#E0E0E0',
+        paddingTop: 8,
+    },
+    jobStat: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    jobStatText: {
+        marginLeft: 4,
+        color: '#1E88E5',
+    },
+    fab: {
+        position: 'absolute',
+        right: 16,
+        bottom: 16,
+        backgroundColor: '#1E88E5',
+    },
 }
 
 export default HomeScreen
