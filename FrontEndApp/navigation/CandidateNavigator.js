@@ -3,9 +3,9 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { createStackNavigator } from "@react-navigation/stack"
 
 // Screens
-// import ApplicationStatusScreen from "../screen/candidate/ApplicationStatusScreen"
+import ApplicationStatusScreen from "../screen/candidate/ApplicationStatusScreen"
 // import ApplyScreen from "../screen/candidate/ApplyScreen"
-// import ChatScreen from "../screen/candidate/ChatScreen"
+import ChatScreen from "../screen/candidate/ChatScreen"
 import FavoriteScreen from "../screen/candidate/FavoriteScreen"
 import HomeScreen from "../screen/candidate/HomeScreen"
 import JobDetailScreen from "../screen/candidate/JobDetailScreen"
@@ -26,8 +26,8 @@ const HomeStack = () => {
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="JobDetail" component={JobDetailScreen} />
             {/* <Stack.Screen name="Apply" component={ApplyScreen} /> */}
-            {/* <Stack.Screen name="ApplicationStatus" component={ApplicationStatusScreen} /> */}
-            {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
+            <Stack.Screen name="ApplicationStatus" component={ApplicationStatusScreen} />
+            <Stack.Screen name="Chat" component={ChatScreen} />
         </Stack.Navigator>
     )
 }

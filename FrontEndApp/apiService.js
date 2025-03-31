@@ -34,7 +34,7 @@ export const getCandidateUser  = async(token) => {
             method: "GET",
             headers: getAuthHeaders(token),
         });
-        return await response.json();
+        return await response;
     } catch(error) {
         console.log(" Lỗi khi tải user: ", error)
         logout();
@@ -47,7 +47,7 @@ export const getRecruiterUser  = async(token) => {
             method: "GET",
             headers: getAuthHeaders(token),
         });
-        return await response.json();
+        return await response;
     } catch(error) {
         console.log(" Lỗi khi tải user: ", error)
         logout();

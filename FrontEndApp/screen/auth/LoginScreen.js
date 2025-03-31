@@ -1,10 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
+import axios from 'axios';
 import React, { useContext, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Image, StyleSheet, View } from 'react-native';
 import { Text, Title, useTheme } from 'react-native-paper';
 import * as yup from 'yup';
+import { API_URL } from '../../config';
 
 import { AuthContext } from "../../contexts/AuthContext";
 
@@ -24,8 +26,6 @@ const loginSchema = yup.object().shape({
 
 const LoginScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
-    const [role, setRole] = useState("recruiter"); // Mặc định là nhà tuyển dụng
-
     const { login, error } = useContext(AuthContext);
     const theme = useTheme();
 
@@ -40,11 +40,39 @@ const LoginScreen = ({ navigation }) => {
 
     // ✅ Xử lý đăng nhập
     const onSubmit = async (data) => {
-        setLoading(true);
         try {
-            await login(data.email, data.password, role);
+            setLoading(true);
+            const jsondata = {
+                client_id: "5Ij2qZoARk5FABxYjlDdvl2hcdJZuT8qsGndyLSv",
+                client_secret: "qwS46Po2kd3rQ6fSv06pJ9WX5pDKiaTuCxzNVd6b8eTQEKGqOS0PLbGqA1pMZsysukCnMWrATw61Hkw1DT52a3qo53K5ibuOTeO63zejzQTqxvmSKQK8m4mBUr00kLpa",
+                username: data.email,
+                password: data.password,
+                grant_type: "password",
+            };
+
+            console.log("Request gửi đi:", jsondata);
+
+            const response = await axios.post(`${API_URL}/oauth/token/`, jsondata);
+            const { access_token, refresh_token, user } = response.data;
+
+            console.log("===========================\n",access_token, refresh_token,user)
+            await login(access_token, refresh_token, user);
+
+
         } catch (error) {
-            console.error('Lỗi đăng nhập:', error);
+            if (error.response) {
+                // Lỗi từ server (ví dụ: 400, 401, 403, ...)
+                console.log("Lỗi response:", error.response.data);
+                setError(error.response.data.detail || "Đăng nhập thất bại, vui lòng kiểm tra lại!");
+            } else if (error.request) {
+                // Không có phản hồi từ server (mất mạng, lỗi API)
+                console.log("Lỗi request:", error.request);
+                setError("Không thể kết nối đến máy chủ, vui lòng thử lại sau.");
+            } else {
+                // Lỗi bất thường
+                console.log("Lỗi khác:", error.message);
+                setError("Có lỗi xảy ra, vui lòng thử lại!");
+            }
         } finally {
             setLoading(false);
         }
@@ -71,24 +99,6 @@ const LoginScreen = ({ navigation }) => {
                         <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
                     </View>
                 )}
-
-                {/* Chọn vai trò */}
-                <View style={styles.roleContainer}>
-                    <AppButton
-                        mode={role === "recruiter" ? "contained" : "outlined"}
-                        onPress={() => setRole("recruiter")}
-                        style={styles.toggleButton}
-                    >
-                        Nhà tuyển dụng
-                    </AppButton>
-                    <AppButton
-                        mode={role === "candidate" ? "contained" : "outlined"}
-                        onPress={() => setRole("candidate")}
-                        style={styles.toggleButton}
-                    >
-                        Người tìm việc
-                    </AppButton>
-                </View>
 
                 {/* Form đăng nhập */}
                 <View style={styles.formContainer}>

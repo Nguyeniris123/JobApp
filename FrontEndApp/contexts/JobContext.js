@@ -13,7 +13,7 @@ export const JobProvider = ({ children }) => {
     const fetchJobs = async () => {
         try {
             setLoading(true);
-            const response = await axios.get(`${API_URL}/api/jobs/`);
+            const response = await axios.get(`${API_URL}/jobpost/`);
             setJobs(response.data);
         } catch (error) {
             setError(error.response?.data?.detail || 'Lỗi khi lấy danh sách công việc!');
@@ -26,7 +26,7 @@ export const JobProvider = ({ children }) => {
     const fetchJobById = async (jobId) => {
         try {
             setLoading(true);
-            const response = await axios.get(`${API_URL}/api/jobs/${jobId}/`);
+            const response = await axios.get(`${API_URL}/jobpost/${jobId}/`);
             return response.data;
         } catch (error) {
             setError(error.response?.data?.detail || 'Lỗi khi lấy thông tin công việc!');
@@ -40,7 +40,7 @@ export const JobProvider = ({ children }) => {
     const createJob = async (jobData) => {
         try {
             setLoading(true);
-            const response = await axios.post(`${API_URL}/api/jobs/`, jobData);
+            const response = await axios.post(`${API_URL}/jobpost/`, jobData);
             setJobs([...jobs, response.data]);
             return response.data;
         } catch (error) {
@@ -55,7 +55,7 @@ export const JobProvider = ({ children }) => {
     const deleteJob = async (jobId) => {
         try {
             setLoading(true);
-            await axios.delete(`${API_URL}/api/jobs/${jobId}/`);
+            await axios.delete(`${API_URL}/jobpost/${jobId}/`);
             setJobs(jobs.filter(job => job.id !== jobId));
         } catch (error) {
             setError(error.response?.data?.detail || 'Lỗi khi xóa công việc!');

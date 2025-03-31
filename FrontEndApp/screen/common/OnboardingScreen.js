@@ -35,7 +35,7 @@ const OnboardingScreen = ({ navigation }) => {
         const checkOnboarding = async () => {
             const hasSeenOnboarding = await AsyncStorage.getItem("hasSeenOnboarding")
             if (hasSeenOnboarding) {
-                navigation.replace("BottomTabs")
+                navigation.replace("Home")
             }
         }
         checkOnboarding()
@@ -67,13 +67,13 @@ const OnboardingScreen = ({ navigation }) => {
             setCurrentIndex(currentIndex + 1)
         } else {
             await AsyncStorage.setItem("hasSeenOnboarding", "true")
-            navigation.replace("BottomTabs")
+            navigation.replace("Home")
         }
     }
 
     const handleSkip = async () => {
         await AsyncStorage.setItem("hasSeenOnboarding", "true")
-        navigation.replace("BottomTabs")
+        navigation.replace("Home")
     }
 
     return (

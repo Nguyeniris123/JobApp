@@ -1,18 +1,16 @@
 import { useContext, useEffect, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Avatar, Chip, Divider, Searchbar, Text } from "react-native-paper";
+import { FlatList, StyleSheet, View } from "react-native";
+import { Avatar, Chip, Divider, Text } from "react-native-paper";
 import AppButton from "../../components/ui/AppButton";
 import AppCard from "../../components/ui/AppCard";
-import { AuthContext } from "../../contexts/AuthContext"; // Thêm context kiểm tra đăng nhập
+import { AuthContext } from "../../contexts/AuthContext";
 import { JobContext } from "../../contexts/JobContext";
 
 const HomeScreen = ({ navigation }) => {
-  const { state, fetchJobs, searchJobs, setFilters, clearFilters } = useContext(JobContext);
-  const { user } = useContext(AuthContext); // Kiểm tra trạng thái đăng nhập
-  const { filteredJobs, loading } = state;
+  const { loading, fetchJobs, setFilters, clearFilters } = useContext(JobContext);
+  const { user } = useContext(AuthContext);
 
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
 
   const categories = ["Tất cả", "Bán hàng", "Giáo dục", "Dịch vụ", "IT", "Marketing"];
@@ -27,11 +25,6 @@ const HomeScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const onChangeSearch = (query) => {
-    setSearchQuery(query);
-    searchJobs(query);
-  };
-
   const handleCategorySelect = (category) => {
     if (category === "Tất cả" || category === selectedCategory) {
       setSelectedCategory(null);
@@ -39,15 +32,6 @@ const HomeScreen = ({ navigation }) => {
     } else {
       setSelectedCategory(category);
       setFilters({ category });
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "applied": return "#1E88E5";
-      case "pending": return "#FFA000";
-      case "rejected": return "#D32F2F";
-      default: return "#757575";
     }
   };
 
@@ -93,13 +77,6 @@ const HomeScreen = ({ navigation }) => {
         <Text style={styles.subtitle}>Tìm việc làm bán thời gian phù hợp với bạn</Text>
       </View>
 
-      <Searchbar
-        placeholder="Tìm kiếm công việc..."
-        onChangeText={onChangeSearch}
-        value={searchQuery}
-        style={styles.searchBar}
-      />
-
       <View style={styles.categoriesContainer}>
         <FlatList
           data={categories}
@@ -119,7 +96,7 @@ const HomeScreen = ({ navigation }) => {
         />
       </View>
 
-      {loading ? (
+      {/* {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1E88E5" />
         </View>
@@ -136,7 +113,7 @@ const HomeScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
-      )}
+      )} */}
     </View>
   );
 };
@@ -161,12 +138,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#FFFFFF",
     opacity: 0.8,
-  },
-  searchBar: {
-    margin: 16,
-    elevation: 2,
-    borderRadius: 8,
-    marginTop: -20,
   },
   categoriesContainer: {
     paddingHorizontal: 16,
@@ -208,25 +179,6 @@ const styles = StyleSheet.create({
   },
   jobTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-  },
-  companyName: {
-    fontSize: 14,
-    color: "#757575",
-  },
-  detailsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-  },
-  detailText: {
-    fontSize: 14,
-    color: "#424242",
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
   },
 });
 

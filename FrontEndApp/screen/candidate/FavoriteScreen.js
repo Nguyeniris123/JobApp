@@ -6,9 +6,8 @@ import { AuthContext } from "../../contexts/AuthContext"; // Thêm AuthContext �
 import { JobContext } from "../../contexts/JobContext";
 
 const FavoriteScreen = ({ navigation }) => {
-    const { state, removeFromFavorites } = useContext(JobContext)
-    const { isLoggedIn } = useContext(AuthContext) // Kiểm tra xem user đã đăng nhập chưa
-    const { favoriteJobs, loading } = state
+    const { loading, removeFromFavorites } = useContext(JobContext)
+    const { isAuthenticated } = useContext(AuthContext) // Kiểm tra xem user đã đăng nhập chưa
     const [refreshing, setRefreshing] = useState(false)
 
     const handleRemoveFavorite = (jobId) => {
@@ -32,7 +31,7 @@ const FavoriteScreen = ({ navigation }) => {
     }
 
     // Kiểm tra nếu chưa đăng nhập
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
         return (
             <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>Bạn cần đăng nhập để sử dụng tính năng này</Text>

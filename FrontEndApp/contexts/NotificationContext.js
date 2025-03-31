@@ -31,7 +31,7 @@ export const NotificationProvider = ({ children }) => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/notifications/`);
+      const response = await axios.get(`${API_URL}/notifications/`);
 
       if (response?.data) {
         setNotifications(response.data);

@@ -1,18 +1,18 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useContext, useState } from "react";
+import { useCallback, useContext, useMemo } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Avatar, Button, Card, Divider, List, Switch, Text } from "react-native-paper";
 import { AuthContext } from "../../contexts/AuthContext";
 
 const ProfileScreen = ({ navigation }) => {
-    const { state } = useContext(AuthContext);
-    const { user } = state;
+    const { user } = useContext(AuthContext);
 
-    const [profileImage, setProfileImage] = useState(user?.avatar || "https://via.placeholder.com/150");
-    const [availableForWork, setAvailableForWork] = useState(user?.availableForWork ?? true);
+    const username = useMemo(() => user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : "Người dùng", [user]);
+    const profileImage = useMemo(() => user?.avatar || "https://via.placeholder.com/150", [user]);
+    const availableForWork = useMemo(() => user?.availableForWork ?? true, [user]);
 
-    const pickImage = async () => {
+    const pickImage = useCallback(async () => {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -20,14 +20,14 @@ const ProfileScreen = ({ navigation }) => {
                 aspect: [1, 1],
                 quality: 1,
             });
-
             if (!result.canceled) {
-                setProfileImage(result.assets[0].uri);
+                // Thực tế có thể cần thêm xử lý cập nhật ảnh lên server
+                console.log("Ảnh đã chọn:", result.assets[0].uri);
             }
         } catch (error) {
-            console.log("Error picking image:", error);
+            console.log("Lỗi chọn ảnh:", error);
         }
-    };
+    }, []);
 
     return (
         <ScrollView style={styles.container}>
@@ -38,77 +38,26 @@ const ProfileScreen = ({ navigation }) => {
                         <MaterialCommunityIcons name="camera" size={20} color="#FFFFFF" />
                     </View>
                 </TouchableOpacity>
-                <Text style={styles.name}>{user?.name || "Người dùng"}</Text>
+                <Text style={styles.name}>{username}</Text>
                 <Text style={styles.email}>{user?.email || "user@example.com"}</Text>
-
                 <View style={styles.statusContainer}>
                     <Text style={styles.statusLabel}>Trạng thái tìm việc:</Text>
                     <View style={styles.statusToggle}>
                         <Text style={styles.statusText}>{availableForWork ? "Đang tìm việc" : "Không tìm việc"}</Text>
-                        <Switch value={availableForWork} onValueChange={setAvailableForWork} color="#1E88E5" />
+                        <Switch value={availableForWork} onValueChange={() => { }} color="#1E88E5" />
                     </View>
                 </View>
             </View>
 
-            <Card style={styles.card}>
-                <Card.Content>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Thông tin cá nhân</Text>
-                    </View>
+            <CardSection title="Thông tin cá nhân" items={[
+                { title: "Số điện thoại", description: user?.phone || "Chưa cập nhật", icon: "phone" },
+                { title: "Địa chỉ", description: user?.address || "Chưa cập nhật", icon: "map-marker" },
+                { title: "Ngày sinh", description: user?.dob || "Chưa cập nhật", icon: "calendar" }
+            ]} />
 
-                    <List.Item title="Số điện thoại" description={user?.phone || "Chưa cập nhật"} left={(props) => <List.Icon {...props} icon="phone" />} />
-                    <Divider />
-                    <List.Item title="Địa chỉ" description={user?.address || "Chưa cập nhật"} left={(props) => <List.Icon {...props} icon="map-marker" />} />
-                    <Divider />
-                    <List.Item title="Ngày sinh" description={user?.dob || "Chưa cập nhật"} left={(props) => <List.Icon {...props} icon="calendar" />} />
-                </Card.Content>
-            </Card>
-
-            <Card style={styles.card}>
-                <Card.Content>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Kỹ năng</Text>
-                    </View>
-                    <View style={styles.skillsContainer}>
-                        {(user?.skills || []).map((skill, index) => (
-                            <View key={index} style={styles.skillItem}>
-                                <Text style={styles.skillText}>{skill}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </Card.Content>
-            </Card>
-
-            <Card style={styles.card}>
-                <Card.Content>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Học vấn</Text>
-                    </View>
-                    {(user?.education || []).map((edu, index) => (
-                        <View key={index} style={styles.educationItem}>
-                            <Text style={styles.schoolName}>{edu.school}</Text>
-                            <Text style={styles.degree}>{edu.degree}</Text>
-                            <Text style={styles.year}>{edu.year}</Text>
-                        </View>
-                    ))}
-                </Card.Content>
-            </Card>
-
-            <Card style={styles.card}>
-                <Card.Content>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Kinh nghiệm làm việc</Text>
-                    </View>
-                    {(user?.experience || []).map((exp, index) => (
-                        <View key={index} style={styles.experienceItem}>
-                            <Text style={styles.companyName}>{exp.company}</Text>
-                            <Text style={styles.position}>{exp.position}</Text>
-                            <Text style={styles.duration}>{exp.duration}</Text>
-                            <Text style={styles.description}>{exp.description}</Text>
-                        </View>
-                    ))}
-                </Card.Content>
-            </Card>
+            <CardSection title="Kỹ năng" items={(user?.skills || []).map(skill => ({ title: skill, icon: "star" }))} />
+            <CardSection title="Học vấn" items={(user?.education || []).map(edu => ({ title: edu.school, description: `${edu.degree} - ${edu.year}`, icon: "school" }))} />
+            <CardSection title="Kinh nghiệm làm việc" items={(user?.experience || []).map(exp => ({ title: exp.company, description: `${exp.position} (${exp.duration})\n${exp.description}`, icon: "briefcase" }))} />
 
             <View style={styles.buttonContainer}>
                 <Button mode="contained" onPress={() => navigation.navigate("Settings")} style={styles.settingsButton} icon="cog">
@@ -118,6 +67,20 @@ const ProfileScreen = ({ navigation }) => {
         </ScrollView>
     );
 };
+
+const CardSection = ({ title, items }) => (
+    <Card style={styles.card}>
+        <Card.Content>
+            <Text style={styles.sectionTitle}>{title}</Text>
+            {items.map((item, index) => (
+                <View key={index}>
+                    <List.Item title={item.title} description={item.description} left={(props) => <List.Icon {...props} icon={item.icon} />} />
+                    {index < items.length - 1 && <Divider />}
+                </View>
+            ))}
+        </Card.Content>
+    </Card>
+);
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#F5F5F5" },
@@ -131,13 +94,9 @@ const styles = StyleSheet.create({
     statusToggle: { flexDirection: "row", alignItems: "center" },
     statusText: { marginRight: 10, color: "#FFFFFF", fontSize: 16 },
     card: { margin: 10 },
-    sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-    sectionTitle: { fontSize: 18, fontWeight: "bold" },
-    skillsContainer: { flexDirection: "row", flexWrap: "wrap" },
-    skillItem: { backgroundColor: "#E0E0E0", padding: 8, borderRadius: 5, marginRight: 5, marginBottom: 5 },
-    skillText: { fontSize: 14 },
-    buttonContainer: { alignItems: "center", margin: 20 },
-    settingsButton: { backgroundColor: "#1E88E5" },
+    sectionTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
+    buttonContainer: { margin: 20 },
+    settingsButton: { marginTop: 10 }
 });
 
 export default ProfileScreen;
