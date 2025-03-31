@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from oauth2_provider.models import AccessToken
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
-
 from .models import User, Company, CompanyImage, JobPost, Application, Follow
 
 
@@ -124,7 +123,7 @@ class CustomOAuth2TokenSerializer(serializers.ModelSerializer):
 class JobPostSerializer(serializers.ModelSerializer):
     class Meta:
         model = JobPost
-        fields = ['title', 'specialized', 'description', 'salary', 'working_hours', 'location']
+        fields = ['id','title', 'specialized', 'description', 'salary', 'working_hours', 'location']
 
     def create(self, validated_data):
         # Gán recruiter là user hiện tại
@@ -134,7 +133,7 @@ class JobPostSerializer(serializers.ModelSerializer):
 class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
-        fields = ["job", "cv", "status"]
+        fields = ['id', "job", "cv", "status"]
 
     def create(self, validated_data):
         request = self.context["request"]
