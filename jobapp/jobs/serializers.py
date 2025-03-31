@@ -2,14 +2,8 @@ from django.contrib.auth import get_user_model
 from oauth2_provider.models import AccessToken
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
-
 from .models import User, Company, CompanyImage, JobPost, Application, Follow
 
-
-# class CompanySerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Company
-#         fields = ['name', 'tax_code', 'description', 'location', 'images']
 
 class CandidateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -121,10 +115,17 @@ class CustomOAuth2TokenSerializer(serializers.ModelSerializer):
             "avatar": obj.user.avatar.url if obj.user.avatar else "",
         }
 
+class CompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        fields = ['name', 'tax_code', 'description', 'location', 'is_verified']
+
 class JobPostSerializer(serializers.ModelSerializer):
+    company = CompanySerializer(source='recruiter.company', read_only=True)  # Lấy thông tin công ty từ recruiter
+
     class Meta:
         model = JobPost
-        fields = ['title', 'specialized', 'description', 'salary', 'working_hours', 'location']
+        fields = ['id', 'title', 'specialized', 'description', 'salary', 'working_hours', 'location', 'company']
 
     def create(self, validated_data):
         # Gán recruiter là user hiện tại
@@ -134,7 +135,7 @@ class JobPostSerializer(serializers.ModelSerializer):
 class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
-        fields = ["job", "cv", "status"]
+        fields = ['id', "job", "cv", "status"]
 
     def create(self, validated_data):
         request = self.context["request"]

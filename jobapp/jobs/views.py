@@ -15,7 +15,7 @@ import json
 
 
 class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
-    queryset = User.objects.filter(is_active=True)
+    queryset = User.objects.filter(is_active=True, role='candidate')  # Chỉ lấy ứng viên
     serializer_class = CandidateSerializer
     parser_classes = [parsers.MultiPartParser]
 
@@ -26,11 +26,13 @@ class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
 
     @action(methods=['get'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
+        if request.user.role != 'candidate':  # Chặn nhà tuyển dụng truy cập
+            return Response({"detail": "Bạn không có quyền truy cập."}, status=status.HTTP_403_FORBIDDEN)
         return Response(self.serializer_class(request.user).data)
 
 
 class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
-    queryset = User.objects.filter(is_active=True)
+    queryset = User.objects.filter(is_active=True, role='recruiter')  # Chỉ lấy nhà tuyển dụng
     serializer_class = RecruiterSerializer
     parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
@@ -41,6 +43,8 @@ class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
 
     @action(methods=['get'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
+        if request.user.role != 'recruiter':  # Chặn ứng viên truy cập
+            return Response({"detail": "Bạn không có quyền truy cập."}, status=status.HTTP_403_FORBIDDEN)
         return Response(self.serializer_class(request.user).data)
 
 
