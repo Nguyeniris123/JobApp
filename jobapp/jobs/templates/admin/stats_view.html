@@ -1,33 +1,172 @@
 {% extends 'admin/base_site.html' %}
-{% block content %}
-<h1>STAT PART-TIME JOB</h1>
 
-<div style="width: 50%;">
-    <canvas id="myChart"></canvas>
+{% block content %}
+<div class="stats-container">
+    <h1>THỐNG KÊ CÔNG VIỆC BÁN THỜI GIAN</h1>
+
+    <!-- Form chọn khoảng thời gian -->
+    <form method="GET" action="{% url 'admin:jobs-stats' %}" class="filter-form">
+        <div class="form-group">
+            <label for="start_date">Từ ngày:</label>
+            <input type="date" id="start_date" name="start_date" value="{{ start_date }}" required>
+        </div>
+        <div class="form-group">
+            <label for="end_date">Đến ngày:</label>
+            <input type="date" id="end_date" name="end_date" value="{{ end_date }}" required>
+        </div>
+        <button type="submit" class="filter-btn">Lọc dữ liệu</button>
+    </form>
+
+    <!-- Biểu đồ -->
+    <div class="chart-wrapper">
+        <canvas id="myChart"></canvas>
+    </div>
 </div>
 
+<!-- Thêm Chart.js qua CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
     const ctx = document.getElementById('myChart');
 
+    // Dữ liệu từ context
+    const labels = {{ labels|safe }};
+    const jobData = {{ job_data|safe }};
+    const recruiterData = {{ recruiter_data|safe }};
+    const candidateData = {{ candidate_data|safe }};
+
     new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
-        datasets: [{
-          label: '# of Votes',
-          data: [12, 19, 3, 5, 2, 3],
-          borderWidth: 1
-        }]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true
-          }
+        type: 'bar',  // Biểu đồ cột
+        data: {
+            labels: labels,  // Tháng/năm
+            datasets: [
+                {
+                    label: 'Số lượng việc làm',
+                    data: jobData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Số lượng nhà tuyển dụng',
+                    data: recruiterData,
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Số lượng ứng viên',
+                    data: candidateData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Số lượng',
+                        font: { size: 14 }
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Thời gian (Tháng/Năm)',
+                        font: { size: 14 }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: 12 }
+                    }
+                },
+                tooltip: {
+                    enabled: true,
+                    mode: 'index',
+                    intersect: false
+                }
+            }
         }
-      }
     });
 </script>
+
+<style>
+    .stats-container {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        color: #2c3e50;
+        font-size: 24px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .filter-form {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        justify-content: center;
+        align-items: center;
+        background-color: #f9f9f9;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .form-group label {
+        font-size: 14px;
+        color: #34495e;
+    }
+
+    .form-group input[type="date"] {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 150px;
+    }
+
+    .filter-btn {
+        padding: 8px 20px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.3s;
+    }
+
+    .filter-btn:hover {
+        background-color: #2980b9;
+    }
+
+    .chart-wrapper {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        height: 400px;
+    }
+</style>
 {% endblock %}
