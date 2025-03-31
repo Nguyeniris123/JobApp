@@ -1,5 +1,5 @@
 from django.contrib import admin
-from jobs.models import (User, Company, CompanyImage, JobPost, Application, Review, FollowCompany, VerificationDocument)
+from jobs.models import (User, Company, CompanyImage, JobPost, Application, Follow, Review, VerificationDocument)
 from django.db.models import Count
 from django.template.response import TemplateResponse
 from django.urls import path
@@ -25,5 +25,5 @@ admin_site.register(CompanyImage)
 admin_site.register(JobPost)
 admin_site.register(Application)
 admin_site.register(Review)
-admin_site.register(FollowCompany)
+admin_site.register(Follow)
 admin_site.register(VerificationDocument)

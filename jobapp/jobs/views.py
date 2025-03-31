@@ -1,12 +1,13 @@
 from django.http import JsonResponse
 from rest_framework import viewsets, status, generics, parsers, permissions, filters
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.decorators import action, permission_classes
 from . import serializers, perms, paginators
-from .perms import ApplicationPerms
+from .perms import ApplicationPerms, IsCandidate
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, \
-    CustomOAuth2TokenSerializer
-from .models import User, JobPost, Application
+    CustomOAuth2TokenSerializer, FollowSerializer
+from .models import User, JobPost, Application, Follow
 from django_filters.rest_framework import DjangoFilterBackend
 from oauth2_provider.models import AccessToken
 from oauth2_provider.views import TokenView
@@ -15,7 +16,7 @@ import json
 
 class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
     queryset = User.objects.filter(is_active=True)
-    serializer_class = serializers.CandidateSerializer
+    serializer_class = CandidateSerializer
     parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
@@ -27,9 +28,10 @@ class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
     def get_current_user(self, request):
         return Response(self.serializer_class(request.user).data)
 
+
 class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
     queryset = User.objects.filter(is_active=True)
-    serializer_class = serializers.RecruiterSerializer
+    serializer_class = RecruiterSerializer
     parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
     def get_permissions(self):
@@ -40,6 +42,7 @@ class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
     @action(methods=['get'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
         return Response(self.serializer_class(request.user).data)
+
 
 class CustomOAuth2TokenView(TokenView):
     def post(self, request, *args, **kwargs):
@@ -64,7 +67,7 @@ class CustomOAuth2TokenView(TokenView):
 
 class JobPostViewSet(viewsets.ModelViewSet):
     queryset = JobPost.objects.filter(active=True)
-    serializer_class = serializers.JobPostSerializer
+    serializer_class = JobPostSerializer
     pagination_class = paginators.JobPostPaginator
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
@@ -85,37 +88,57 @@ class JobPostViewSet(viewsets.ModelViewSet):
     # Tìm kiếm theo tiêu đề, ngành nghề, địa điểm
     search_fields = ['title', 'specialized', 'location']
 
-
     def get_permissions(self):
         # Chỉ recruiter mới được đăng, sửa, xóa
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [perms.JobPostPerms()]
+            return [perms.IsRecruiter()]
         # Ai cũng xem được danh sách và chi tiết tin tuyển dụng
         return [permissions.AllowAny()]
 
+
 class ApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationSerializer
-    permission_classes = [ApplicationPerms]
+    http_method_names = ["get", "post", "patch"]  # Không có "delete"
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsCandidate()]  # Chặn recruiter POST
+        return [ApplicationPerms()]  # GET thì áp dụng quyền bình thường
 
     def get_queryset(self):
         # Lọc danh sách đơn ứng tuyển dựa trên role của user
-        user = self.request.user #lấy thông tin user hiện tại
+        user = self.request.user  # lấy thông tin user hiện tại
         if user.role == "candidate":
             return Application.objects.filter(applicant=user, active=True)
         elif user.role == "recruiter":
             return Application.objects.filter(job__recruiter=user, active=True)
-        return Application.objects.none() #Nếu không phải candidate hoặc recruiter, trả về queryset rỗng, không thấy đơn ứng tuyển nào
+        return Application.objects.none()  # Nếu không phải candidate hoặc recruiter, trả về queryset rỗng, không thấy đơn ứng tuyển nào
 
-    @action(detail=True, methods=["patch"], permission_classes=[ApplicationPerms])
-    def update_status(self, request, pk=None):
-        # Nhà tuyển dụng cập nhật trạng thái đơn ứng tuyển
-        application = self.get_object()
+    # @action(detail=True, methods=["patch"], url_path='update-status', permission_classes=[ApplicationPerms])
+    # def update_status(self, request, pk=None):
+    #     # Nhà tuyển dụng cập nhật trạng thái đơn ứng tuyển
+    #     application = self.get_object()
+    #
+    #     # Không cần kiểm tra quyền vì đã có `ApplicationPerms`
+    #     new_status = request.data.get("status")
+    #     if new_status not in ["pending", "accepted", "rejected"]:
+    #         return Response({"error": "Trạng thái không hợp lệ!"}, status=status.HTTP_400_BAD_REQUEST)
+    #
+    #     application.status = new_status
+    #     application.save(update_fields=["status"])
+    #     return Response(ApplicationSerializer(application).data, status=status.HTTP_200_OK)
 
-        # Không cần kiểm tra quyền vì đã có `ApplicationPerms`
-        new_status = request.data.get("status")
-        if new_status not in ["pending", "accepted", "rejected"]:
-            return Response({"error": "Trạng thái không hợp lệ!"}, status=status.HTTP_400_BAD_REQUEST)
+class FollowViewSet(viewsets.ModelViewSet):
+    serializer_class = FollowSerializer
+    permission_classes = [IsCandidate]
+    http_method_names = ["get", "post", "delete"]
 
-        application.status = new_status
-        application.save(update_fields=["status"])
-        return Response(ApplicationSerializer(application).data, status=status.HTTP_200_OK)
+    def get_queryset(self):
+        # Ứng viên chỉ xem danh sách những nhà tuyển dụng mình đang theo dõi
+        return Follow.objects.filter(follower=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        # Ứng viên có thể bỏ theo dõi nhà tuyển dụng
+        instance = self.get_object()
+        instance.delete()
+        return Response({"detail": "Đã hủy theo dõi"}, status=status.HTTP_204_NO_CONTENT)

@@ -78,6 +78,17 @@ class Application(BaseModel):
     def __str__(self):
         return f"{self.applicant.username} - {self.job.title} - {self.status}"
 
+class Follow(BaseModel):
+    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name="following")  # Người theo dõi
+    recruiter = models.ForeignKey(User, on_delete=models.CASCADE, related_name="followers")  # Nhà tuyển dụng được theo dõi
+
+    class Meta:
+        unique_together = ('follower', 'recruiter')  # Một ứng viên chỉ follow một recruiter một lần
+
+    def __str__(self):
+        return f"{self.follower} follows {self.recruiter}"
+
+
 class Review(BaseModel):
     reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="given_reviews")
     reviewed_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_reviews")
@@ -86,14 +97,6 @@ class Review(BaseModel):
 
     def __str__(self):
         return f"{self.reviewer.username} đánh giá {self.reviewed_user.username}"
-
-
-class FollowCompany(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="follows")
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="followers")
-
-    def __str__(self):
-        return f"{self.user.username} follows {self.company.name}"
 
 
 class VerificationStatus(models.TextChoices):
