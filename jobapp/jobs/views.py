@@ -134,11 +134,18 @@ class JobPostViewSet(viewsets.ModelViewSet):
 
 class ApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationSerializer
-    queryset = Application.objects.filter(active=True)
     http_method_names = ["get", "post", "patch"]
 
+    def get_queryset(self):
+        # Lọc danh sách đơn ứng tuyển dựa trên role của user
+        user = self.request.user  # lấy thông tin user hiện tại
+        if user.role == "candidate":
+            return Application.objects.filter(applicant=user, active=True)
+        elif user.role == "recruiter":
+            return Application.objects.filter(job__recruiter=user, active=True)
+
     def get_permissions(self):
-        if self.action == "create":
+        if self.action in ["list", "create", "retrieve", "update"]:
             return [IsCandidate()]  # Chỉ ứng viên mới có thể tạo đơn ứng tuyển
         if self.action in ["list_for_recruiter", "accept_application", "reject_application"]:
             return [IsRecruiterApplication()]  # Chỉ nhà tuyển dụng mới có thể xem, sửa danh sách đơn ứng tuyển
