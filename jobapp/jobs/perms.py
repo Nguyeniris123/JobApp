@@ -21,13 +21,16 @@ class IsCandidate(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == "candidate"
 
+
+class IsRecruiterApplication(permissions.BasePermission):
+    # Chỉ cho phép nhà tuyển dụng (recruiter) truy cập
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == "recruiter"
+
+    def has_object_permission(self, request, view, obj):
+        #Nhà tuyển dụng chỉ có thể thao tác trên đơn ứng tuyển thuộc job của họ
+        return obj.job.recruiter == request.user
+
 class ApplicationPerms(permissions.IsAuthenticated):
     def has_permission(self, request, view):
         return request.user.is_authenticated
-
-    def has_object_permission(self, request, view, obj):
-        if request.user.role == "candidate":
-            return obj.applicant == request.user  # Ứng viên chỉ xem đơn của chính họ
-        elif request.user.role == "recruiter":
-            return obj.job.recruiter == request.user  # Nhà tuyển dụng duyệt đơn ứng tuyển vào job của họ
-        return False

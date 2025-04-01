@@ -158,15 +158,19 @@ class ApplicationSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         user = self.context["request"].user
 
+        # Chặn thay đổi job_id cho cả ứng viên và nhà tuyển dụng
+        if "job" in validated_data and instance.job.id != validated_data["job"].id:
+            raise PermissionDenied("Không thể thay đổi công việc đã ứng tuyển!")
+
         if user.role == "candidate":
             if "status" in validated_data:
                 raise PermissionDenied("Ứng viên không thể thay đổi trạng thái đơn ứng tuyển!")
-            return super().update(instance, validated_data)
+            return super().update(instance, {"cv": validated_data.get("cv", instance.cv)})  # Chỉ cập nhật CV
 
         elif user.role == "recruiter":
             if "cv" in validated_data:
                 raise PermissionDenied("Nhà tuyển dụng không thể thay đổi CV của ứng viên!")
-            return super().update(instance, validated_data)
+            return super().update(instance,{"status": validated_data.get("status", instance.status)})  # Chỉ cập nhật trạng thái
 
         raise PermissionDenied("Bạn không có quyền cập nhật đơn ứng tuyển này!")
 
