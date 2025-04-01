@@ -178,9 +178,11 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
+    recruiter_company = CompanySerializer(source="recruiter.company", read_only=True)
+
     class Meta:
         model = Follow
-        fields = ["id", "follower", "recruiter", "created_date"]
+        fields = ["id", "follower", "recruiter", "recruiter_company", "created_date"]
         read_only_fields = ["follower"]  # Đảm bảo user không thể chỉnh follower (chỉ theo dõi chính mình)
 
     def validate(self, attrs):
