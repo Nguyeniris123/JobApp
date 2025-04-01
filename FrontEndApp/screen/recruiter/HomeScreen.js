@@ -1,9 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import axios from "axios"
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { ScrollView, TouchableOpacity, View } from "react-native"
 import { ActivityIndicator, Avatar, Button, Card, Chip, FAB, Text } from "react-native-paper"
-import { API_URL } from "../../config"
+import { JobContext } from "../../contexts/JobContext"
 
 const HomeScreen = ({ navigation }) => {
     const [jobs, setJobs] = useState([])
@@ -15,11 +14,13 @@ const HomeScreen = ({ navigation }) => {
         newApplicants: 0,
     })
 
+    const { fetchRecruiterJobs } = useContext(JobContext)
+
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get(API_URL)
-                const jobsData = response.data
+                const token = "your_auth_token_here"
+                const jobsData = await fetchRecruiterJobs(token)
 
                 setJobs(jobsData)
 
@@ -32,7 +33,7 @@ const HomeScreen = ({ navigation }) => {
                     totalJobs,
                     activeJobs,
                     totalApplicants,
-                    newApplicants: 3, // Giữ nguyên giá trị mock cho ứng viên mới
+                    newApplicants: 3,
                 })
             } catch (error) {
                 console.error("Lỗi khi lấy dữ liệu:", error)

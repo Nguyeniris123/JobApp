@@ -1,8 +1,10 @@
 "use client"
 
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import axios from 'axios'
 import * as ImagePicker from "expo-image-picker"
-import { useContext, useState } from "react"
+import { useContext, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native"
 import { Button, Card, Chip, Divider, HelperText, Snackbar, Text, TextInput } from "react-native-paper"
 import { AuthContext } from "../../contexts/AuthContext"
@@ -12,25 +14,44 @@ const CompanyProfileScreen = ({ navigation }) => {
     const { user } = state
     const { t } = useTranslation()
 
-    // Lấy thông tin công ty từ user nếu có, nếu không thì dùng dữ liệu mẫu
-    const initialCompanyData = user?.company || {
-        name: "Công ty ABC",
+    // Default empty company data
+    const emptyCompanyData = {
+        name: "",
         logo: "https://via.placeholder.com/150",
-        industry: "Công nghệ thông tin",
-        size: "50-200 nhân viên",
-        website: "www.companyabc.com",
-        description: "Công ty chuyên về lĩnh vực phát triển phần mềm.",
-        address: "Hà Nội, Việt Nam",
-        phone: "0987654321",
-        email: "contact@companyabc.com",
+        industry: "",
+        size: "",
+        website: "",
+        description: "",
+        address: "",
+        phone: "",
+        email: "",
     }
 
-    const [companyData, setCompanyData] = useState(initialCompanyData)
-    const [logo, setLogo] = useState(initialCompanyData.logo)
+    const [companyData, setCompanyData] = useState(emptyCompanyData)
+    const [logo, setLogo] = useState(emptyCompanyData.logo)
     const [editing, setEditing] = useState(false)
     const [errors, setErrors] = useState({})
     const [snackbarVisible, setSnackbarVisible] = useState(false)
     const [snackbarMessage, setSnackbarMessage] = useState("")
+
+    // Fetch company data on component mount
+    useEffect(() => {
+        fetchCompanyData()
+    }, [])
+
+    const fetchCompanyData = async () => {
+        try {
+            const response = await axios.get('http://192.168.1.5:8000/company/profile/')
+            if (response.data) {
+                setCompanyData(response.data)
+                setLogo(response.data.logo)
+            }
+        } catch (error) {
+            console.error("Error fetching company data:", error)
+            setSnackbarMessage("Không thể tải thông tin công ty")
+            setSnackbarVisible(true)
+        }
+    }
 
     const updateCompanyData = (field, value) => {
         setCompanyData({
@@ -92,28 +113,28 @@ const CompanyProfileScreen = ({ navigation }) => {
         return isValid
     }
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!validateForm()) {
             return
         }
 
-        // Giả lập API call để cập nhật thông tin công ty
-        setTimeout(() => {
-            // Theo dõi sự kiện cập nhật hồ sơ
-            analyticsService.trackEvent("company_profile_updated", {
-                company_name: companyData.name,
-                industry: companyData.industry,
-            })
-
-            setEditing(false)
-            setSnackbarMessage("Cập nhật thông tin công ty thành công")
+        try {
+            const response = await axios.put('http://192.168.1.5:8000/company/profile/', companyData)
+            if (response.data) {
+                setEditing(false)
+                setSnackbarMessage("Cập nhật thông tin công ty thành công")
+                setSnackbarVisible(true)
+                fetchCompanyData() // Refresh data
+            }
+        } catch (error) {
+            console.error("Error updating company data:", error)
+            setSnackbarMessage("Cập nhật thông tin thất bại")
             setSnackbarVisible(true)
-        }, 1000)
+        }
     }
 
     const handleCancel = () => {
-        setCompanyData(initialCompanyData)
-        setLogo(initialCompanyData.logo)
+        fetchCompanyData() // Reload original data
         setEditing(false)
         setErrors({})
     }
