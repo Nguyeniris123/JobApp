@@ -100,6 +100,24 @@ class JobPostViewSet(viewsets.ModelViewSet):
         return [permissions.AllowAny()]
 
 
+    @action(detail=False, methods=['get'], permission_classes=[perms.IsRecruiter])
+    def recruiter_job_post(self, request):
+        # Lấy danh sách JobPost của nhà tuyển dụng hiện tại
+        job_posts = JobPost.objects.filter(recruiter=request.user, active=True)
+
+        # Áp dụng bộ lọc, tìm kiếm, sắp xếp
+        job_posts = self.filter_queryset(job_posts)
+
+        # Phân trang
+        page = self.paginate_queryset(job_posts)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        # Nếu không phân trang, trả về toàn bộ
+        serializer = self.get_serializer(job_posts, many=True)
+        return Response(serializer.data)
+
 class ApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationSerializer
     http_method_names = ["get", "post", "patch"]  # Không có "delete"

@@ -129,14 +129,19 @@ class CompanySerializer(serializers.ModelSerializer):
 
 class JobPostSerializer(serializers.ModelSerializer):
     company = CompanySerializer(source='recruiter.company', read_only=True)  # Lấy thông tin công ty từ recruiter
+    application_count = serializers.SerializerMethodField()
+
 
     class Meta:
         model = JobPost
-        fields = ['id', 'title', 'specialized', 'description', 'salary', 'working_hours', 'location', 'company']
+        fields = ['id', 'title', 'specialized', 'description', 'salary', 'working_hours', 'location', 'company', 'application_count']
 
     def create(self, validated_data):
         validated_data['recruiter'] = self.context['request'].user  # Gán recruiter là user hiện tại
         return super().create(validated_data)
+
+    def get_application_count(self, obj):
+        return obj.applications.count()  # Đếm số lượng Application cho JobPost
 
 class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
