@@ -144,9 +144,13 @@ class JobPostSerializer(serializers.ModelSerializer):
         return obj.applications.count()  # Đếm số lượng Application cho JobPost
 
 class ApplicationSerializer(serializers.ModelSerializer):
+    applicant = CandidateSerializer(read_only=True)
+    job = serializers.PrimaryKeyRelatedField(queryset=JobPost.objects.all(), write_only=True)  # Chỉ nhận job_id khi tạo
+    job_detail = JobPostSerializer(source="job", read_only=True)  # Xuất thông tin job đầy đủ khi trả về
+
     class Meta:
         model = Application
-        fields = ['id', "applicant", "job", "cv", "status"]
+        fields = ['id', "applicant", "job", "job_detail", "cv", "status"]
         read_only_fields = ["applicant", "status", "created_date"]  # Không cần nhập applicant khi gửi request
 
     def create(self, validated_data):
