@@ -4,10 +4,10 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.decorators import action, permission_classes
 from . import serializers, perms, paginators
-from .perms import ApplicationPerms, IsCandidate, IsRecruiterApplication
+from .perms import ApplicationPerms, IsCandidate, IsRecruiterApplication, IsRecruiter, IsRecruiterCompany
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, \
-    CustomOAuth2TokenSerializer, FollowSerializer
-from .models import User, JobPost, Application, Follow
+    CustomOAuth2TokenSerializer, FollowSerializer, CompanySerializer
+from .models import User, JobPost, Application, Follow, Company
 from django_filters.rest_framework import DjangoFilterBackend
 from oauth2_provider.models import AccessToken
 from oauth2_provider.views import TokenView
@@ -46,6 +46,20 @@ class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
         if request.user.role != 'recruiter':  # Chặn ứng viên truy cập
             return Response({"detail": "Bạn không có quyền truy cập."}, status=status.HTTP_403_FORBIDDEN)
         return Response(self.serializer_class(request.user).data)
+
+class CompanyViewSet(viewsets.ModelViewSet):
+    serializer_class = CompanySerializer
+    permission_classes = [IsRecruiterCompany]
+    http_method_names = ["get", "put", "patch"]
+
+    def get_queryset(self):
+        return Company.objects.filter(user=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        company = self.get_object()
+        if company.user != request.user:
+            raise PermissionDenied("Bạn không có quyền chỉnh sửa công ty này!")
+        return super().update(request, *args, **kwargs)
 
 
 class CustomOAuth2TokenView(TokenView):
