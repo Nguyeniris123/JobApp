@@ -1,27 +1,44 @@
 "use client"
 
 import DateTimePicker from "@react-native-community/datetimepicker"
-import { useContext, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { Alert, SafeAreaView, ScrollView, StyleSheet, View } from "react-native"
-import { Button, Chip, HelperText, Surface, Switch, Text } from "react-native-paper"
+import { Button, HelperText, Surface, Switch, Text } from "react-native-paper"
 import AppInput from "../../components/ui/AppInput"
+import { AuthContext } from "../../contexts/AuthContext"
 import { JobContext } from "../../contexts/JobContext"
 
-const PostJobScreen = ({ navigation }) => {
-    const { createJob } = useContext(JobContext)
+const PostJobScreen = ({ navigation, route }) => {
+    const { createJob, updateJob } = useContext(JobContext)
+    const { accessToken } = useContext(AuthContext)
     const [title, setTitle] = useState("")
     const [description, setDescription] = useState("")
     const [location, setLocation] = useState("")
     const [salary, setSalary] = useState("")
-    const [category, setCategory] = useState("")
-    const [type, setType] = useState("")
-    const [hours, setHours] = useState("")
+    const [workingHours, setWorkingHours] = useState("")
     const [requirements, setRequirements] = useState("")
     const [benefits, setBenefits] = useState("")
     const [deadline, setDeadline] = useState(new Date())
     const [showDatePicker, setShowDatePicker] = useState(false)
     const [urgent, setUrgent] = useState(false)
     const [loading, setLoading] = useState(false)
+
+    const isEditMode = route.params?.jobId;
+
+    useEffect(() => {
+        if (isEditMode && route.params.job) {
+            const job = route.params.job;
+            setTitle(job.title);
+            setDescription(job.description);
+            setLocation(job.location);
+            setSalary(job.salary.toString());
+            setWorkingHours(job.working_hours);
+            setRequirements(job.requirements.join('\n'));
+            setBenefits(job.benefits.join('\n'));
+            setDeadline(new Date(job.deadline));
+            setUrgent(job.urgent);
+        }
+    }, [isEditMode]);
 
     const handleDateChange = (event, selectedDate) => {
         const currentDate = selectedDate || deadline
@@ -38,7 +55,7 @@ const PostJobScreen = ({ navigation }) => {
     }
 
     const validateForm = () => {
-        if (!title || !description || !location || !salary || !category || !type || !hours || !requirements || !benefits) {
+        if (!title || !description || !location || !salary || !workingHours || !requirements || !benefits) {
             Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc")
             return false
         }
@@ -46,44 +63,56 @@ const PostJobScreen = ({ navigation }) => {
     }
 
     const handleSubmit = async () => {
-        if (!validateForm()) return
+        if (!validateForm()) return;
 
-        setLoading(true)
+        setLoading(true);
         try {
             const jobData = {
                 title,
                 description,
                 location,
                 salary: Number(salary),
-                category,
-                type,
-                hours,
+                working_hours: workingHours,
                 requirements: requirements.split('\n').filter(req => req.trim()),
                 benefits: benefits.split('\n').filter(ben => ben.trim()),
                 deadline,
                 urgent,
+            };
+
+            let result;
+            if (isEditMode) {
+                result = await updateJob(route.params.jobId, jobData, accessToken);
+            } else {
+                result = await createJob(jobData, accessToken);
             }
 
-            const result = await createJob(jobData)
             if (result) {
-                Alert.alert("Thành công", "Tin tuyển dụng đã được đăng thành công", [
-                    {
-                        text: "OK",
-                        onPress: () => navigation.goBack(),
-                    },
-                ])
+                Alert.alert(
+                    "Thành công",
+                    isEditMode 
+                        ? "Tin tuyển dụng đã được cập nhật thành công"
+                        : "Tin tuyển dụng đã được đăng thành công",
+                    [{ text: "OK", onPress: () => navigation.goBack() }]
+                );
             }
         } catch (error) {
-            Alert.alert("Lỗi", "Không thể đăng tin. Vui lòng thử lại sau.")
+            Alert.alert(
+                "Lỗi",
+                isEditMode
+                    ? "Không thể cập nhật tin. Vui lòng thử lại sau."
+                    : "Không thể đăng tin. Vui lòng thử lại sau."
+            );
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <Surface style={styles.header} elevation={2}>
-                <Text style={styles.title}>Đăng tin tuyển dụng</Text>
+                <Text style={styles.title}>
+                    {isEditMode ? "Chỉnh sửa tin tuyển dụng" : "Đăng tin tuyển dụng"}
+                </Text>
             </Surface>
 
             <ScrollView style={styles.container}>
@@ -122,41 +151,12 @@ const PostJobScreen = ({ navigation }) => {
                             style={styles.input}
                         />
 
-                        <Text style={styles.label}>Danh mục công việc *</Text>
-                        <View style={styles.chipContainer}>
-                            {categories.map((item, index) => (
-                                <Chip
-                                    key={index}
-                                    selected={category === item}
-                                    onPress={() => setCategory(item)}
-                                    style={styles.chip}
-                                    mode="outlined"
-                                >
-                                    {item}
-                                </Chip>
-                            ))}
-                        </View>
-
-                        <Text style={styles.label}>Loại công việc *</Text>
-                        <View style={styles.chipContainer}>
-                            {jobTypes.map((item, index) => (
-                                <Chip
-                                    key={index}
-                                    selected={type === item}
-                                    onPress={() => setType(item)}
-                                    style={styles.chip}
-                                    mode="outlined"
-                                >
-                                    {item}
-                                </Chip>
-                            ))}
-                        </View>
-
                         <AppInput
-                            label="Thời gian làm việc *"
-                            value={hours}
-                            onChangeText={setHours}
-                            placeholder="Ví dụ: 20 giờ/tuần, 9:00-17:00"
+                            label="Số giờ làm việc mỗi tuần *"
+                            value={workingHours}
+                            onChangeText={setWorkingHours}
+                            placeholder="Ví dụ: 20"
+                            keyboardType="numeric"
                             style={styles.input}
                         />
                     </Surface>
@@ -223,7 +223,7 @@ const PostJobScreen = ({ navigation }) => {
                         disabled={loading}
                         contentStyle={styles.submitButtonContent}
                     >
-                        Đăng tin
+                        {isEditMode ? "Cập nhật" : "Đăng tin"}
                     </Button>
                 </View>
             </ScrollView>
@@ -274,15 +274,6 @@ const styles = StyleSheet.create({
         color: '#757575',
         marginBottom: 8,
         marginTop: 8,
-    },
-    chipContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginBottom: 16,
-    },
-    chip: {
-        marginBottom: 8,
     },
     datePickerContainer: {
         marginBottom: 16,

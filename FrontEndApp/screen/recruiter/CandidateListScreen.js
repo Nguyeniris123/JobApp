@@ -1,5 +1,3 @@
-"use client"
-
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useEffect, useState } from "react"
 import { FlatList, ScrollView, StyleSheet, View } from "react-native"

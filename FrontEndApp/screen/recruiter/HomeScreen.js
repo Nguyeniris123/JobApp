@@ -1,30 +1,33 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { useContext, useEffect, useState } from "react"
-import { ScrollView, TouchableOpacity, View } from "react-native"
-import { ActivityIndicator, Avatar, Button, Card, Chip, FAB, Text } from "react-native-paper"
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useContext, useEffect, useMemo, useState } from "react"
+import { Alert, ScrollView, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Avatar, Button, Card, Chip, Dialog, FAB, Portal, Searchbar, Text } from "react-native-paper"
 import { JobContext } from "../../contexts/JobContext"
 
 const HomeScreen = ({ navigation }) => {
     const [jobs, setJobs] = useState([])
     const [loading, setLoading] = useState(true)
+    const [searchQuery, setSearchQuery] = useState('')
     const [stats, setStats] = useState({
         totalJobs: 0,
         activeJobs: 0,
         totalApplicants: 0,
         newApplicants: 0,
     })
+    const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+    const [selectedJob, setSelectedJob] = useState(null);
 
-    const { fetchRecruiterJobs } = useContext(JobContext)
+    const { fetchRecruiterJobs, deleteJob } = useContext(JobContext)
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const token = "your_auth_token_here"
-                const jobsData = await fetchRecruiterJobs(token)
+                const accessToken = await AsyncStorage.getItem('accessToken')
+                const jobsData = await fetchRecruiterJobs(accessToken)
 
                 setJobs(jobsData)
 
-                // Tính toán thống kê
                 const totalJobs = jobsData.length
                 const activeJobs = jobsData.filter((job) => job.status === "active").length
                 const totalApplicants = jobsData.reduce((sum, job) => sum + job.applicants, 0)
@@ -67,6 +70,48 @@ const HomeScreen = ({ navigation }) => {
         }
     }
 
+    const filteredJobs = useMemo(() => {
+        return jobs.filter(job =>
+            job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            job.location.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [jobs, searchQuery]);
+
+    useEffect(() => {
+        const totalJobs = filteredJobs.length;
+        const activeJobs = filteredJobs.filter((job) => job.status === "active").length;
+        const totalApplicants = filteredJobs.reduce((sum, job) => sum + job.applicants, 0);
+
+        setStats({
+            totalJobs,
+            activeJobs,
+            totalApplicants,
+            newApplicants: stats.newApplicants,
+        });
+    }, [filteredJobs]);
+
+    const handleDeleteJob = async () => {
+        if (selectedJob) {
+            try {
+                const accessToken = await AsyncStorage.getItem('accessToken')
+                const success = await deleteJob(selectedJob.id, accessToken);
+                if (success) {
+                    const updatedJobs = await fetchRecruiterJobs(accessToken);
+                    setJobs(updatedJobs);
+                }
+            } catch (error) {
+                Alert.alert("Lỗi", "Không thể xóa tin tuyển dụng này");
+            }
+        }
+        setDeleteDialogVisible(false);
+        setSelectedJob(null);
+    };
+
+    const showDeleteDialog = (job) => {
+        setSelectedJob(job);
+        setDeleteDialogVisible(true);
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -87,6 +132,12 @@ const HomeScreen = ({ navigation }) => {
                         <Avatar.Image source={{ uri: "https://via.placeholder.com/150" }} size={50} />
                     </TouchableOpacity>
                 </View>
+                <Searchbar
+                    placeholder="Tìm kiếm tin tuyển dụng..."
+                    onChangeText={setSearchQuery}
+                    value={searchQuery}
+                    style={styles.searchBar}
+                />
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -124,60 +175,80 @@ const HomeScreen = ({ navigation }) => {
                         </TouchableOpacity>
                     </View>
 
-                    {jobs.length === 0 ? (
+                    {filteredJobs.length === 0 ? (
                         <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>Bạn chưa đăng tin tuyển dụng nào</Text>
+                            <Text style={styles.emptyText}>
+                                {jobs.length === 0 ? "Bạn chưa đăng tin tuyển dụng nào" : "Không tìm thấy tin tuyển dụng phù hợp"}
+                            </Text>
                             <Button mode="contained" onPress={() => navigation.navigate("PostJob")} style={styles.postButton}>
                                 Đăng tin ngay
                             </Button>
                         </View>
                     ) : (
-                        jobs.map((job) => (
+                        filteredJobs.map((job) => (
                             <Card
                                 key={job.id}
                                 style={styles.jobCard}
-                                onPress={() => navigation.navigate("JobDetail", { jobId: job.id })}
                             >
                                 <Card.Content>
-                                    <View style={styles.jobHeader}>
-                                        <Text style={styles.jobTitle}>{job.title}</Text>
-                                        <Chip
-                                            style={[
-                                                styles.statusChip,
-                                                {
-                                                    backgroundColor: job.status === "active" ? "#4CAF50" : "#9E9E9E",
-                                                },
-                                            ]}
-                                            textStyle={{ color: "#FFFFFF" }}
+                                    <TouchableOpacity onPress={() => navigation.navigate("JobDetail", { jobId: job.id })}>
+                                        <View style={styles.jobHeader}>
+                                            <Text style={styles.jobTitle}>{job.title}</Text>
+                                            <Chip
+                                                style={[
+                                                    styles.statusChip,
+                                                    {
+                                                        backgroundColor: job.status === "active" ? "#4CAF50" : "#9E9E9E",
+                                                    },
+                                                ]}
+                                                textStyle={{ color: "#FFFFFF" }}
+                                            >
+                                                {job.status === "active" ? "Đang hiển thị" : "Hết hạn"}
+                                            </Chip>
+                                        </View>
+
+                                        <View style={styles.jobDetails}>
+                                            <View style={styles.jobDetail}>
+                                                <MaterialCommunityIcons name="map-marker" size={16} color="#757575" />
+                                                <Text style={styles.jobDetailText}>{job.location}</Text>
+                                            </View>
+                                            <View style={styles.jobDetail}>
+                                                <MaterialCommunityIcons name="currency-usd" size={16} color="#757575" />
+                                                <Text style={styles.jobDetailText}>{formatSalary(job.salary)}</Text>
+                                            </View>
+                                            <View style={styles.jobDetail}>
+                                                <MaterialCommunityIcons name="calendar" size={16} color="#757575" />
+                                                <Text style={styles.jobDetailText}>Đăng {formatDate(job.postedDate)}</Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={styles.jobStats}>
+                                            <View style={styles.jobStat}>
+                                                <MaterialCommunityIcons name="account-outline" size={20} color="#1E88E5" />
+                                                <Text style={styles.jobStatText}>{job.applicants} ứng viên</Text>
+                                            </View>
+                                            <View style={styles.jobStat}>
+                                                <MaterialCommunityIcons name="eye-outline" size={20} color="#1E88E5" />
+                                                <Text style={styles.jobStatText}>{job.views} lượt xem</Text>
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+
+                                    <View style={styles.jobActions}>
+                                        <Button
+                                            mode="contained"
+                                            onPress={() => navigation.navigate("EditJob", { jobId: job.id })}
+                                            style={[styles.actionButton, styles.editButton]}
                                         >
-                                            {job.status === "active" ? "Đang hiển thị" : "Hết hạn"}
-                                        </Chip>
-                                    </View>
-
-                                    <View style={styles.jobDetails}>
-                                        <View style={styles.jobDetail}>
-                                            <MaterialCommunityIcons name="map-marker" size={16} color="#757575" />
-                                            <Text style={styles.jobDetailText}>{job.location}</Text>
-                                        </View>
-                                        <View style={styles.jobDetail}>
-                                            <MaterialCommunityIcons name="currency-usd" size={16} color="#757575" />
-                                            <Text style={styles.jobDetailText}>{formatSalary(job.salary)}</Text>
-                                        </View>
-                                        <View style={styles.jobDetail}>
-                                            <MaterialCommunityIcons name="calendar" size={16} color="#757575" />
-                                            <Text style={styles.jobDetailText}>Đăng {formatDate(job.postedDate)}</Text>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.jobStats}>
-                                        <View style={styles.jobStat}>
-                                            <MaterialCommunityIcons name="account-outline" size={20} color="#1E88E5" />
-                                            <Text style={styles.jobStatText}>{job.applicants} ứng viên</Text>
-                                        </View>
-                                        <View style={styles.jobStat}>
-                                            <MaterialCommunityIcons name="eye-outline" size={20} color="#1E88E5" />
-                                            <Text style={styles.jobStatText}>{job.views} lượt xem</Text>
-                                        </View>
+                                            Chỉnh sửa
+                                        </Button>
+                                        <Button
+                                            mode="contained"
+                                            onPress={() => showDeleteDialog(job)}
+                                            style={[styles.actionButton, styles.deleteButton]}
+                                        >
+                                            Xóa
+                                        </Button>
                                     </View>
                                 </Card.Content>
                             </Card>
@@ -185,6 +256,19 @@ const HomeScreen = ({ navigation }) => {
                     )}
                 </View>
             </ScrollView>
+
+            <Portal>
+                <Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
+                    <Dialog.Title>Xác nhận xóa</Dialog.Title>
+                    <Dialog.Content>
+                        <Text>Bạn có chắc chắn muốn xóa tin tuyển dụng này?</Text>
+                    </Dialog.Content>
+                    <Dialog.Actions>
+                        <Button onPress={() => setDeleteDialogVisible(false)}>Hủy</Button>
+                        <Button onPress={handleDeleteJob}>Xóa</Button>
+                    </Dialog.Actions>
+                </Dialog>
+            </Portal>
 
             <FAB
                 style={styles.fab}
@@ -295,7 +379,7 @@ const styles = {
         marginRight: 8,
     },
     statusChip: {
-        height: 24,
+        height: 32,
     },
     jobDetails: {
         marginBottom: 8,
@@ -324,11 +408,34 @@ const styles = {
         marginLeft: 4,
         color: '#1E88E5',
     },
+    jobActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        marginTop: 8,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#E0E0E0',
+    },
+    actionButton: {
+        marginLeft: 8,
+    },
+    editButton: {
+        backgroundColor: '#1E88E5',
+    },
+    deleteButton: {
+        backgroundColor: '#F44336',
+    },
     fab: {
         position: 'absolute',
         right: 16,
         bottom: 16,
         backgroundColor: '#1E88E5',
+    },
+    searchBar: {
+        marginTop: 16,
+        elevation: 0,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 8,
     },
 }
 

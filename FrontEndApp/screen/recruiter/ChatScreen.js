@@ -1,5 +1,3 @@
-"use client"
-
 import { useEffect, useRef, useState } from "react"
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native"
 import { ActivityIndicator, Appbar, Avatar, Text, TextInput } from "react-native-paper"

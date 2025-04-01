@@ -4,10 +4,8 @@ import { Provider as PaperProvider } from "react-native-paper"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { AuthProvider } from "./contexts/AuthContext"
 import { JobProvider } from "./contexts/JobContext"
-// import { NotificationProvider } from "./contexts/NotificationContext"
 import AppNavigator from "./navigation/AppNavigator"
 import { theme } from "./theme"
-
 
 const App = () => {
     return (

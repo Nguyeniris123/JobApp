@@ -52,8 +52,8 @@ const ProfileStack = () => {
                 headerShown: false,
             }}
         >
-            <Stack.Screen name="CompanyProfile" component={CompanyProfileScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="CompanyProfile" component={CompanyProfileScreen} />
         </Stack.Navigator>
     )
 }

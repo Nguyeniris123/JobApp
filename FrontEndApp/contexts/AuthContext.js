@@ -43,22 +43,31 @@ export const AuthProvider = ({ children }) => {
     // Hàm làm mới token khi hết hạn
     const refreshAccessToken = async () => {
         try {
-            if (!refreshToken) return logout();
+            if (!refreshToken) {
+                await logout();
+                return null;
+            }
+            const jsondata = {
+                client_id: "5Ij2qZoARk5FABxYjlDdvl2hcdJZuT8qsGndyLSv",
+                client_secret: "qwS46Po2kd3rQ6fSv06pJ9WX5pDKiaTuCxzNVd6b8eTQEKGqOS0PLbGqA1pMZsysukCnMWrATw61Hkw1DT52a3qo53K5ibuOTeO63zejzQTqxvmSKQK8m4mBUr00kLpa",
+                refresh_token: refreshToken,
+                grant_type: "refresh_token"
+            };
+            console.log("Request làm mới token:", jsondata);
 
-            const response = await axios.post(`${API_URL}/o/token/`, {
-                refresh: refreshToken,
-            });
+            const response = await axios.post(`${API_URL}/o/token/`,jsondata);
 
             const newAccessToken = response.data.access;
             await AsyncStorage.setItem('accessToken', newAccessToken);
             setAccessToken(newAccessToken);
             axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
 
+            await fetchUserProfile();
             return newAccessToken;
         } catch (error) {
             console.error('Làm mới token thất bại:', error);
-            logout();
-            throw error;
+            await logout();
+            return null;
         }
     };
 
@@ -67,13 +76,19 @@ export const AuthProvider = ({ children }) => {
         const interceptor = axios.interceptors.response.use(
             (response) => response,
             async (error) => {
-                if (error.response?.status === 401) {
+                const originalRequest = error.config;
+                
+                if (error.response?.status === 401 && !originalRequest._retry) {
+                    originalRequest._retry = true;
                     try {
                         const newAccessToken = await refreshAccessToken();
-                        error.config.headers['Authorization'] = `Bearer ${newAccessToken}`;
-                        return axios(error.config);
-                    } catch (err) {
-                        logout();
+                        if (newAccessToken) {
+                            originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+                            return axios(originalRequest);
+                        }
+                    } catch (refreshError) {
+                        await logout();
+                        return Promise.reject(refreshError);
                     }
                 }
                 return Promise.reject(error);
@@ -86,45 +101,30 @@ export const AuthProvider = ({ children }) => {
     // Lấy thông tin user dựa trên role
     const fetchUserProfile = async () => {
         try {
-
-            try{
-                const response = await axios.get('http://192.168.1.5:8000/recruiters/current-user/', {
+            const token = await AsyncStorage.getItem('accessToken');
+            try {
+                const recruiterResponse = await axios.get('http://192.168.1.5:8000/recruiters/current-user/', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
-
-                setUser(response.data);
+                if (recruiterResponse.data) {
+                    setUser(recruiterResponse.data);
+                    setRole('recruiter');
+                }
+            } catch (error) {
+                if (error.response?.data?.detail === "Bạn không có quyền truy cập.") {
+                    const candidateResponse = await axios.get('http://192.168.1.5:8000/candidates/current-user/', {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    });
+                    setUser(candidateResponse.data);
+                    setRole('candidate');
+                } else {
+                    throw error;
+                }
             }
-            catch{
-                const response = await axios.get('http://192.168.1.5:8000/candidates/current-user/', {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-                setUser(response.data);
-            }
-            // console.log("Loi ", role);
-            // const token = await AsyncStorage.getItem('accessToken');
-            // if (role === 'recruiter') {
-            //     const response = await axios.get('http://192.168.1.5:8000/recruiters/current-user/', {
-            //         headers: {
-            //             Authorization: `Bearer ${token}`
-            //         }
-            //     });
-
-            //     setUser(response.data);
-            //     console.log("fetchUser", response.data)
-            // } else {
-            //     const response = await axios.get('http://192.168.1.5:8000/candidates/current-user/', {
-            //         headers: {
-            //             Authorization: `Bearer ${token}`
-            //         }
-            //     });
-            //     setUser(response.data);
-
-            //     console.log("fetchuser", response.data)
-            // }
         } catch (error) {
             console.error('Lỗi khi lấy thông tin người dùng:', error);
         }
@@ -183,6 +183,7 @@ export const AuthProvider = ({ children }) => {
             setAccessToken(null);
             setRefreshToken(null);
             setUser(null);
+            setRole(null); // Add this line to clear role
             setIsAuthenticated(false);
         } catch (error) {
             console.error('Lỗi khi đăng xuất:', error);

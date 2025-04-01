@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import { Avatar, Divider, Searchbar, Text } from "react-native-paper";
 import AppButton from "../../components/ui/AppButton";
@@ -7,7 +7,7 @@ import { AuthContext } from "../../contexts/AuthContext";
 import { JobContext } from "../../contexts/JobContext";
 
 const HomeScreen = ({ navigation }) => {
-  const { loading, jobs, fetchJobs } = useContext(JobContext);
+  const { loading, jobs, fetchJobs, updateFilters } = useContext(JobContext);
   const { user } = useContext(AuthContext);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,6 +33,26 @@ const HomeScreen = ({ navigation }) => {
     setRefreshing(true);
     await fetchJobs();
     setRefreshing(false);
+  };
+
+  const debounce = (func, wait) => {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  };
+
+  const handleSearch = useCallback(
+    debounce(async (query) => {
+      await updateFilters({ search: query });
+    }, 500),
+    []
+  );
+
+  const onChangeSearch = (query) => {
+    setSearchQuery(query);
+    handleSearch(query);
   };
 
   const renderJobItem = ({ item }) => (
@@ -81,7 +101,7 @@ const HomeScreen = ({ navigation }) => {
       <Animated.View style={[styles.searchContainer, { paddingTop: searchPaddingTop }]}>
         <Searchbar
           placeholder="Tìm kiếm công việc..."
-          onChangeText={setSearchQuery}
+          onChangeText={onChangeSearch}
           value={searchQuery}
           style={styles.searchBar}
         />

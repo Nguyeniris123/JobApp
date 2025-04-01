@@ -6,7 +6,7 @@ import { createStackNavigator } from "@react-navigation/stack"
 import ApplicationStatusScreen from "../screen/candidate/ApplicationStatusScreen"
 // import ApplyScreen from "../screen/candidate/ApplyScreen"
 import ChatScreen from "../screen/candidate/ChatScreen"
-import FavoriteScreen from "../screen/candidate/FavoriteScreen"
+import FollowingScreen from "../screen/candidate/FollowingScreen"
 import HomeScreen from "../screen/candidate/HomeScreen"
 import JobDetailScreen from "../screen/candidate/JobDetailScreen"
 import NotificationScreen from "../screen/candidate/NotificationScreen"
@@ -26,8 +26,20 @@ const HomeStack = () => {
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="JobDetail" component={JobDetailScreen} />
             {/* <Stack.Screen name="Apply" component={ApplyScreen} /> */}
-            <Stack.Screen name="ApplicationStatus" component={ApplicationStatusScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />
+        </Stack.Navigator>
+    )
+}
+
+const FavoriteStack = () => {
+    return (
+        <Stack.Navigator
+            screenOptions={{
+                headerShown: false,
+            }}
+        >
+            <Stack.Screen name="Favorite" component={FollowingScreen} />
+            <Stack.Screen name="ApplicationStatus" component={ApplicationStatusScreen} />
         </Stack.Navigator>
     )
 }
@@ -71,7 +83,7 @@ const CandidateNavigator = () => {
             }}
         >
             <Tab.Screen name="HomeTab" component={HomeStack} options={{ tabBarLabel: "Trang chủ" }} />
-            <Tab.Screen name="FavoriteTab" component={FavoriteScreen} options={{ tabBarLabel: "Yêu thích" }} />
+            <Tab.Screen name="FavoriteTab" component={FavoriteStack} options={{ tabBarLabel: "Yêu thích" }} />
             <Tab.Screen name="NotificationTab" component={NotificationScreen} options={{ tabBarLabel: "Thông báo" }} />
             <Tab.Screen name="ProfileTab" component={ProfileStack} options={{ tabBarLabel: "Hồ sơ" }} />
         </Tab.Navigator>
