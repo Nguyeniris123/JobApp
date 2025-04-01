@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native"
 import { ActivityIndicator, Appbar, Avatar, Text, TextInput } from "react-native-paper"
+import ChatItem from '../../components/business/ChatItem'
 
 // Dữ liệu mẫu cho tin nhắn
 const mockMessages = [
@@ -165,30 +166,16 @@ const ChatScreen = ({ navigation, route }) => {
         </View>
     )
 
-    const renderMessage = ({ item, index }) => {
-        const isRecruiter = item.sender === "recruiter"
-
-        // Kiểm tra xem có cần hiển thị ngày không
-        const showDateSeparator =
-            index === 0 || new Date(item.timestamp).getDate() !== new Date(messages[index - 1].timestamp).getDate()
-
+    const renderMessage = ({ item }) => {
+        const isRecruiter = item.sender === "recruiter";
         return (
-            <>
-                {showDateSeparator && renderDateSeparator(item.timestamp)}
-                <View style={[styles.messageContainer, isRecruiter ? styles.recruiterMessage : styles.candidateMessage]}>
-                    {!isRecruiter && <Avatar.Image source={{ uri: candidateInfo.avatar }} size={36} style={styles.avatar} />}
-                    <View style={[styles.messageBubble, isRecruiter ? styles.recruiterBubble : styles.candidateBubble]}>
-                        <Text style={[styles.messageText, isRecruiter ? styles.recruiterText : styles.candidateText]}>
-                            {item.text}
-                        </Text>
-                        <Text style={[styles.timestamp, isRecruiter ? styles.recruiterTimestamp : styles.candidateTimestamp]}>
-                            {formatTime(item.timestamp)}
-                        </Text>
-                    </View>
-                </View>
-            </>
-        )
-    }
+            <ChatItem
+                message={item}
+                isCurrentUser={isRecruiter}
+                avatar={isRecruiter ? null : candidateInfo.avatar}
+            />
+        );
+    };
 
     return (
         <KeyboardAvoidingView

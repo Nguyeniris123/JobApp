@@ -9,7 +9,7 @@ import FavoriteCandidatesScreen from "../screen/recruiter/FavoriteCandidatesScre
 import HomeScreen from "../screen/recruiter/HomeScreen"
 import JobDetailScreen from "../screen/recruiter/JobDetailScreen"
 import NotificationScreen from "../screen/recruiter/NotificationScreen"
-// import PostJobScreen from "../screen/recruiter/PostJobScreen"
+import PostJobScreen from "../screen/recruiter/PostJobScreen"
 import ReviewScreen from "../screen/recruiter/ReviewScreen"
 import SettingsScreen from "../screen/recruiter/SettingsScreen"
 
@@ -24,7 +24,7 @@ const HomeStack = () => {
             }}
         >
             <Stack.Screen name="Home" component={HomeScreen} />
-            {/* <Stack.Screen name="PostJob" component={PostJobScreen} /> */}
+            <Stack.Screen name="PostJob" component={PostJobScreen} />
             <Stack.Screen name="JobDetail" component={JobDetailScreen} />
             <Stack.Screen name="Review" component={ReviewScreen} />
         </Stack.Navigator>

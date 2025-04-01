@@ -2,13 +2,13 @@
 
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useContext, useEffect } from "react"
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native"
-import { ActivityIndicator, Button, Card, Text } from "react-native-paper"
+import { StyleSheet, View } from "react-native"
+import { ActivityIndicator, Button, Text } from "react-native-paper"
+import NotificationItem from "../../components/business/NotificationItem"
 import { NotificationContext } from "../../contexts/NotificationContext"
 
 const NotificationScreen = ({ navigation }) => {
     const { state, fetchNotifications, markAsRead, markAllAsRead } = useContext(NotificationContext)
-    // const { notifications, loading, unreadCount } = state
     const { t } = useTranslation()
 
     useEffect(() => {
@@ -17,36 +17,6 @@ const NotificationScreen = ({ navigation }) => {
         // Theo dõi sự kiện xem thông báo
         analyticsService.trackEvent("view_notifications")
     }, [])
-
-    const getNotificationIcon = (type) => {
-        switch (type) {
-            case "application":
-                return "file-document-outline"
-            case "status":
-                return "check-circle-outline"
-            case "message":
-                return "message-text-outline"
-            case "system":
-                return "bell-outline"
-            default:
-                return "bell-outline"
-        }
-    }
-
-    const getNotificationColor = (type) => {
-        switch (type) {
-            case "application":
-                return "#2196F3"
-            case "status":
-                return "#4CAF50"
-            case "message":
-                return "#FF9800"
-            case "system":
-                return "#9E9E9E"
-            default:
-                return "#9E9E9E"
-        }
-    }
 
     const formatDate = (date) => {
         const now = new Date()
@@ -95,27 +65,9 @@ const NotificationScreen = ({ navigation }) => {
         }
     }
 
-    const renderNotificationItem = ({ item }) => (
-        <TouchableOpacity onPress={() => handleNotificationPress(item)}>
-            <Card style={[styles.notificationCard, !item.read && styles.unreadCard]}>
-                <Card.Content style={styles.cardContent}>
-                    <View style={[styles.iconContainer, { backgroundColor: getNotificationColor(item.type) + "20" }]}>
-                        <MaterialCommunityIcons
-                            name={getNotificationIcon(item.type)}
-                            size={24}
-                            color={getNotificationColor(item.type)}
-                        />
-                    </View>
-                    <View style={styles.contentContainer}>
-                        <Text style={styles.title}>{item.title}</Text>
-                        <Text style={styles.message}>{item.message}</Text>
-                        <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
-                    </View>
-                    {!item.read && <View style={styles.unreadIndicator} />}
-                </Card.Content>
-            </Card>
-        </TouchableOpacity>
-    )
+    const handleDismissNotification = (notificationId) => {
+        // Logic to dismiss notification
+    }
 
     if (loading) {
         return (
@@ -142,14 +94,16 @@ const NotificationScreen = ({ navigation }) => {
                     <Text style={styles.emptyText}>Bạn chưa có thông báo nào</Text>
                 </View>
             ) : (
-                <FlatList
-                    data={notifications}
-                    renderItem={renderNotificationItem}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.notificationList}
-                    showsVerticalScrollIndicator={false}
-                    ItemSeparatorComponent={() => <View style={styles.separator} />}
-                />
+                <View style={styles.notificationList}>
+                    {notifications.map((notification) => (
+                        <NotificationItem
+                            key={notification.id}
+                            notification={notification}
+                            onPress={() => handleNotificationPress(notification)}
+                            onDismiss={() => handleDismissNotification(notification.id)}
+                        />
+                    ))}
+                </View>
             )}
         </View>
     )
@@ -196,54 +150,6 @@ const styles = StyleSheet.create({
     },
     notificationList: {
         padding: 16,
-    },
-    notificationCard: {
-        borderRadius: 8,
-        elevation: 1,
-        marginBottom: 0,
-    },
-    unreadCard: {
-        backgroundColor: "#E3F2FD",
-    },
-    cardContent: {
-        flexDirection: "row",
-        alignItems: "center",
-        padding: 12,
-    },
-    iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: "center",
-        alignItems: "center",
-        marginRight: 16,
-    },
-    contentContainer: {
-        flex: 1,
-    },
-    title: {
-        fontSize: 16,
-        fontWeight: "bold",
-        marginBottom: 4,
-    },
-    message: {
-        fontSize: 14,
-        color: "#616161",
-        marginBottom: 4,
-    },
-    time: {
-        fontSize: 12,
-        color: "#9E9E9E",
-    },
-    unreadIndicator: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: "#1E88E5",
-        marginLeft: 8,
-    },
-    separator: {
-        height: 8,
     },
 })
 

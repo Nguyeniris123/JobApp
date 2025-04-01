@@ -4,7 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Alert, Image, StyleSheet, View } from "react-native";
-import { Text, Title, useTheme } from "react-native-paper";
+import { Text, useTheme } from "react-native-paper";
 import * as yup from "yup";
 
 // Import components
@@ -12,6 +12,7 @@ import FormButton from "../../components/form/FormButton";
 import FormField from "../../components/form/FormField";
 import ContentContainer from "../../components/layout/ContentContainer";
 import ScreenContainer from "../../components/layout/ScreenContainer";
+import ScreenHeader from "../../components/layout/ScreenHeader";
 import AppButton from "../../components/ui/AppButton";
 import AppDivider from "../../components/ui/AppDivider";
 
@@ -101,12 +102,11 @@ const RegisterScreen = ({ navigation }) => {
 
     return (
         <ScreenContainer>
+            <ScreenHeader 
+                title="Tạo tài khoản" 
+                subtitle="Hãy nhập thông tin của bạn" 
+            />
             <ContentContainer scrollable={false} style={styles.container}>
-                <View style={styles.headerContainer}>
-                    <Title style={styles.title}>Tạo tài khoản</Title>
-                    <Text style={styles.subtitle}>Hãy nhập thông tin của bạn</Text>
-                </View>
-
                 {/* Lựa chọn loại tài khoản */}
                 <View style={styles.toggleContainer}>
                     <AppButton 

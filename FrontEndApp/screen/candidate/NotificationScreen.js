@@ -3,10 +3,10 @@ import { useContext, useEffect } from "react";
 import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
 import { ActivityIndicator, Button, Card, Text } from "react-native-paper";
 import { AuthContext } from "../../contexts/AuthContext"; // Import AuthContext
-import { NotificationContext } from "../../contexts/NotificationContext";
+// import { NotificationContext } from "../../contexts/NotificationContext";
 
 const NotificationScreen = ({ navigation }) => {
-    const { loading, notifications, fetchNotifications, markAsRead, markAllAsRead } = useContext(NotificationContext)
+    // const { loading, notifications, fetchNotifications, markAsRead, markAllAsRead } = useContext(NotificationContext)
 
     const { user } = useContext(AuthContext) // Kiểm tra trạng thái đăng nhập
 
