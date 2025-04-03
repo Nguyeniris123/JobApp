@@ -145,10 +145,13 @@ class JobPostSerializer(serializers.ModelSerializer):
 
 class ApplicationSerializer(serializers.ModelSerializer):
     applicant = CandidateSerializer(read_only=True)
-    job = JobPostSerializer(read_only=True)
+    job = serializers.PrimaryKeyRelatedField(queryset=JobPost.objects.all(), write_only=True)  # Chỉ nhận job_id khi tạo
+    job_detail = JobPostSerializer(source="job", read_only=True)  # Xuất thông tin job đầy đủ khi trả về
+
     class Meta:
         model = Application
-        fields = ['id', "applicant", "job", "cv", "status"]
+        fields = ['id', "applicant", "job", "job_detail", "cv", "status"]
+        read_only_fields = ["applicant", "status", "created_date"]  # Không cần nhập applicant khi gửi request
 
     def create(self, validated_data):
         request = self.context["request"]
@@ -178,9 +181,11 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
+    recruiter_company = CompanySerializer(source="recruiter.company", read_only=True)
+
     class Meta:
         model = Follow
-        fields = ["id", "follower", "recruiter", "created_date"]
+        fields = ["id", "follower", "recruiter", "recruiter_company", "created_date"]
         read_only_fields = ["follower"]  # Đảm bảo user không thể chỉnh follower (chỉ theo dõi chính mình)
 
     def validate(self, attrs):

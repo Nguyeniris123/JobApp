@@ -134,11 +134,18 @@ class JobPostViewSet(viewsets.ModelViewSet):
 
 class ApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationSerializer
-    queryset = Application.objects.filter(active=True)
     http_method_names = ["get", "post", "patch"]
 
+    def get_queryset(self):
+        # Lọc danh sách đơn ứng tuyển dựa trên role của user
+        user = self.request.user  # lấy thông tin user hiện tại
+        if user.role == "candidate":
+            return Application.objects.filter(applicant=user, active=True)
+        elif user.role == "recruiter":
+            return Application.objects.filter(job__recruiter=user, active=True)
+
     def get_permissions(self):
-        if self.action == "create":
+        if self.action in ["list", "create", "retrieve", "update"]:
             return [IsCandidate()]  # Chỉ ứng viên mới có thể tạo đơn ứng tuyển
         if self.action in ["list_for_recruiter", "accept_application", "reject_application"]:
             return [IsRecruiterApplication()]  # Chỉ nhà tuyển dụng mới có thể xem, sửa danh sách đơn ứng tuyển
@@ -178,15 +185,29 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
 class FollowViewSet(viewsets.ModelViewSet):
     serializer_class = FollowSerializer
-    permission_classes = [IsCandidate]
     http_method_names = ["get", "post", "delete"]
 
     def get_queryset(self):
         # Ứng viên chỉ xem danh sách những nhà tuyển dụng mình đang theo dõi
         return Follow.objects.filter(follower=self.request.user)
 
+    def get_permissions(self):
+        if self.action in ["creat", "list", "destroy"]:
+            return [IsCandidate()]  # Chỉ ứng viên mới có thể follow
+        return super().get_permissions()
+
     def destroy(self, request, *args, **kwargs):
         # Ứng viên có thể bỏ theo dõi nhà tuyển dụng
         instance = self.get_object()
         instance.delete()
         return Response({"detail": "Đã hủy theo dõi"}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=["GET"], url_path="recruiter-followers")
+    def my_followers(self, request):
+        # Nhà tuyển dụng xem danh sách ứng viên follow mình
+        if request.user.role != "recruiter":
+            return Response({"error": "Bạn không phải nhà tuyển dụng!"}, status=status.HTTP_403_FORBIDDEN)
+
+        followers = Follow.objects.filter(recruiter=request.user)
+        data = CandidateSerializer([follow.follower for follow in followers], many=True).data
+        return Response(data, status=status.HTTP_200_OK)
