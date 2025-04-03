@@ -2,7 +2,12 @@ import axios from 'axios';
 import React, { createContext, useEffect, useState } from 'react';
 import { API_URL } from '../config';
 
-export const CompanyContext = createContext();
+export const CompanyContext = createContext({
+    loading: false,
+    followedCompanies: [],
+    unfollowCompany: () => {},
+    followCompany: () => {}
+});
 
 export const CompanyProvider = ({ children }) => {
     const [loading, setLoading] = useState(false);

@@ -6,12 +6,20 @@ import { AuthContext } from "../../contexts/AuthContext";
 import { CompanyContext } from "../../contexts/CompanyContext";
 
 const FollowingScreen = ({ navigation }) => {
-    const { loading, followedCompanies, unfollowCompany } = useContext(CompanyContext);
-    const { isAuthenticated } = useContext(AuthContext);
+    const companyContext = useContext(CompanyContext);
+    const authContext = useContext(AuthContext);
+    
+    const loading = companyContext?.loading;
+    const followedCompanies = companyContext?.followedCompanies || [];
+    const unfollowCompany = companyContext?.unfollowCompany;
+    const isAuthenticated = authContext?.isAuthenticated;
+
     const [refreshing, setRefreshing] = useState(false);
 
     const handleUnfollow = (companyId) => {
-        unfollowCompany(companyId);
+        if (unfollowCompany) {
+            unfollowCompany(companyId);
+        }
     };
 
     const renderCompanyItem = ({ item }) => (

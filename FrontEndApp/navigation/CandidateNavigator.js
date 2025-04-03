@@ -38,8 +38,9 @@ const FavoriteStack = () => {
                 headerShown: false,
             }}
         >
-            <Stack.Screen name="Favorite" component={FollowingScreen} />
+            
             <Stack.Screen name="ApplicationStatus" component={ApplicationStatusScreen} />
+            <Stack.Screen name="Favorite" component={FollowingScreen} />
         </Stack.Navigator>
     )
 }
