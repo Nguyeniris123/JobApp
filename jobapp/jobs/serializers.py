@@ -125,7 +125,7 @@ class CompanySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Company
-        fields = ['name', 'tax_code', 'description', 'location', 'is_verified', 'images']  # Thêm images vào fields
+        fields = ['id', 'name', 'tax_code', 'description', 'location', 'is_verified', 'images']  # Thêm images vào fields
 
 class JobPostSerializer(serializers.ModelSerializer):
     company = CompanySerializer(source='recruiter.company', read_only=True)  # Lấy thông tin công ty từ recruiter
