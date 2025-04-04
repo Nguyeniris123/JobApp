@@ -83,7 +83,22 @@ export const JobProvider = ({ children }) => {
     const createJob = async (jobData) => {
         try {
             setLoading(true);
-            const response = await axios.post(`${API_URL}/jobposts/`, jobData);
+            const formattedJobData = {
+                title: jobData.title,
+                specialized: jobData.specialized || "General", // Default value if not provided
+                description: jobData.description,
+                salary: jobData.salary,
+                working_hours: jobData.working_hours,
+                location: jobData.location,
+                company: {
+                    name: jobData.company?.name || "",
+                    tax_code: jobData.company?.tax_code || "",
+                    description: jobData.company?.description || "",
+                    location: jobData.company?.location || "",
+                    is_verified: jobData.company?.is_verified || false
+                }
+            };
+            const response = await axios.post(`${API_URL}/jobposts/`, formattedJobData);
             setJobs(prevJobs => [...prevJobs, response.data]);
             return response.data;
         } catch (error) {
@@ -156,6 +171,29 @@ export const JobProvider = ({ children }) => {
         }
     };
 
+    // Add this new function for applying to jobs
+    const applyForJob = async (jobId, applicationData) => {
+        try {
+            const response = await axios.post(`${API_URL}/applications/`, {
+                applicant: {
+                    first_name: applicationData.fullName.split(' ').slice(-1).join(' '),
+                    last_name: applicationData.fullName.split(' ').slice(0, -1).join(' '),
+                    email: applicationData.email,
+                },
+                job: jobId,
+                cv: applicationData.cv,
+                job_detail: applicationData.jobDetail
+            });
+            return { success: true, data: response.data };
+        } catch (error) {
+            console.error('Error applying for job:', error);
+            return { 
+                success: false, 
+                message: error.response?.data?.detail || 'Failed to submit application' 
+            };
+        }
+    };
+
     // Tải danh sách công việc ngay khi component được mount
     useEffect(() => {
         fetchJobs();
@@ -173,7 +211,8 @@ export const JobProvider = ({ children }) => {
             deleteJob,
             updateJob,
             fetchRecruiterJobs,
-            updateFilters
+            updateFilters,
+            applyForJob
         }}>
             {children}
         </JobContext.Provider>

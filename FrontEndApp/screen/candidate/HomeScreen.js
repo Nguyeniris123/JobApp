@@ -1,8 +1,8 @@
 import { useCallback, useContext, useEffect, useState } from "react";
-import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, View } from "react-native";
-import { Avatar, Divider, Searchbar, Text } from "react-native-paper";
+import { ActivityIndicator, Animated, FlatList, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { Avatar, Chip, Searchbar, Text } from "react-native-paper";
+import Icon from "react-native-vector-icons/MaterialIcons";
 import AppButton from "../../components/ui/AppButton";
-import AppCard from "../../components/ui/AppCard";
 import { AuthContext } from "../../contexts/AuthContext";
 import { JobContext } from "../../contexts/JobContext";
 
@@ -11,6 +11,7 @@ const HomeScreen = ({ navigation }) => {
   const { user } = useContext(AuthContext);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const scrollY = new Animated.Value(0);
 
   const headerHeight = scrollY.interpolate({
@@ -24,6 +25,14 @@ const HomeScreen = ({ navigation }) => {
     outputRange: [16, 0],
     extrapolate: 'clamp',
   });
+
+  const categories = [
+    { id: 'all', label: 'Tất cả', icon: 'apps' },
+    { id: 'tech', label: 'Công nghệ', icon: 'computer' },
+    { id: 'service', label: 'Dịch vụ', icon: 'room-service' },
+    { id: 'office', label: 'Văn phòng', icon: 'business-center' },
+    { id: 'education', label: 'Giáo dục', icon: 'school' },
+  ];
 
   useEffect(() => {
     fetchJobs();
@@ -56,47 +65,83 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const renderJobItem = ({ item }) => (
-    <AppCard style={styles.card}>
-      <View style={styles.headerRow}>
-        <Avatar.Icon size={40} icon="briefcase" />
-        <View style={styles.headerInfo}>
-          <Text style={styles.jobTitle}>{item.title}</Text>
-          <Text style={styles.specialized}>{item.specialized}</Text>
+    <View style={styles.cardContainer}>
+      <View style={styles.card}>
+        <View style={styles.headerRow}>
+          <View style={styles.companyLogo}>
+            <Avatar.Icon size={50} icon="briefcase" style={styles.avatar} />
+          </View>
+          <View style={styles.headerInfo}>
+            <Text style={styles.jobTitle} numberOfLines={2}>{item.title}</Text>
+            <Text style={styles.companyName}>{item.company?.name || 'Company'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.tagsContainer}>
+          <View style={styles.tag}>
+            <Icon name="location-on" size={16} color="#666" />
+            <Text style={styles.tagText}>{item.location}</Text>
+          </View>
+          <View style={styles.tag}>
+            <Icon name="attach-money" size={16} color="#666" />
+            <Text style={styles.tagText}>{Number(item.salary).toLocaleString('vi-VN')} VNĐ</Text>
+          </View>
+          <View style={styles.tag}>
+            <Icon name="access-time" size={16} color="#666" />
+            <Text style={styles.tagText}>{item.working_hours}</Text>
+          </View>
+        </View>
+
+        <View style={styles.specializedContainer}>
+          <Chip 
+            icon="star"
+            textStyle={styles.specializedText}
+            style={styles.specializedChip}
+          >
+            {item.specialized}
+          </Chip>
+        </View>
+
+        <View style={styles.buttonRow}>
+          <AppButton
+            mode="outlined"
+            style={styles.viewButton}
+            labelStyle={styles.viewButtonText}
+            onPress={() => navigation.navigate("JobDetail", { jobId: item.id })}
+          >
+            Chi tiết
+          </AppButton>
+          {user ? (
+            <AppButton 
+              mode="contained" 
+              style={styles.applyButton}
+              icon="send"
+              onPress={() => navigation.navigate("JobDetail", { jobId: item.id })}
+            >
+              Ứng tuyển
+            </AppButton>
+          ) : (
+            <AppButton 
+              mode="contained"
+              style={styles.loginButton}
+              onPress={() => navigation.navigate("Login")}
+            >
+              Đăng nhập
+            </AppButton>
+          )}
         </View>
       </View>
-      <Divider style={styles.divider} />
-      <View style={styles.detailsRow}>
-        <Text style={styles.detailText}>📍 {item.location}</Text>
-        <Text style={styles.detailText}>💰 {Number(item.salary).toLocaleString('vi-VN')} VNĐ</Text>
-        <Text style={styles.detailText}>⏰ {item.working_hours}</Text>
-      </View>
-      <Divider style={styles.divider} />
-      <View style={styles.buttonRow}>
-        <AppButton
-          mode="outlined"
-          onPress={() => navigation.navigate("JobDetail", { jobId: item.id })}
-        >
-          View Job
-        </AppButton>
-        {user ? (
-          <AppButton mode="contained" icon="chat" onPress={() => { }}>
-            Contact
-          </AppButton>
-        ) : (
-          <AppButton mode="contained" onPress={() => navigation.navigate("Login")}>
-            Login to Apply
-          </AppButton>
-        )}
-      </View>
-    </AppCard>
+    </View>
   );
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.header, { height: headerHeight, overflow: 'hidden' }]}>
-        <Text style={styles.greeting}>Xin chào!</Text>
-        <Text style={styles.subtitle}>Tìm việc làm bán thời gian phù hợp với bạn</Text>
-      </Animated.View>
+      <View style={styles.header}>
+        <Animated.View style={[styles.headerContent, { height: headerHeight }]}>
+          <Text style={styles.greeting}>Xin chào{user ? `, ${user.name}!` : '!'}</Text>
+          <Text style={styles.subtitle}>Tìm việc làm phù hợp với bạn</Text>
+        </Animated.View>
+      </View>
 
       <Animated.View style={[styles.searchContainer, { paddingTop: searchPaddingTop }]}>
         <Searchbar
@@ -104,15 +149,53 @@ const HomeScreen = ({ navigation }) => {
           onChangeText={onChangeSearch}
           value={searchQuery}
           style={styles.searchBar}
+          inputStyle={styles.searchInput}
+          icon={() => <Icon name="search" size={24} color="#666" />}
         />
       </Animated.View>
+
+      <View style={styles.categoriesContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesList}
+        >
+          {categories.map(category => (
+            <Chip
+              key={category.id}
+              mode="outlined"
+              selected={selectedCategory === category.id}
+              onPress={() => setSelectedCategory(category.id)}
+              style={[
+                styles.categoryChip,
+                selectedCategory === category.id && styles.selectedCategoryChip
+              ]}
+              textStyle={[
+                styles.categoryChipText,
+                selectedCategory === category.id && styles.selectedCategoryChipText
+              ]}
+              icon={() => (
+                <Icon 
+                  name={category.icon} 
+                  size={18} 
+                  color={selectedCategory === category.id ? '#fff' : '#666'} 
+                />
+              )}
+            >
+              {category.label}
+            </Chip>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1E88E5" />
+          <Text style={styles.loadingText}>Đang tải danh sách việc làm...</Text>
         </View>
       ) : jobs.length === 0 ? (
         <View style={styles.emptyContainer}>
+          <Icon name="search-off" size={64} color="#CCC" />
           <Text style={styles.emptyText}>Không tìm thấy công việc phù hợp</Text>
         </View>
       ) : (
@@ -122,7 +205,13 @@ const HomeScreen = ({ navigation }) => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.jobList}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              colors={['#1E88E5']}
+            />
+          }
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
             { useNativeDriver: false }
@@ -137,74 +226,160 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: '#F8FAFF',
   },
   header: {
-    padding: 10,
-    paddingTop: 20,
-    backgroundColor: "#1E88E5",
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    backgroundColor: '#1E88E5',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  headerContent: {
+    paddingBottom: 20,
   },
   greeting: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-    marginBottom: 5,
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
     fontSize: 16,
-    color: "#FFFFFF",
-    opacity: 0.8,
+    color: '#E3F2FD',
+    opacity: 0.9,
   },
   searchContainer: {
-    paddingHorizontal: 16,
-    backgroundColor: '#1E88E5',
-    paddingBottom: 20,
+    marginTop: -25,
+    marginHorizontal: 20,
+    marginBottom: 10,
   },
   searchBar: {
-    elevation: 0,
-    borderRadius: 8,
+    elevation: 8,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
-  jobList: {
+  categoriesContainer: {
+    marginVertical: 16,
+  },
+  categoriesList: {
+    paddingHorizontal: 20,
+  },
+  categoryChip: {
+    marginRight: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  selectedCategoryChip: {
+    backgroundColor: '#1E88E5',
+  },
+  cardContainer: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  jobTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1E88E5',
+    marginBottom: 8,
+  },
+  companyName: {
+    fontSize: 16,
+    color: '#424242',
+    marginBottom: 12,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  tagText: {
+    fontSize: 14,
+    color: '#1E88E5',
+    marginLeft: 4,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  viewButton: {
+    flex: 1,
+    borderRadius: 12,
+    borderColor: '#1E88E5',
+    borderWidth: 2,
+  },
+  viewButtonText: {
+    color: '#1E88E5',
+    fontWeight: 'bold',
+  },
+  applyButton: {
+    flex: 2,
+    borderRadius: 12,
+    backgroundColor: '#1E88E5',
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFF',
+  },
+  loadingText: {
+    marginTop: 16,
+    color: '#1E88E5',
+    fontSize: 16,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: '#F8FAFF',
   },
   emptyText: {
-    fontSize: 16,
-    color: "#757575",
-    textAlign: "center",
-  },
-  card: {
-    marginBottom: 16,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  headerInfo: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  jobTitle: {
-    fontSize: 16,
-  },
-  specialized: {
-    fontSize: 14,
-    color: '#666',
-  },
-  detailsRow: {
-    flexDirection: 'column',
-    gap: 8,
-    paddingVertical: 8,
+    fontSize: 18,
+    color: '#424242',
+    textAlign: 'center',
+    marginTop: 16,
+    lineHeight: 24,
   },
 });
 

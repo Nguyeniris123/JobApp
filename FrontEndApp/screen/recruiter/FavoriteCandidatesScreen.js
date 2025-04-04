@@ -56,7 +56,6 @@ const FavoriteCandidatesScreen = ({ navigation }) => {
     const [filteredCandidates, setFilteredCandidates] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
-    const { t } = useTranslation()
 
     useEffect(() => {
         // Giả lập API call
@@ -74,8 +73,6 @@ const FavoriteCandidatesScreen = ({ navigation }) => {
 
         fetchFavoriteCandidates()
 
-        // Theo dõi sự kiện xem màn hình
-        analyticsService.trackScreenView("FavoriteCandidates")
     }, [])
 
     const onChangeSearch = (query) => {

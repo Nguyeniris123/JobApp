@@ -22,6 +22,11 @@ const PostJobScreen = ({ navigation, route }) => {
     const [showDatePicker, setShowDatePicker] = useState(false)
     const [urgent, setUrgent] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [specialized, setSpecialized] = useState("")
+    const [companyName, setCompanyName] = useState("")
+    const [companyTaxCode, setCompanyTaxCode] = useState("")
+    const [companyDescription, setCompanyDescription] = useState("")
+    const [companyLocation, setCompanyLocation] = useState("")
 
     const isEditMode = route.params?.jobId;
 
@@ -69,6 +74,7 @@ const PostJobScreen = ({ navigation, route }) => {
         try {
             const jobData = {
                 title,
+                specialized,
                 description,
                 location,
                 salary: Number(salary),
@@ -77,6 +83,13 @@ const PostJobScreen = ({ navigation, route }) => {
                 benefits: benefits.split('\n').filter(ben => ben.trim()),
                 deadline,
                 urgent,
+                company: {
+                    name: companyName,
+                    tax_code: companyTaxCode,
+                    description: companyDescription,
+                    location: companyLocation,
+                    is_verified: false
+                }
             };
 
             let result;
@@ -157,6 +170,46 @@ const PostJobScreen = ({ navigation, route }) => {
                             onChangeText={setWorkingHours}
                             placeholder="Ví dụ: 20"
                             keyboardType="numeric"
+                            style={styles.input}
+                        />
+                    </Surface>
+
+                    <Surface style={styles.section} elevation={1}>
+                        <Text style={styles.sectionTitle}>Thông tin chuyên môn</Text>
+                        <AppInput
+                            label="Chuyên môn *"
+                            value={specialized}
+                            onChangeText={setSpecialized}
+                            style={styles.input}
+                        />
+                    </Surface>
+
+                    <Surface style={styles.section} elevation={1}>
+                        <Text style={styles.sectionTitle}>Thông tin công ty</Text>
+                        <AppInput
+                            label="Tên công ty *"
+                            value={companyName}
+                            onChangeText={setCompanyName}
+                            style={styles.input}
+                        />
+                        <AppInput
+                            label="Mã số thuế"
+                            value={companyTaxCode}
+                            onChangeText={setCompanyTaxCode}
+                            style={styles.input}
+                        />
+                        <AppInput
+                            label="Mô tả công ty"
+                            value={companyDescription}
+                            onChangeText={setCompanyDescription}
+                            multiline
+                            numberOfLines={4}
+                            style={styles.input}
+                        />
+                        <AppInput
+                            label="Địa chỉ công ty"
+                            value={companyLocation}
+                            onChangeText={setCompanyLocation}
                             style={styles.input}
                         />
                     </Surface>

@@ -1,85 +1,61 @@
-import { useContext, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Button, Text } from "react-native-paper";
-import CompanyCard from "../../components/ui/CompanyCard";
-import { AuthContext } from "../../contexts/AuthContext";
-import { CompanyContext } from "../../contexts/CompanyContext";
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useContext, useEffect } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { CompanyContext } from '../../contexts/CompanyContext';
 
-const FollowingScreen = ({ navigation }) => {
-    const companyContext = useContext(CompanyContext);
-    const authContext = useContext(AuthContext);
-    
-    const loading = companyContext?.loading;
-    const followedCompanies = companyContext?.followedCompanies || [];
-    const unfollowCompany = companyContext?.unfollowCompany;
-    const isAuthenticated = authContext?.isAuthenticated;
+const FollowingScreen = () => {
+    const { loading, followedCompanies, fetchFollowedCompanies } = useContext(CompanyContext);
+    const [refreshing, setRefreshing] = React.useState(false);
 
-    const [refreshing, setRefreshing] = useState(false);
-
-    const handleUnfollow = (companyId) => {
-        if (unfollowCompany) {
-            unfollowCompany(companyId);
+    const loadData = useCallback(async () => {
+        console.log('Loading followed companies data...');
+        try {
+            await fetchFollowedCompanies();
+            console.log('Followed companies loaded:', followedCompanies);
+        } catch (error) {
+            console.error('Error loading followed companies:', error);
         }
-    };
+    }, [fetchFollowedCompanies]);
 
-    const renderCompanyItem = ({ item }) => (
-        <CompanyCard
-            company={item}
-            onPress={() => navigation.navigate("CompanyDetail", { companyId: item.id })}
-            onUnfollow={() => handleUnfollow(item.id)}
-        />
+    useFocusEffect(
+        useCallback(() => {
+            console.log('FollowingScreen came into focus');
+            loadData();
+        }, [loadData])
     );
 
-    if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#1E88E5" />
-            </View>
-        );
-    }
+    useEffect(() => {
+        console.log('Current followed companies:', followedCompanies);
+    }, [followedCompanies]);
 
-    if (!isAuthenticated) {
-        return (
-            <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Bạn cần đăng nhập để xem danh sách theo dõi</Text>
-                <Button
-                    mode="contained"
-                    onPress={() => navigation.navigate("Login")}
-                    style={styles.loginButton}
-                >
-                    Đăng nhập ngay
-                </Button>
-            </View>
-        );
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await loadData();
+        setRefreshing(false);
+    }, [loadData]);
+
+    if (loading && !refreshing) {
+        return <ActivityIndicator size="large" color="#0000ff" />;
     }
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.title}>Công ty đang theo dõi</Text>
-            </View>
-
-            {followedCompanies.length === 0 ? (
-                <View style={styles.emptyContainer}>
+            <FlatList
+                data={followedCompanies}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                }
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                    <View style={styles.companyCard}>
+                        <Text style={styles.companyName}>{item.recruiter_company.name}</Text>
+                        <Text style={styles.companyLocation}>{item.recruiter_company.location}</Text>
+                    </View>
+                )}
+                ListEmptyComponent={
                     <Text style={styles.emptyText}>Bạn chưa theo dõi công ty nào</Text>
-                    <Button
-                        mode="contained"
-                        onPress={() => navigation.navigate("Companies")}
-                        style={styles.browseButton}
-                    >
-                        Khám phá công ty
-                    </Button>
-                </View>
-            ) : (
-                <FlatList
-                    data={followedCompanies}
-                    renderItem={renderCompanyItem}
-                    keyExtractor={(item) => item.id.toString()}
-                    contentContainerStyle={styles.companyList}
-                    showsVerticalScrollIndicator={false}
-                    refreshing={refreshing}
-                />
-            )}
+                }
+            />
         </View>
     );
 };
@@ -87,44 +63,30 @@ const FollowingScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F5F5F5",
+        backgroundColor: '#f5f5f5',
     },
-    header: {
-        padding: 20,
-        paddingTop: 40,
-        backgroundColor: "#1E88E5",
+    companyCard: {
+        backgroundColor: 'white',
+        margin: 10,
+        padding: 15,
+        borderRadius: 10,
+        elevation: 2,
     },
-    title: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: "#FFFFFF",
+    companyName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#2196F3',
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    emptyContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 20,
+    companyLocation: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 5,
     },
     emptyText: {
+        textAlign: 'center',
+        marginTop: 50,
         fontSize: 16,
-        color: "#757575",
-        textAlign: "center",
-        marginBottom: 20,
-    },
-    loginButton: {
-        marginTop: 20,
-        backgroundColor: "#1E88E5",
-    },
-    browseButton: {
-        marginTop: 20,
-    },
-    companyList: {
-        padding: 16,
+        color: '#666',
     },
 });
 

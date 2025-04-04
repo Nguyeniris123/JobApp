@@ -282,7 +282,7 @@ const HomeScreen = ({ navigation }) => {
 const styles = {
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#F8FAFF',
     },
     loadingContainer: {
         flex: 1,
@@ -290,48 +290,68 @@ const styles = {
         alignItems: 'center',
     },
     header: {
-        padding: 16,
-        backgroundColor: '#fff',
+        padding: 20,
+        backgroundColor: '#1E88E5',
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
     },
     headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 20,
     },
     greeting: {
         fontSize: 16,
-        color: '#757575',
+        color: '#E3F2FD',
     },
     companyName: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: 'bold',
-        color: '#212121',
+        color: '#FFFFFF',
     },
     statsContainer: {
+        marginTop: -30,
         padding: 16,
     },
     statsCard: {
-        elevation: 4,
+        elevation: 8,
+        borderRadius: 20,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
     },
     statsContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        padding: 16,
     },
     statItem: {
         alignItems: 'center',
+        flex: 1,
     },
     statValue: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: 'bold',
         color: '#1E88E5',
+        marginBottom: 4,
     },
     statLabel: {
         fontSize: 12,
         color: '#757575',
+        textAlign: 'center',
     },
     statDivider: {
         width: 1,
         backgroundColor: '#E0E0E0',
+        marginHorizontal: 8,
     },
     section: {
         padding: 16,
@@ -364,7 +384,13 @@ const styles = {
     },
     jobCard: {
         marginBottom: 16,
-        elevation: 2,
+        borderRadius: 16,
+        elevation: 4,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     jobHeader: {
         flexDirection: 'row',
@@ -373,10 +399,9 @@ const styles = {
         marginBottom: 8,
     },
     jobTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
-        flex: 1,
-        marginRight: 8,
+        color: '#1E88E5',
     },
     statusChip: {
         height: 32,
@@ -387,11 +412,12 @@ const styles = {
     jobDetail: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 4,
+        marginVertical: 4,
     },
     jobDetailText: {
-        marginLeft: 4,
-        color: '#757575',
+        marginLeft: 8,
+        color: '#424242',
+        flex: 1,
     },
     jobStats: {
         flexDirection: 'row',
@@ -417,25 +443,32 @@ const styles = {
         borderTopColor: '#E0E0E0',
     },
     actionButton: {
-        marginLeft: 8,
+        borderRadius: 8,
+        marginHorizontal: 4,
+        flex: 1,
     },
     editButton: {
         backgroundColor: '#1E88E5',
     },
     deleteButton: {
-        backgroundColor: '#F44336',
+        backgroundColor: '#EF5350',
     },
     fab: {
         position: 'absolute',
         right: 16,
         bottom: 16,
         backgroundColor: '#1E88E5',
+        borderRadius: 28,
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
     },
     searchBar: {
-        marginTop: 16,
         elevation: 0,
-        backgroundColor: '#f5f5f5',
-        borderRadius: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 12,
     },
 }
 

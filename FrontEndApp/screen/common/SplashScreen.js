@@ -10,14 +10,14 @@ const SplashScreen = () => {
     useEffect(() => {
         Animated.timing(fadeAnim, {
             toValue: 1,
-            duration: 1500,
+            duration: 3500,
             useNativeDriver: true,
         }).start()
 
         // Chuyển sang màn hình Onboarding hoặc Home sau 2 giây
         const timer = setTimeout(() => {
             navigation.replace("Onboarding") // Hoặc "Home" nếu đã xem Onboarding
-        }, 2000)
+        }, 4000)
 
         return () => clearTimeout(timer) // Xóa timer nếu component unmount
     }, [])

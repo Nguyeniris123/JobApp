@@ -4,12 +4,11 @@ import { createStackNavigator } from "@react-navigation/stack"
 
 // Screens
 import ApplicationStatusScreen from "../screen/candidate/ApplicationStatusScreen"
-// import ApplyScreen from "../screen/candidate/ApplyScreen"
+import ApplyScreen from "../screen/candidate/ApplyScreen"
 import ChatScreen from "../screen/candidate/ChatScreen"
 import FollowingScreen from "../screen/candidate/FollowingScreen"
 import HomeScreen from "../screen/candidate/HomeScreen"
 import JobDetailScreen from "../screen/candidate/JobDetailScreen"
-import NotificationScreen from "../screen/candidate/NotificationScreen"
 import ProfileScreen from "../screen/candidate/ProfileScreen"
 import SettingsScreen from "../screen/candidate/SettingsScreen"
 
@@ -25,7 +24,7 @@ const HomeStack = () => {
         >
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="JobDetail" component={JobDetailScreen} />
-            {/* <Stack.Screen name="Apply" component={ApplyScreen} /> */}
+            <Stack.Screen name="Apply" component={ApplyScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />
         </Stack.Navigator>
     )
@@ -85,7 +84,7 @@ const CandidateNavigator = () => {
         >
             <Tab.Screen name="HomeTab" component={HomeStack} options={{ tabBarLabel: "Trang chủ" }} />
             <Tab.Screen name="FavoriteTab" component={FavoriteStack} options={{ tabBarLabel: "Yêu thích" }} />
-            <Tab.Screen name="NotificationTab" component={NotificationScreen} options={{ tabBarLabel: "Thông báo" }} />
+            <Tab.Screen name="NotificationTab" component={FollowingScreen} options={{ tabBarLabel: "Thông báo" }} />
             <Tab.Screen name="ProfileTab" component={ProfileStack} options={{ tabBarLabel: "Hồ sơ" }} />
         </Tab.Navigator>
     )

@@ -1,73 +1,11 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useEffect, useState } from "react"
 import { FlatList, ScrollView, StyleSheet, View } from "react-native"
 import { ActivityIndicator, Avatar, Button, Card, Chip, Divider, Menu, Searchbar, Text } from "react-native-paper"
 
-// Mock data for candidates
-const mockCandidates = [
-    {
-        id: "1",
-        name: "Nguyễn Văn A",
-        avatar: "https://via.placeholder.com/150",
-        appliedDate: new Date(2023, 3, 16),
-        status: "pending",
-        matchRate: 85,
-        skills: ["Giao tiếp", "Tiếng Anh", "Microsoft Office"],
-        experience: "1 năm kinh nghiệm",
-        education: "Đại học Quốc gia Hà Nội",
-        jobTitle: "Nhân viên bán hàng bán thời gian",
-    },
-    {
-        id: "2",
-        name: "Trần Thị B",
-        avatar: "https://via.placeholder.com/150",
-        appliedDate: new Date(2023, 3, 17),
-        status: "reviewing",
-        matchRate: 92,
-        skills: ["Giao tiếp", "Tiếng Anh", "Kỹ năng bán hàng"],
-        experience: "2 năm kinh nghiệm",
-        education: "Đại học Ngoại thương",
-        jobTitle: "Nhân viên bán hàng bán thời gian",
-    },
-    {
-        id: "3",
-        name: "Lê Văn C",
-        avatar: "https://via.placeholder.com/150",
-        appliedDate: new Date(2023, 3, 18),
-        status: "accepted",
-        matchRate: 78,
-        skills: ["Giao tiếp", "Tiếng Anh", "Kỹ năng thuyết trình"],
-        experience: "Chưa có kinh nghiệm",
-        education: "Đại học Bách khoa Hà Nội",
-        jobTitle: "Nhân viên bán hàng bán thời gian",
-    },
-    {
-        id: "4",
-        name: "Phạm Thị D",
-        avatar: "https://via.placeholder.com/150",
-        appliedDate: new Date(2023, 3, 19),
-        status: "rejected",
-        matchRate: 65,
-        skills: ["Giao tiếp", "Microsoft Office"],
-        experience: "Chưa có kinh nghiệm",
-        education: "Đại học Thương mại",
-        jobTitle: "Nhân viên bán hàng bán thời gian",
-    },
-    {
-        id: "5",
-        name: "Hoàng Văn E",
-        avatar: "https://via.placeholder.com/150",
-        appliedDate: new Date(2023, 3, 20),
-        status: "pending",
-        matchRate: 88,
-        skills: ["Giao tiếp", "Tiếng Anh", "Kỹ năng bán hàng", "Tiếng Trung"],
-        experience: "1 năm kinh nghiệm",
-        education: "Đại học Hà Nội",
-        jobTitle: "Nhân viên bán hàng bán thời gian",
-    },
-]
-
-const CandidateListScreen = ({ route, navigation }) => {
+const ApplicationListScreen = ({ route, navigation }) => {
     const { jobId } = route.params || {}
     const [candidates, setCandidates] = useState([])
     const [filteredCandidates, setFilteredCandidates] = useState([])
@@ -77,13 +15,39 @@ const CandidateListScreen = ({ route, navigation }) => {
     const [menuVisible, setMenuVisible] = useState(false)
     const [selectedCandidate, setSelectedCandidate] = useState(null)
 
+    const getAccessToken = async () => {
+        try {
+            const token = await AsyncStorage.getItem('accessToken')
+            return token
+        } catch (error) {
+            console.error('Error getting access token:', error)
+            return null
+        }
+    }
+
     useEffect(() => {
-        // Simulate API call
         const fetchCandidates = async () => {
             try {
-                await new Promise((resolve) => setTimeout(resolve, 1000))
-                setCandidates(mockCandidates)
-                setFilteredCandidates(mockCandidates)
+                const token = await getAccessToken()
+                if (!token) {
+                    throw new Error('No access token found')
+                }
+
+                const response = await fetch('http://192.168.1.5:8000/applications/recruiter/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    }
+                })
+                console.log("Response:", response.json())
+                if (!response.ok) {
+                    throw new Error('Network response was not ok')
+                }
+
+                const data = await response.json()
+                setCandidates(data)
+                setFilteredCandidates(data)
             } catch (error) {
                 console.log("Error fetching candidates:", error)
             } finally {
@@ -102,12 +66,10 @@ const CandidateListScreen = ({ route, navigation }) => {
     const filterCandidates = (query, status) => {
         let filtered = candidates
 
-        // Apply search query filter
         if (query) {
-            filtered = filtered.filter((candidate) => candidate.name.toLowerCase().includes(query.toLowerCase()))
+            filtered = filtered.filter((candidate) => candidate.applicant.username.toLowerCase().includes(query.toLowerCase()))
         }
 
-        // Apply status filter
         if (status !== "all") {
             filtered = filtered.filter((candidate) => candidate.status === status)
         }
@@ -120,41 +82,16 @@ const CandidateListScreen = ({ route, navigation }) => {
         filterCandidates(searchQuery, status)
     }
 
-    const formatDate = (date) => {
-        return new Date(date).toLocaleDateString("vi-VN", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        })
-    }
-
     const getStatusColor = (status) => {
         switch (status) {
-            case "pending":
-                return "#FFC107"
-            case "reviewing":
+            case "Đang xem xét":
                 return "#2196F3"
-            case "accepted":
+            case "Đã phỏng vấn":
                 return "#4CAF50"
-            case "rejected":
+            case "Từ chối":
                 return "#F44336"
             default:
                 return "#9E9E9E"
-        }
-    }
-
-    const getStatusText = (status) => {
-        switch (status) {
-            case "pending":
-                return "Đang chờ"
-            case "reviewing":
-                return "Đang xem xét"
-            case "accepted":
-                return "Đã chấp nhận"
-            case "rejected":
-                return "Đã từ chối"
-            default:
-                return "Không xác định"
         }
     }
 
@@ -167,98 +104,135 @@ const CandidateListScreen = ({ route, navigation }) => {
         setMenuVisible(true)
     }
 
-    const handleAcceptCandidate = (candidate) => {
-        // Simulate API call
-        setTimeout(() => {
+    const handleAcceptCandidate = async (candidate) => {
+        try {
+            const token = await getAccessToken()
+            if (!token) {
+                throw new Error('No access token found')
+            }
+            console.log(`Accepting candidate: http://192.168.1.5:8000/applications/${candidate.job_detail.id}/accept/`)
+
+            const response = await fetch(`http://192.168.1.5:8000/applications/${candidate.job_detail.id}/accept/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+
+            if (!response.ok) {
+                throw new Error('Failed to accept candidate')
+            }
+
             const updatedCandidates = candidates.map((c) => {
                 if (c.id === candidate.id) {
-                    return { ...c, status: "accepted" }
+                    return { ...c, status: "Đã phỏng vấn" }
                 }
                 return c
             })
             setCandidates(updatedCandidates)
             filterCandidates(searchQuery, statusFilter)
             setMenuVisible(false)
-        }, 500)
+        } catch (error) {
+            console.error('Error accepting candidate:', error)
+        }
     }
 
-    const handleRejectCandidate = (candidate) => {
-        // Simulate API call
-        setTimeout(() => {
+    const handleRejectCandidate = async (candidate) => {
+        try {
+            const token = await getAccessToken()
+            if (!token) {
+                throw new Error('No access token found')
+            }
+
+            const response = await fetch(`http://192.168.1.5:8000/applications/${candidate.job_detail.id}/reject/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+
+            if (!response.ok) {
+                throw new Error('Failed to reject candidate')
+            }
+
             const updatedCandidates = candidates.map((c) => {
                 if (c.id === candidate.id) {
-                    return { ...c, status: "rejected" }
+                    return { ...c, status: "Từ chối" }
                 }
                 return c
             })
             setCandidates(updatedCandidates)
             filterCandidates(searchQuery, statusFilter)
             setMenuVisible(false)
-        }, 500)
+        } catch (error) {
+            console.error('Error rejecting candidate:', error)
+        }
     }
 
     const renderCandidateItem = ({ item }) => (
-        <Card style={styles.candidateCard} onPress={() => handleCandidatePress(item)}>
+        <Card style={styles.candidateCard} mode="elevated">
             <Card.Content>
                 <View style={styles.candidateHeader}>
                     <View style={styles.candidateInfo}>
-                        <Avatar.Image source={{ uri: item.avatar }} size={60} />
+                        <Avatar.Image 
+                            source={{ uri: item.applicant.avatar }} 
+                            size={70} 
+                            style={styles.avatar}
+                        />
                         <View style={styles.candidateDetails}>
-                            <Text style={styles.candidateName}>{item.name}</Text>
-                            <Text style={styles.candidateJob}>{item.jobTitle}</Text>
+                            <Text style={styles.candidateName}>{item.applicant.username}</Text>
+                            <Text style={styles.candidateJob} numberOfLines={2}>
+                                {item.job_detail.title}
+                            </Text>
                             <Chip
-                                style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + "20" }]}
-                                textStyle={{ color: getStatusColor(item.status) }}
+                                style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + "15" }]}
+                                textStyle={[styles.statusText, { color: getStatusColor(item.status) }]}
                             >
-                                {getStatusText(item.status)}
+                                {item.status}
                             </Chip>
                         </View>
-                    </View>
-                    <View style={styles.matchRate}>
-                        <Text style={styles.matchRateValue}>{item.matchRate}%</Text>
-                        <Text style={styles.matchRateLabel}>Phù hợp</Text>
                     </View>
                 </View>
 
                 <Divider style={styles.divider} />
 
                 <View style={styles.candidateContent}>
-                    <View style={styles.candidateContentItem}>
-                        <MaterialCommunityIcons name="calendar" size={16} color="#757575" />
-                        <Text style={styles.candidateContentText}>Ứng tuyển: {formatDate(item.appliedDate)}</Text>
+                    <View style={styles.infoRow}>
+                        <MaterialCommunityIcons name="briefcase" size={20} color="#666" />
+                        <Text style={styles.infoText}>{item.job_detail.specialized}</Text>
                     </View>
 
-                    <View style={styles.candidateContentItem}>
-                        <MaterialCommunityIcons name="school" size={16} color="#757575" />
-                        <Text style={styles.candidateContentText}>{item.education}</Text>
+                    <View style={styles.infoRow}>
+                        <MaterialCommunityIcons name="map-marker" size={20} color="#666" />
+                        <Text style={styles.infoText}>{item.job_detail.location}</Text>
                     </View>
 
-                    <View style={styles.candidateContentItem}>
-                        <MaterialCommunityIcons name="briefcase" size={16} color="#757575" />
-                        <Text style={styles.candidateContentText}>{item.experience}</Text>
-                    </View>
-
-                    <View style={styles.skillsContainer}>
-                        {item.skills.map((skill, index) => (
-                            <Chip key={index} style={styles.skillChip} textStyle={styles.skillText}>
-                                {skill}
-                            </Chip>
-                        ))}
+                    <View style={styles.infoRow}>
+                        <MaterialCommunityIcons name="currency-usd" size={20} color="#666" />
+                        <Text style={styles.infoText}>
+                            {parseFloat(item.job_detail.salary).toLocaleString('vi-VN')} VNĐ
+                        </Text>
                     </View>
                 </View>
 
                 <View style={styles.actionButtons}>
-                    {item.status === "pending" || item.status === "reviewing" ? (
+                    {item.status === "Đang xem xét" ? (
                         <>
                             <Button
                                 mode="outlined"
                                 onPress={() => handleRejectCandidate(item)}
                                 style={styles.rejectButton}
                                 labelStyle={styles.rejectButtonLabel}
+                                contentStyle={styles.buttonContent}
                             >
                                 Từ chối
                             </Button>
-                            <Button mode="contained" onPress={() => handleAcceptCandidate(item)} style={styles.acceptButton}>
+                            <Button 
+                                mode="contained" 
+                                onPress={() => handleAcceptCandidate(item)} 
+                                style={styles.acceptButton}
+                                contentStyle={styles.buttonContent}
+                            >
                                 Chấp nhận
                             </Button>
                         </>
@@ -268,6 +242,7 @@ const CandidateListScreen = ({ route, navigation }) => {
                             icon="message-text"
                             onPress={() => navigation.navigate("Chat")}
                             style={styles.chatButton}
+                            contentStyle={styles.buttonContent}
                         >
                             Nhắn tin
                         </Button>
@@ -287,10 +262,15 @@ const CandidateListScreen = ({ route, navigation }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
+            <LinearGradient
+                colors={['#1976D2', '#1E88E5', '#2196F3']}
+                style={styles.header}
+            >
                 <Text style={styles.title}>Danh sách ứng viên</Text>
-                <Text style={styles.subtitle}>{jobId ? "Vị trí: Nhân viên bán hàng bán thời gian" : "Tất cả ứng viên"}</Text>
-            </View>
+                <Text style={styles.subtitle}>
+                    {jobId ? "Vị trí: Nhân viên bán hàng bán thời gian" : "Tất cả ứng viên"}
+                </Text>
+            </LinearGradient>
 
             <View style={styles.searchContainer}>
                 <Searchbar
@@ -307,32 +287,25 @@ const CandidateListScreen = ({ route, navigation }) => {
                         Tất cả
                     </Chip>
                     <Chip
-                        selected={statusFilter === "pending"}
-                        onPress={() => handleStatusFilter("pending")}
-                        style={styles.filterChip}
-                    >
-                        Đang chờ
-                    </Chip>
-                    <Chip
-                        selected={statusFilter === "reviewing"}
-                        onPress={() => handleStatusFilter("reviewing")}
+                        selected={statusFilter === "Đang xem xét"}
+                        onPress={() => handleStatusFilter("Đang xem xét")}
                         style={styles.filterChip}
                     >
                         Đang xem xét
                     </Chip>
                     <Chip
-                        selected={statusFilter === "accepted"}
-                        onPress={() => handleStatusFilter("accepted")}
+                        selected={statusFilter === "Đã phỏng vấn"}
+                        onPress={() => handleStatusFilter("Đã phỏng vấn")}
                         style={styles.filterChip}
                     >
-                        Đã chấp nhận
+                        Đã phỏng vấn
                     </Chip>
                     <Chip
-                        selected={statusFilter === "rejected"}
-                        onPress={() => handleStatusFilter("rejected")}
+                        selected={statusFilter === "Từ chối"}
+                        onPress={() => handleStatusFilter("Từ chối")}
                         style={styles.filterChip}
                     >
-                        Đã từ chối
+                        Từ chối
                     </Chip>
                 </ScrollView>
             </View>
@@ -373,35 +346,40 @@ const styles = StyleSheet.create({
     },
     header: {
         padding: 20,
-        paddingTop: 40,
-        backgroundColor: "#1E88E5",
+        paddingTop: 50,
+        paddingBottom: 25,
     },
     title: {
-        fontSize: 24,
-        fontWeight: "bold",
+        fontSize: 28,
+        fontWeight: "700",
         color: "#FFFFFF",
-        marginBottom: 4,
+        marginBottom: 8,
     },
     subtitle: {
         fontSize: 16,
         color: "#FFFFFF",
-        opacity: 0.8,
+        opacity: 0.9,
     },
     searchContainer: {
         padding: 16,
         paddingBottom: 8,
     },
     searchBar: {
+        marginHorizontal: 16,
+        marginVertical: 12,
         elevation: 2,
-        borderRadius: 8,
+        borderRadius: 10,
+        backgroundColor: '#FFFFFF',
     },
     filterContainer: {
         paddingHorizontal: 16,
-        marginBottom: 8,
+        marginBottom: 12,
     },
     filterChip: {
         marginRight: 8,
         marginBottom: 8,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 20,
     },
     loadingContainer: {
         flex: 1,
@@ -424,9 +402,11 @@ const styles = StyleSheet.create({
         paddingTop: 8,
     },
     candidateCard: {
+        marginHorizontal: 16,
         marginBottom: 16,
-        borderRadius: 8,
-        elevation: 2,
+        borderRadius: 12,
+        elevation: 4,
+        backgroundColor: '#FFFFFF',
     },
     candidateHeader: {
         flexDirection: "row",
@@ -436,89 +416,87 @@ const styles = StyleSheet.create({
     },
     candidateInfo: {
         flexDirection: "row",
-        alignItems: "center",
+        alignItems: "flex-start",
         flex: 1,
     },
+    avatar: {
+        borderWidth: 3,
+        borderColor: '#FFFFFF',
+        elevation: 4,
+    },
     candidateDetails: {
-        marginLeft: 12,
+        marginLeft: 15,
         flex: 1,
     },
     candidateName: {
-        fontSize: 18,
-        fontWeight: "bold",
+        fontSize: 20,
+        fontWeight: "700",
+        color: '#1F2937',
         marginBottom: 4,
     },
     candidateJob: {
-        fontSize: 14,
-        color: "#757575",
-        marginBottom: 8,
+        fontSize: 15,
+        color: '#4B5563',
+        marginBottom: 10,
+        lineHeight: 20,
     },
     statusChip: {
         alignSelf: "flex-start",
-        height: 24,
+        height: 28,
+        borderRadius: 14,
     },
-    matchRate: {
-        alignItems: "center",
-        marginLeft: 8,
-    },
-    matchRateValue: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#4CAF50",
-    },
-    matchRateLabel: {
-        fontSize: 12,
-        color: "#757575",
+    statusText: {
+        fontWeight: "600",
+        fontSize: 13,
     },
     divider: {
-        marginVertical: 12,
+        marginVertical: 15,
+        height: 1,
+        backgroundColor: '#E5E7EB',
     },
     candidateContent: {
         marginBottom: 12,
     },
-    candidateContentItem: {
+    infoRow: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 8,
+        marginBottom: 12,
     },
-    candidateContentText: {
-        fontSize: 14,
-        color: "#212121",
-        marginLeft: 8,
-    },
-    skillsContainer: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        marginTop: 8,
-    },
-    skillChip: {
-        margin: 4,
-        backgroundColor: "#E3F2FD",
-    },
-    skillText: {
-        fontSize: 12,
-        color: "#1E88E5",
+    infoText: {
+        fontSize: 15,
+        color: '#374151',
+        marginLeft: 12,
+        flex: 1,
     },
     actionButtons: {
         flexDirection: "row",
         justifyContent: "space-between",
+        marginTop: 8,
+    },
+    buttonContent: {
+        paddingVertical: 8,
     },
     rejectButton: {
         flex: 1,
-        marginRight: 8,
-        borderColor: "#F44336",
+        marginRight: 12,
+        borderColor: "#DC2626",
+        borderWidth: 1.5,
     },
     rejectButtonLabel: {
-        color: "#F44336",
+        color: "#DC2626",
+        fontSize: 15,
+        fontWeight: "600",
     },
     acceptButton: {
         flex: 1,
-        backgroundColor: "#4CAF50",
+        backgroundColor: "#059669",
     },
     chatButton: {
         flex: 1,
+        borderColor: "#2563EB",
+        borderWidth: 1.5,
     },
 })
 
-export default CandidateListScreen
+export default ApplicationListScreen
 
