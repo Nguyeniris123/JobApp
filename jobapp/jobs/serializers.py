@@ -32,7 +32,7 @@ class RecruiterSerializer(serializers.ModelSerializer):
     tax_code = serializers.CharField(write_only=True, required=True)
     description = serializers.CharField(write_only=True, required=True)
     location = serializers.CharField(write_only=True, required=True)
-    images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=True)
+    images = serializers.ListField(child=serializers.CharField(), write_only=True, required=True)
 
     company = serializers.SerializerMethodField()
 
