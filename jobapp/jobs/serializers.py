@@ -32,7 +32,7 @@ class RecruiterSerializer(serializers.ModelSerializer):
     tax_code = serializers.CharField(write_only=True, required=True)
     description = serializers.CharField(write_only=True, required=True)
     location = serializers.CharField(write_only=True, required=True)
-    images = serializers.ListField(child=serializers.CharField(), write_only=True, required=True)
+    images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=True)
 
     company = serializers.SerializerMethodField()
 
@@ -178,6 +178,12 @@ class ApplicationSerializer(serializers.ModelSerializer):
             return super().update(instance,{"status": validated_data.get("status", instance.status)})  # Chỉ cập nhật trạng thái
 
         raise PermissionDenied("Bạn không có quyền cập nhật đơn ứng tuyển này!")
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.cv:
+            data['cv'] = instance.cv.url  # chỉ lấy đúng URL, bỏ prefix thừa
+        return data
 
 
 class FollowSerializer(serializers.ModelSerializer):
