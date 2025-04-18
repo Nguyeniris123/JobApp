@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, { createContext, useEffect, useState } from 'react';
-import { API_URL } from '../config';
+import { API_ENDPOINTS } from '../apiConfig';
 
 export const AuthContext = createContext();
 
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
             };
             console.log("Request làm mới token:", jsondata);
 
-            const response = await axios.post(`${API_URL}/o/token/`,jsondata);
+            const response = await axios.post(API_ENDPOINTS.LOGIN, jsondata);
 
             const newAccessToken = response.data.access;
             await AsyncStorage.setItem('accessToken', newAccessToken);
@@ -103,7 +103,8 @@ export const AuthProvider = ({ children }) => {
         try {
             const token = await AsyncStorage.getItem('accessToken');
             try {
-                const recruiterResponse = await axios.get('http://192.168.1.5:8000/recruiters/current-user/', {
+                console.log("Token:", token)
+                const recruiterResponse = await axios.get(API_ENDPOINTS.RECRUITERS_GET_CURRENT_USER, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -111,16 +112,18 @@ export const AuthProvider = ({ children }) => {
                 if (recruiterResponse.data) {
                     setUser(recruiterResponse.data);
                     setRole('recruiter');
+                    console.log("User:", recruiterResponse.data)
                 }
             } catch (error) {
                 if (error.response?.data?.detail === "Bạn không có quyền truy cập.") {
-                    const candidateResponse = await axios.get('http://192.168.1.5:8000/candidates/current-user/', {
+                    const candidateResponse = await axios.get(API_ENDPOINTS.CANDIDATES_GET_CURRENT_USER, {
                         headers: {
                             Authorization: `Bearer ${token}`
                         }
                     });
                     setUser(candidateResponse.data);
                     setRole('candidate');
+                    console.log("User:", candidateResponse.data)
                 } else {
                     throw error;
                 }
@@ -143,7 +146,6 @@ export const AuthProvider = ({ children }) => {
 
             axios.defaults.headers.common['Authorization'] = `Bearer ${access}`;
             console.log("thanh cong")
-            setRole(user.role);
             await fetchUserProfile();
             console.log("Kiem tra user", user)
             setIsAuthenticated(true);

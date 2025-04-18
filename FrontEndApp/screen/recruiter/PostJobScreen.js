@@ -1,5 +1,3 @@
-"use client"
-
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { useContext, useEffect, useState } from "react"
 import { Alert, SafeAreaView, ScrollView, StyleSheet, View } from "react-native"

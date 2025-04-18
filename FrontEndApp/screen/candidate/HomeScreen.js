@@ -9,6 +9,10 @@ import { JobContext } from "../../contexts/JobContext";
 const HomeScreen = ({ navigation }) => {
   const { loading, jobs, fetchJobs, updateFilters } = useContext(JobContext);
   const { user } = useContext(AuthContext);
+  
+  // Thêm console.log để kiểm tra user
+  console.log("Current user:", user);
+  
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -93,7 +97,7 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.specializedContainer}>
-          <Chip 
+          <Chip
             icon="star"
             textStyle={styles.specializedText}
             style={styles.specializedChip}
@@ -103,31 +107,41 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.buttonRow}>
-          <AppButton
-            mode="outlined"
-            style={styles.viewButton}
-            labelStyle={styles.viewButtonText}
-            onPress={() => navigation.navigate("JobDetail", { jobId: item.id })}
-          >
-            Chi tiết
-          </AppButton>
           {user ? (
-            <AppButton 
-              mode="contained" 
-              style={styles.applyButton}
-              icon="send"
-              onPress={() => navigation.navigate("JobDetail", { jobId: item.id })}
-            >
-              Ứng tuyển
-            </AppButton>
+            <>
+              <AppButton
+                mode="outlined"
+                style={styles.viewButton}
+                labelStyle={styles.viewButtonText}
+                onPress={() => navigation.navigate("JobDetail", { jobId: item.id })}>
+                Chi tiết
+              </AppButton>
+              <AppButton
+                mode="contained"
+                style={styles.applyButton}
+                icon="send"
+                onPress={() => navigation.navigate("JobDetail", { jobId: item.id })}
+              >
+                Ứng tuyển
+              </AppButton>
+            </>
           ) : (
-            <AppButton 
-              mode="contained"
-              style={styles.loginButton}
-              onPress={() => navigation.navigate("Login")}
-            >
-              Đăng nhập
-            </AppButton>
+            <>
+              <AppButton
+                mode="outlined"
+                style={styles.viewButton}
+                labelStyle={styles.viewButtonText}
+                onPress={() => navigation.navigate("Login", { jobId: item.id })}>
+                Chi tiết
+              </AppButton>
+              <AppButton
+                mode="contained"
+                style={styles.loginButton}
+                onPress={() => navigation.navigate("Login")}
+              >
+                Đăng nhập
+              </AppButton>
+            </>
           )}
         </View>
       </View>
@@ -155,8 +169,8 @@ const HomeScreen = ({ navigation }) => {
       </Animated.View>
 
       <View style={styles.categoriesContainer}>
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesList}
         >
@@ -175,10 +189,10 @@ const HomeScreen = ({ navigation }) => {
                 selectedCategory === category.id && styles.selectedCategoryChipText
               ]}
               icon={() => (
-                <Icon 
-                  name={category.icon} 
-                  size={18} 
-                  color={selectedCategory === category.id ? '#fff' : '#666'} 
+                <Icon
+                  name={category.icon}
+                  size={18}
+                  color={selectedCategory === category.id ? '#fff' : '#666'}
                 />
               )}
             >
@@ -206,8 +220,8 @@ const HomeScreen = ({ navigation }) => {
           contentContainerStyle={styles.jobList}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
+            <RefreshControl
+              refreshing={refreshing}
               onRefresh={onRefresh}
               colors={['#1E88E5']}
             />
