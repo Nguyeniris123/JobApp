@@ -179,6 +179,12 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
         raise PermissionDenied("Bạn không có quyền cập nhật đơn ứng tuyển này!")
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.cv:
+            data['cv'] = instance.cv.url  # chỉ lấy đúng URL, bỏ prefix thừa
+        return data
+
 
 class FollowSerializer(serializers.ModelSerializer):
     recruiter_company = CompanySerializer(source="recruiter.company", read_only=True)

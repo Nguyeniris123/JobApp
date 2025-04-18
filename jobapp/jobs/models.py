@@ -30,7 +30,7 @@ class User(AbstractUser):
         return self.username
 
 
-class Company(models.Model):
+class Company(BaseModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='company')
     name = models.CharField(max_length=255)
     tax_code = models.CharField(max_length=20, unique=True)
@@ -41,7 +41,7 @@ class Company(models.Model):
     def __str__(self):
         return self.name
 
-class CompanyImage(models.Model):
+class CompanyImage(BaseModel):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='images')
     image = CloudinaryField(null=True)
 
@@ -112,7 +112,7 @@ class VerificationDocument(BaseModel):
         max_length=10, choices=VerificationStatus.choices, default=VerificationStatus.PENDING
     )
     admin_note = models.TextField(blank=True, null=True)
-    reviewed_at = models.DateTimeField(blank=True, null=True)
+    # reviewed_at = models.DateTimeField(blank=True, null=False)
 
     def __str__(self):
         return f"Verification for {self.user.username} - {self.status}"
