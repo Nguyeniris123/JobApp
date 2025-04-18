@@ -154,8 +154,6 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Create
         application.save()
         return Response({"message": "Đơn ứng tuyển đã bị từ chối."}, status=status.HTTP_200_OK)
 
-
-
 class FollowViewSet(viewsets.ModelViewSet):
     serializer_class = FollowSerializer
     http_method_names = ["get", "post", "delete"]
@@ -165,9 +163,11 @@ class FollowViewSet(viewsets.ModelViewSet):
         return Follow.objects.filter(follower=self.request.user)
 
     def get_permissions(self):
-        if self.action in ["creat", "list", "destroy"]:
+        if self.action in ["create", "list", "destroy"]:
             return [perms.IsCandidate()]  # Chỉ ứng viên mới có thể follow
-        return super().get_permissions()
+        if self.action in ["my_followers"]:
+            return [perms.IsRecruiterJobPost()]
+        return [permissions.AllowAny()]
 
     def destroy(self, request, *args, **kwargs):
         # Ứng viên có thể bỏ theo dõi nhà tuyển dụng
@@ -178,9 +178,6 @@ class FollowViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["GET"], url_path="recruiter-followers")
     def my_followers(self, request):
         # Nhà tuyển dụng xem danh sách ứng viên follow mình
-        if request.user.role != "recruiter":
-            return Response({"error": "Bạn không phải nhà tuyển dụng!"}, status=status.HTTP_403_FORBIDDEN)
-
         followers = Follow.objects.filter(recruiter=request.user)
         data = CandidateSerializer([follow.follower for follow in followers], many=True).data
         return Response(data, status=status.HTTP_200_OK)
