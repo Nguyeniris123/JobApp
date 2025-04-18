@@ -96,25 +96,6 @@ class RecruiterSerializer(serializers.ModelSerializer):
         data['avatar'] = instance.avatar.url if instance.avatar else ''
         return data
 
-User = get_user_model()
-class CustomOAuth2TokenSerializer(serializers.ModelSerializer):
-    user = serializers.SerializerMethodField()
-
-    class Meta:
-        model = AccessToken
-        fields = ["token", "expires", "user"]
-
-    def get_user(self, obj):
-        return {
-            "id": obj.user.id,
-            "first_name": obj.user.first_name,
-            "last_name": obj.user.last_name,
-            "username": obj.user.username,
-            "email": obj.user.email,
-            "role": obj.user.role,
-            "avatar": obj.user.avatar.url if obj.user.avatar else "",
-        }
-
 class CompanyImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = CompanyImage
@@ -130,7 +111,6 @@ class CompanySerializer(serializers.ModelSerializer):
 class JobPostSerializer(serializers.ModelSerializer):
     company = CompanySerializer(source='recruiter.company', read_only=True)  # Lấy thông tin công ty từ recruiter
     application_count = serializers.SerializerMethodField()
-
 
     class Meta:
         model = JobPost
@@ -151,7 +131,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = ['id', "applicant", "job", "job_detail", "cv", "status"]
-        read_only_fields = ["applicant", "status", "created_date"]  # Không cần nhập applicant khi gửi request
+        read_only_fields = ["applicant", "status", "created_date"]  # Không cần nhập applicant, status, created_datekhi gửi request
 
     def create(self, validated_data):
         request = self.context["request"]
@@ -171,12 +151,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
             if "status" in validated_data:
                 raise PermissionDenied("Ứng viên không thể thay đổi trạng thái đơn ứng tuyển!")
             return super().update(instance, {"cv": validated_data.get("cv", instance.cv)})  # Chỉ cập nhật CV
-
-        elif user.role == "recruiter":
-            if "cv" in validated_data:
-                raise PermissionDenied("Nhà tuyển dụng không thể thay đổi CV của ứng viên!")
-            return super().update(instance,{"status": validated_data.get("status", instance.status)})  # Chỉ cập nhật trạng thái
-
         raise PermissionDenied("Bạn không có quyền cập nhật đơn ứng tuyển này!")
 
     def to_representation(self, instance):
@@ -184,7 +158,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
         if instance.cv:
             data['cv'] = instance.cv.url  # chỉ lấy đúng URL, bỏ prefix thừa
         return data
-
 
 class FollowSerializer(serializers.ModelSerializer):
     recruiter_company = CompanySerializer(source="recruiter.company", read_only=True)

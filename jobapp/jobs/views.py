@@ -4,7 +4,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from . import perms, paginators
-from .perms import ApplicationPerms, IsCandidate, IsRecruiterApplication, IsRecruiter, IsRecruiterCompany
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, FollowSerializer, CompanySerializer
 from .models import User, JobPost, Application, Follow, Company
 
@@ -57,7 +56,7 @@ class JobPostViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy', 'recruiter_job_post']:
-            return [perms.IsRecruiter()]
+            return [perms.IsRecruiterJobPost()]
         return [permissions.AllowAny()]
 
     def filter_job_posts(self, queryset):
@@ -100,7 +99,7 @@ class JobPostViewSet(viewsets.ModelViewSet):
         queryset = JobPost.objects.filter(active=True)
         return self.filter_job_posts(queryset)
 
-    @action(detail=False, methods=['get'], permission_classes=[perms.IsRecruiter])
+    @action(detail=False, methods=['get'], permission_classes=[perms.IsRecruiterJobPost])
     def recruiter_job_post(self, request):
         queryset = JobPost.objects.filter(recruiter=request.user, active=True)
         queryset = self.filter_job_posts(queryset)
@@ -113,56 +112,48 @@ class JobPostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-
-class ApplicationViewSet(viewsets.ModelViewSet):
+class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView, generics.UpdateAPIView):
     serializer_class = ApplicationSerializer
-    http_method_names = ["get", "post", "patch"]
 
     def get_queryset(self):
         # Lọc danh sách đơn ứng tuyển dựa trên role của user
         user = self.request.user  # lấy thông tin user hiện tại
         if user.role == "candidate":
             return Application.objects.filter(applicant=user, active=True)
-        elif user.role == "recruiter":
+        elif self.action in ["accept_application", "reject_application"]:
             return Application.objects.filter(job__recruiter=user, active=True)
+        return Application.objects.none()  # Trả về rỗng nếu role không phải là "candidate"
 
     def get_permissions(self):
-        if self.action in ["list", "create", "retrieve", "update"]:
-            return [IsCandidate()]  # Chỉ ứng viên mới có thể tạo đơn ứng tuyển
         if self.action in ["list_for_recruiter", "accept_application", "reject_application"]:
-            return [IsRecruiterApplication()]  # Chỉ nhà tuyển dụng mới có thể xem, sửa danh sách đơn ứng tuyển
-        return [ApplicationPerms()]
+            return [perms.IsRecruiterApplication()]
+        if self.request.method in ['GET', 'POST', 'PUT', 'PATCH']:
+            return [perms.IsCandidate()]
+        return [perms.ApplicationPerms()]
 
-    @action(detail=False, methods=["get"], url_path="recruiter", permission_classes=[IsRecruiterApplication])
+    @action(detail=False, methods=["get"], url_path="recruiter")
     def list_for_recruiter(self, request):
         # Nhà tuyển dụng xem danh sách đơn ứng tuyển vào job của họ
         queryset = Application.objects.filter(job__recruiter=request.user, active=True)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["patch"], url_path="accept", permission_classes=[IsRecruiterApplication])
+    @action(detail=True, methods=["patch"], url_path="accept")
     def accept_application(self, request, pk=None):
         # Nhà tuyển dụng chấp nhận đơn ứng tuyển
         application = self.get_object()
-
-        if application.job.recruiter != request.user:
-            raise PermissionDenied("Bạn không có quyền chấp nhận đơn ứng tuyển này.")
-
         application.status = "accepted"
         application.save()
         return Response({"message": "Đơn ứng tuyển đã được chấp nhận."}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["patch"], url_path="reject", permission_classes=[IsRecruiterApplication])
+    @action(detail=True, methods=["patch"], url_path="reject")
     def reject_application(self, request, pk=None):
         # Nhà tuyển dụng từ chối đơn ứng tuyển
         application = self.get_object()
-
-        if application.job.recruiter != request.user:
-            raise PermissionDenied("Bạn không có quyền từ chối đơn ứng tuyển này.")
-
         application.status = "rejected"
         application.save()
         return Response({"message": "Đơn ứng tuyển đã bị từ chối."}, status=status.HTTP_200_OK)
+
 
 
 class FollowViewSet(viewsets.ModelViewSet):
@@ -175,7 +166,7 @@ class FollowViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ["creat", "list", "destroy"]:
-            return [IsCandidate()]  # Chỉ ứng viên mới có thể follow
+            return [perms.IsCandidate()]  # Chỉ ứng viên mới có thể follow
         return super().get_permissions()
 
     def destroy(self, request, *args, **kwargs):

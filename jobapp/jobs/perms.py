@@ -15,7 +15,7 @@ class IsRecruiterCompany(permissions.IsAuthenticated):
         # Chỉ recruiter đăng bài mới được sửa/xóa bài của chính mình
         return obj.user == request.user
 
-class IsRecruiter(permissions.IsAuthenticated):
+class IsRecruiterJobPost(permissions.IsAuthenticated):
     def has_permission(self, request, view):
         # Chặn ngay từ đầu nếu user không phải recruiter
         return super().has_permission(request, view) and request.user.role == 'recruiter'
@@ -24,18 +24,10 @@ class IsRecruiter(permissions.IsAuthenticated):
         # Chỉ recruiter đăng bài mới được sửa/xóa bài của chính mình
         return obj.recruiter == request.user
 
-
-
-class IsCandidate(permissions.BasePermission):
-   # Chỉ cho phép ứng viên (candidate) tạo đơn ứng tuyển, theo dõi recruiter
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == "candidate"
-
-
-class IsRecruiterApplication(permissions.BasePermission):
+class IsRecruiterApplication(permissions.IsAuthenticated):
     # Chỉ cho phép nhà tuyển dụng (recruiter) truy cập
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == "recruiter"
+        return super().has_permission(request, view) and request.user.role == 'recruiter'
 
     def has_object_permission(self, request, view, obj):
         #Nhà tuyển dụng chỉ có thể thao tác trên đơn ứng tuyển thuộc job của họ
@@ -44,3 +36,9 @@ class IsRecruiterApplication(permissions.BasePermission):
 class ApplicationPerms(permissions.IsAuthenticated):
     def has_permission(self, request, view):
         return request.user.is_authenticated
+
+class IsCandidate(permissions.BasePermission):
+   # Chỉ cho phép ứng viên (candidate) tạo đơn ứng tuyển, theo dõi recruiter
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == "candidate"
+
