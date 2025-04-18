@@ -1,17 +1,13 @@
+from django.db.models import Q
 from django.http import JsonResponse
-from rest_framework import viewsets, status, generics, parsers, permissions, filters
+from rest_framework import viewsets, status, generics, parsers, permissions
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from rest_framework.decorators import action, permission_classes
+from rest_framework.decorators import action
 from . import serializers, perms, paginators
 from .perms import ApplicationPerms, IsCandidate, IsRecruiterApplication, IsRecruiter, IsRecruiterCompany
-from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, \
-    CustomOAuth2TokenSerializer, FollowSerializer, CompanySerializer
+from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, FollowSerializer, CompanySerializer
 from .models import User, JobPost, Application, Follow, Company
-from django_filters.rest_framework import DjangoFilterBackend
-from oauth2_provider.models import AccessToken
-from oauth2_provider.views import TokenView
-import json
 
 
 class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
@@ -61,76 +57,68 @@ class CompanyViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Bạn không có quyền chỉnh sửa công ty này!")
         return super().update(request, *args, **kwargs)
 
-
-class CustomOAuth2TokenView(TokenView):
-    def post(self, request, *args, **kwargs):
-        response = super().post(request, *args, **kwargs)
-
-        # Chuyển response thành JSON để xử lý
-        if response.status_code == 200:
-            response_data = json.loads(response.content)
-
-            access_token = response_data.get("access_token")
-            if access_token:
-                try:
-                    token_obj = AccessToken.objects.get(token=access_token)
-                    response_data["user"] = CustomOAuth2TokenSerializer(token_obj).data["user"]
-                except AccessToken.DoesNotExist:
-                    pass
-
-            return JsonResponse(response_data, status=200)
-
-        return response
-
-
 class JobPostViewSet(viewsets.ModelViewSet):
-    queryset = JobPost.objects.filter(active=True)
     serializer_class = JobPostSerializer
     pagination_class = paginators.JobPostPaginator
 
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
-
-    # Lọc theo ngành nghề, mức lương, số giờ làm việc, địa điểm
-    filterset_fields = {
-        'specialized': ['icontains'],  # Tìm kiếm gần đúng theo ngành nghề
-        'salary': ['gte', 'lte'],  # Lọc mức lương từ - đến
-        'working_hours': ['gte', 'lte'],  # Lọc số giờ làm việc từ - đến
-        'location': ['icontains'],  # Tìm kiếm gần đúng theo địa điểm
-    }
-    # vd: http://127.0.0.1:8000/job-posts/?specialized=IT&salary__gte=5000&salary__lte=10000
-
-    # Sắp xếp theo lương, số giờ làm việc, ngày đăng
-    ordering_fields = ['salary', 'working_hours', 'created_date']
-    ordering = ['-created_date']  # Mặc định sắp xếp theo ngày đăng giảm dần
-
-    # Tìm kiếm theo tiêu đề, ngành nghề, địa điểm
-    search_fields = ['title', 'specialized', 'location']
-
     def get_permissions(self):
-        # Chỉ recruiter mới được đăng, sửa, xóa
         if self.action in ['create', 'update', 'partial_update', 'destroy', 'recruiter_job_post']:
             return [perms.IsRecruiter()]
-        # Ai cũng xem được danh sách và chi tiết tin tuyển dụng
         return [permissions.AllowAny()]
 
+    def filter_job_posts(self, queryset):
+        params = self.request.query_params
+
+        # Lọc
+        if (specialized := params.get('specialized')):
+            queryset = queryset.filter(specialized__icontains=specialized)
+
+        if (location := params.get('location')):
+            queryset = queryset.filter(location__icontains=location)
+
+        if (salary_gte := params.get('salary__gte')):
+            queryset = queryset.filter(salary__gte=salary_gte)
+
+        if (salary_lte := params.get('salary__lte')):
+            queryset = queryset.filter(salary__lte=salary_lte)
+
+        if (hours_gte := params.get('working_hours__gte')):
+            queryset = queryset.filter(working_hours__gte=hours_gte)
+
+        if (hours_lte := params.get('working_hours__lte')):
+            queryset = queryset.filter(working_hours__lte=hours_lte)
+
+        # Tìm kiếm gần đúng
+        if (search := params.get('search')):
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(specialized__icontains=search) |
+                Q(location__icontains=search)
+            )
+
+        # Sắp xếp
+        ordering = params.get('ordering', '-created_date')
+        queryset = queryset.order_by(ordering)
+
+        return queryset
+
+    def get_queryset(self):
+        queryset = JobPost.objects.filter(active=True)
+        return self.filter_job_posts(queryset)
 
     @action(detail=False, methods=['get'], permission_classes=[perms.IsRecruiter])
     def recruiter_job_post(self, request):
-        # Lấy danh sách JobPost của nhà tuyển dụng hiện tại
-        job_posts = JobPost.objects.filter(recruiter=request.user, active=True)
+        queryset = JobPost.objects.filter(recruiter=request.user, active=True)
+        queryset = self.filter_job_posts(queryset)
 
-        # Áp dụng bộ lọc, tìm kiếm, sắp xếp
-        job_posts = self.filter_queryset(job_posts)
-
-        # Phân trang
-        page = self.paginate_queryset(job_posts)
+        page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        # Nếu không phân trang, trả về toàn bộ
-        serializer = self.get_serializer(job_posts, many=True)
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
 
 class ApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationSerializer
