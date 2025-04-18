@@ -1,6 +1,6 @@
 import axios from 'axios';
 import React, { createContext, useEffect, useState } from 'react';
-import { API_URL } from '../config';
+import { API_ENDPOINTS } from '../apiConfig';
 
 export const JobContext = createContext();
 
@@ -40,7 +40,7 @@ export const JobProvider = ({ children }) => {
         try {
             setLoading(true);
             const queryString = buildQueryString(customFilters || filters);
-            const url = `${API_URL}/jobposts/${queryString ? `?${queryString}` : ''}`;
+            const url = `${API_ENDPOINTS.JOBPOSTS_LIST}${queryString ? `?${queryString}` : ''}`;
             
             const response = await axios.get(url);
             setJobs(response.data.results || []);
@@ -65,7 +65,7 @@ export const JobProvider = ({ children }) => {
         try {
             console.log("Bắt đầu fetch job detail với ID:", jobId);
             setLoading(true);
-            const response = await axios.get(`${API_URL}/jobposts/${jobId}/`);
+            const response = await axios.get(API_ENDPOINTS.JOBPOSTS_READ(jobId));
             console.log("Job detail data:", response.data);
             return response.data;
         } catch (error) {
@@ -98,7 +98,7 @@ export const JobProvider = ({ children }) => {
                     is_verified: jobData.company?.is_verified || false
                 }
             };
-            const response = await axios.post(`${API_URL}/jobposts/`, formattedJobData);
+            const response = await axios.post(API_ENDPOINTS.JOBPOSTS_CREATE, formattedJobData);
             setJobs(prevJobs => [...prevJobs, response.data]);
             return response.data;
         } catch (error) {
@@ -113,7 +113,7 @@ export const JobProvider = ({ children }) => {
     const deleteJob = async (jobId) => {
         try {
             setLoading(true);
-            await axios.delete(`${API_URL}/jobposts/${jobId}/`);
+            await axios.delete(API_ENDPOINTS.JOBPOSTS_DELETE(jobId));
             setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
             return true;
         } catch (error) {
@@ -128,7 +128,7 @@ export const JobProvider = ({ children }) => {
     const updateJob = async (jobId, jobData) => {
         try {
             setLoading(true);
-            const response = await axios.put(`${API_URL}/jobposts/${jobId}/`, jobData);
+            const response = await axios.put(API_ENDPOINTS.JOBPOSTS_UPDATE(jobId), jobData);
             setJobs(prevJobs => 
                 prevJobs.map(job => job.id === jobId ? response.data : job)
             );
@@ -147,7 +147,7 @@ export const JobProvider = ({ children }) => {
             console.log("Bắt đầu fetch recruiter jobs...");
             setLoading(true);
             
-            const response = await axios.get(`${API_URL}/jobposts/recruiter_job_post/`, {
+            const response = await axios.get(API_ENDPOINTS.JOBPOSTS_RECRUITER_JOB_POST, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -174,7 +174,7 @@ export const JobProvider = ({ children }) => {
     // Add this new function for applying to jobs
     const applyForJob = async (jobId, applicationData) => {
         try {
-            const response = await axios.post(`${API_URL}/applications/`, {
+            const response = await axios.post(API_ENDPOINTS.APPLICATIONS_CREATE, {
                 applicant: {
                     first_name: applicationData.fullName.split(' ').slice(-1).join(' '),
                     last_name: applicationData.fullName.split(' ').slice(0, -1).join(' '),

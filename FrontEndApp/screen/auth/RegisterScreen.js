@@ -1,13 +1,12 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import axios from 'axios';
-import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Alert, Image, StyleSheet, View } from "react-native";
 import { Text, Title, useTheme } from "react-native-paper";
 import * as yup from "yup";
-import { API_URL } from "../../config";
+import { API_ENDPOINTS } from "../../apiConfig";
 
 // Import components
 import FormButton from "../../components/form/FormButton";
@@ -19,12 +18,21 @@ import AppDivider from "../../components/ui/AppDivider";
 
 // ✅ Schema validation bằng Yup
 const registerSchema = yup.object().shape({
+    username: yup.string().required("Vui lòng nhập tên đăng nhập"),
     email: yup.string().email("Email không hợp lệ").required("Vui lòng nhập email"),
     password: yup.string().min(6, "Mật khẩu ít nhất 6 ký tự").required("Vui lòng nhập mật khẩu"),
     confirmPassword: yup.string().oneOf([yup.ref("password"), null], "Mật khẩu không khớp").required("Vui lòng xác nhận mật khẩu"),
     companyName: yup.string().when("userType", {
         is: "employer",
         then: (schema) => schema.required("Vui lòng nhập tên công ty"),
+    }),
+    description: yup.string().when("userType", {
+        is: "employer",
+        then: (schema) => schema.required("Vui lòng nhập mô tả công ty"),
+    }),
+    location: yup.string().when("userType", {
+        is: "employer",
+        then: (schema) => schema.required("Vui lòng nhập địa chỉ công ty"),
     }),
     taxId: yup.string().when("userType", {
         is: "employer",
@@ -36,7 +44,6 @@ const RegisterScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [userType, setUserType] = useState("jobSeeker");
-    const [cv, setCv] = useState(null);
     const [companyImages, setCompanyImages] = useState([]);
     const [avatar, setAvatar] = useState(null);
     const theme = useTheme();
@@ -47,10 +54,13 @@ const RegisterScreen = ({ navigation }) => {
         defaultValues: {
             firstname: "",
             lastname: "",
+            username: "",
             email: "",
             password: "",
             confirmPassword: "",
             companyName: "",
+            description: "",
+            location: "",
             taxId: "",
             avatar: "",
         },
@@ -75,20 +85,6 @@ const RegisterScreen = ({ navigation }) => {
         }
     };
 
-    // 📌 Chọn CV (PDF)
-    const pickDocument = async () => {
-        try {
-            const result = await DocumentPicker.getDocumentAsync({
-                type: "application/pdf",
-                copyToCacheDirectory: true,
-            });
-            if (result.type === "success") {
-                setCv(result);
-            }
-        } catch (error) {
-            console.error("Error picking document:", error);
-        }
-    };
 
     // 📌 Chọn nhiều ảnh công ty
     const pickImages = async () => {
@@ -128,16 +124,46 @@ const RegisterScreen = ({ navigation }) => {
             const formData = new FormData();
             formData.append("first_name", data.firstname);
             formData.append("last_name", data.lastname);
-            formData.append("username", data.email);
+            formData.append("username", data.username);
+            formData.append("email", data.email);
             formData.append("password", data.password);
     
             if (avatar) {
                 formData.append("avatar", avatar.uri);
             }
     
-            const apiEndpoint = userType === "jobSeeker" ? "/candidates/" : "/recruiters/";
-            const response = await axios.post(`${API_URL}${apiEndpoint}`, formData, {
-                headers: { "Content-Type": "multipart/form-data" },
+            if (userType === "employer") {
+                formData.append("company_name", data.companyName);
+                formData.append("description", data.description);
+                formData.append("location", data.location);
+                formData.append("tax_code", data.taxId);
+                
+                // Fix: Properly format images for upload
+                companyImages.forEach((imageUri) => {
+                    const filename = imageUri.split('/').pop();
+                    const img = imageUri.toString();
+                    formData.append('images', {
+                        uri: img,
+                        type: 'image/jpeg',
+                        name: filename || 'image.jpg',
+                    });
+                    console.log("Image added to formData:", img);
+                });
+            }
+    
+            const apiEndpoint = userType === "jobSeeker" ? 
+                API_ENDPOINTS.CANDIDATES_CREATE : 
+                API_ENDPOINTS.RECRUITERS_CREATE;
+                
+            // Add correct content type header for multipart form data
+            const response = await axios.post(apiEndpoint, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Accept': 'application/json',
+                },
+                transformRequest: (data, headers) => {
+                    return formData; // Return FormData directly
+                },
             });
     
             console.log("✅ Đăng ký thành công:", response.data);
@@ -194,6 +220,7 @@ const RegisterScreen = ({ navigation }) => {
                 <View style={styles.formContainer}>
                     <FormField control={control} name="firstname" label="Họ" autoCapitalize="words" />
                     <FormField control={control} name="lastname" label="Tên" autoCapitalize="words" />
+                    <FormField control={control} name="username" label="Tên đăng nhập" autoCapitalize="none" />
                     <FormField control={control} name="email" label="Email" keyboardType="email-address" autoCapitalize="none" />
                     <FormField control={control} name="password" label="Mật khẩu" secureTextEntry />
                     <FormField control={control} name="confirmPassword" label="Xác nhận mật khẩu" secureTextEntry />
@@ -204,20 +231,14 @@ const RegisterScreen = ({ navigation }) => {
                     {avatar && <Image source={{ uri: avatar }} style={{ width: 100, height: 100, borderRadius: 50 }} />}
 
 
-                    {userType === "jobSeeker" && (
-                        <>
-                            <AppButton mode="outlined" onPress={pickDocument} icon="file-upload">
-                                {cv ? "Thay đổi CV" : "Tải lên CV"}
-                            </AppButton>
-                            {cv && <Text style={styles.fileName}>{cv.name}</Text>}
-                        </>
-                    )}
+                    
 
                     {userType === "employer" && (
                         <>
                             <FormField control={control} name="companyName" label="Tên công ty" autoCapitalize="words" />
+                            <FormField control={control} name="description" label="Mô tả công ty" multiline numberOfLines={4} />
+                            <FormField control={control} name="location" label="Địa chỉ công ty" autoCapitalize="words" />
                             <FormField control={control} name="taxId" label="Mã số thuế" keyboardType="numeric" />
-                            <FormField control={control} name="Description" label="Mô tả" autoCapitalize="words" />
 
                             <AppButton mode="outlined" onPress={pickImages} icon="image-multiple">
                                 Tải lên hình ảnh công ty (Tối thiểu 3 ảnh)

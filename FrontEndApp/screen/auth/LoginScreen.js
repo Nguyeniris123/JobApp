@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { Image, StyleSheet, View } from 'react-native';
 import { Text, Title, useTheme } from 'react-native-paper';
 import * as yup from 'yup';
-import { API_URL } from '../../config';
+import { API_ENDPOINTS } from '../../apiConfig';
 
 import { AuthContext } from "../../contexts/AuthContext";
 
@@ -52,7 +52,7 @@ const LoginScreen = ({ navigation }) => {
 
             console.log("Request gửi đi:", jsondata);
 
-            const response = await axios.post(`${API_URL}/oauth/token/`, jsondata);
+            const response = await axios.post(API_ENDPOINTS.LOGIN, jsondata);
             const { access_token, refresh_token, user } = response.data;
 
             console.log("===========================\n",access_token, refresh_token,user)

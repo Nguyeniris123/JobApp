@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, { createContext, useEffect, useState } from 'react';
-import { API_URL } from '../config';
+import { API_ENDPOINTS } from '../apiConfig';
 
 export const CompanyContext = createContext({
     loading: false,
@@ -26,7 +26,7 @@ export const CompanyProvider = ({ children }) => {
                 console.log('No token found');
                 return;
             }
-            const response = await axios.get(`${API_URL}/follow/`, {
+            const response = await axios.get(API_ENDPOINTS.FOLLOW_LIST, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -45,7 +45,7 @@ export const CompanyProvider = ({ children }) => {
             const token = await AsyncStorage.getItem('accessToken');
             if (!token) throw new Error('No token found');
             
-            await axios.delete(`${API_URL}/follow/${companyId}/`, {
+            await axios.delete(API_ENDPOINTS.FOLLOW_DELETE(companyId), {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -62,7 +62,9 @@ export const CompanyProvider = ({ children }) => {
             const token = await AsyncStorage.getItem('accessToken');
             if (!token) throw new Error('No token found');
             
-            await axios.post(`${API_URL}/follow/${companyId}/`, {}, {
+            await axios.post(API_ENDPOINTS.FOLLOW_CREATE, {
+                company: companyId
+            }, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
