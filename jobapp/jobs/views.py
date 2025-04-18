@@ -1,10 +1,9 @@
 from django.db.models import Q
-from django.http import JsonResponse
 from rest_framework import viewsets, status, generics, parsers, permissions
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from . import serializers, perms, paginators
+from . import perms, paginators
 from .perms import ApplicationPerms, IsCandidate, IsRecruiterApplication, IsRecruiter, IsRecruiterCompany
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, FollowSerializer, CompanySerializer
 from .models import User, JobPost, Application, Follow, Company
@@ -43,19 +42,14 @@ class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
             return Response({"detail": "Bạn không có quyền truy cập."}, status=status.HTTP_403_FORBIDDEN)
         return Response(self.serializer_class(request.user).data)
 
-class CompanyViewSet(viewsets.ModelViewSet):
+class CompanyViewSet(viewsets.ViewSet, generics.ListAPIView, generics.UpdateAPIView):
     serializer_class = CompanySerializer
-    permission_classes = [IsRecruiterCompany]
-    http_method_names = ["get", "put", "patch"]
+    queryset = (Company.objects.filter(active=True))
 
-    def get_queryset(self):
-        return Company.objects.filter(user=self.request.user)
-
-    def update(self, request, *args, **kwargs):
-        company = self.get_object()
-        if company.user != request.user:
-            raise PermissionDenied("Bạn không có quyền chỉnh sửa công ty này!")
-        return super().update(request, *args, **kwargs)
+    def get_permissions(self):
+        if self.request.method in ['GET', 'PUT', 'PATCH']:
+            return [perms.IsRecruiterCompany()]
+        return [permissions.AllowAny()]
 
 class JobPostViewSet(viewsets.ModelViewSet):
     serializer_class = JobPostSerializer
