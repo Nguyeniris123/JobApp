@@ -1,11 +1,13 @@
 from django.db.models import Q
 from rest_framework import viewsets, status, generics, parsers, permissions
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from . import perms, paginators
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, FollowSerializer, CompanySerializer
 from .models import User, JobPost, Application, Follow, Company
+from django.core.mail import send_mail
+from django.http import JsonResponse
+import os
 
 
 class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
@@ -181,3 +183,14 @@ class FollowViewSet(viewsets.ModelViewSet):
         followers = Follow.objects.filter(recruiter=request.user)
         data = CandidateSerializer([follow.follower for follow in followers], many=True).data
         return Response(data, status=status.HTTP_200_OK)
+
+
+def test_send_email(request):
+    send_mail(
+        subject='Test gửi email',
+        message='Email test từ Django.',
+        from_email=os.getenv('EMAIL_SEND'),
+        recipient_list=['nguyen.hochi2004@gmail.com'],
+        fail_silently=False,
+    )
+    return JsonResponse({'message': 'Email đã gửi!'})

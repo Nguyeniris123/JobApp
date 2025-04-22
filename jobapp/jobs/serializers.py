@@ -1,5 +1,3 @@
-from django.contrib.auth import get_user_model
-from oauth2_provider.models import AccessToken
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from .models import User, Company, CompanyImage, JobPost, Application, Follow

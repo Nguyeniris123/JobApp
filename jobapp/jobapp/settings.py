@@ -33,8 +33,6 @@ ALLOWED_HOSTS = [
 
 # Application definition
 
-
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -71,9 +69,7 @@ REST_FRAMEWORK = {
 
 OAUTH2_PROVIDER = { 'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore', 'ALLOW_PUBLIC_CLIENTS': True }
 
-
 LOGIN_URL = '/admin/login/'
-
 
 ROOT_URLCONF = 'jobapp.urls'
 
@@ -99,7 +95,6 @@ WSGI_APPLICATION = 'jobapp.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 
 DATABASES = {
     'default': {
@@ -134,8 +129,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -195,3 +188,15 @@ CLIENT_SECRET = 'dlGToUtM2aP2Jz9EnE5caCeAMShj2HN3ScEeTnIfdnXJPIFL7xwIcd0Ky1ozCTJ
 #     "password": "1",
 #     "grant_type": "password"
 # }
+
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS") == "True"
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = os.getenv("EMAIL_SEND")
