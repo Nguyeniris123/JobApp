@@ -183,14 +183,3 @@ class FollowViewSet(viewsets.ModelViewSet):
         followers = Follow.objects.filter(recruiter=request.user)
         data = CandidateSerializer([follow.follower for follow in followers], many=True).data
         return Response(data, status=status.HTTP_200_OK)
-
-
-def test_send_email(request):
-    send_mail(
-        subject='Test gửi email',
-        message='Email test từ Django.',
-        from_email=os.getenv('EMAIL_SEND'),
-        recipient_list=['nguyen.hochi2004@gmail.com'],
-        fail_silently=False,
-    )
-    return JsonResponse({'message': 'Email đã gửi!'})

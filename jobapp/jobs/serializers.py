@@ -161,30 +161,35 @@ class ApplicationSerializer(serializers.ModelSerializer):
         return data
 
 class FollowSerializer(serializers.ModelSerializer):
+    company_id = serializers.PrimaryKeyRelatedField(
+        queryset=Company.objects.all(), write_only=True
+    )
 
     class Meta:
         model = Follow
-        fields = ["id", "follower", "recruiter"]
-        read_only_fields = ["follower"]  # Đảm bảo user không thể chỉnh follower (chỉ theo dõi chính mình)
+        fields = ["id", "company_id", "follower", "recruiter"]
+        read_only_fields = ["follower", "recruiter"]
 
     def validate(self, attrs):
-        # Ứng viên không thể tự theo dõi mình hoặc theo dõi người không phải nhà tuyển dụng
         request = self.context["request"]
-        recruiter = attrs["recruiter"]
+        company = attrs["company_id"]
 
-        if request.user == recruiter:
+        recruiter = company.user  # Mỗi công ty có 1 recruiter (user) duy nhất
+        if recruiter == request.user:
             raise serializers.ValidationError("Bạn không thể tự theo dõi chính mình.")
 
         if recruiter.role != "recruiter":
-            raise serializers.ValidationError("Bạn chỉ có thể theo dõi nhà tuyển dụng.")
+            raise serializers.ValidationError("Công ty này không phải do nhà tuyển dụng quản lý!")
+
+        attrs["recruiter"] = recruiter
         return attrs
 
     def create(self, validated_data):
         request = self.context["request"]
-        validated_data["follower"] = request.user  # Gán user hiện tại làm follower
+        validated_data["follower"] = request.user
+        validated_data.pop("company_id")  # Không phải trường trong model Follow
 
-        # Kiểm tra nếu đã tồn tại follow
         if Follow.objects.filter(follower=request.user, recruiter=validated_data["recruiter"]).exists():
-            raise serializers.ValidationError({"detail": "Bạn đã theo dõi nhà tuyển dụng này!"})
+            raise serializers.ValidationError({"detail": "Bạn đã theo dõi công ty này rồi!"})
 
         return super().create(validated_data)
