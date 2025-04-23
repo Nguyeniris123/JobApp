@@ -1,5 +1,3 @@
-from django.contrib.auth import get_user_model
-from oauth2_provider.models import AccessToken
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from .models import User, Company, CompanyImage, JobPost, Application, Follow
@@ -114,7 +112,8 @@ class JobPostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JobPost
-        fields = ['id', 'title', 'specialized', 'description', 'salary', 'working_hours', 'location', 'company', 'application_count']
+        fields = ['id', 'title', 'specialized', 'description', 'salary', 'working_hours', 'location', 'recruiter', 'company', 'application_count']
+        read_only_fields = ['recruiter']
 
     def create(self, validated_data):
         validated_data['recruiter'] = self.context['request'].user  # Gán recruiter là user hiện tại
@@ -124,18 +123,20 @@ class JobPostSerializer(serializers.ModelSerializer):
         return obj.applications.count()  # Đếm số lượng Application cho JobPost
 
 class ApplicationSerializer(serializers.ModelSerializer):
-    applicant = CandidateSerializer(read_only=True)
-    job = serializers.PrimaryKeyRelatedField(queryset=JobPost.objects.all(), write_only=True)  # Chỉ nhận job_id khi tạo
-    job_detail = JobPostSerializer(source="job", read_only=True)  # Xuất thông tin job đầy đủ khi trả về
 
     class Meta:
         model = Application
-        fields = ['id', "applicant", "job", "job_detail", "cv", "status"]
-        read_only_fields = ["applicant", "status", "created_date"]  # Không cần nhập applicant, status, created_datekhi gửi request
+        fields = ['id', "job", "cv", "status"]
+        read_only_fields = ["applicant", "status", "created_date"]  # Không cần nhập applicant, status, created_date khi gửi request
 
     def create(self, validated_data):
         request = self.context["request"]
         user = request.user
+        job = validated_data["job"]
+
+        # Kiểm tra nếu đã ứng tuyển công việc này
+        if Application.objects.filter(applicant=user, job=job).exists():
+            raise serializers.ValidationError("Bạn đã ứng tuyển công việc này rồi!")
 
         validated_data["applicant"] = user
         return super().create(validated_data)
@@ -160,31 +161,35 @@ class ApplicationSerializer(serializers.ModelSerializer):
         return data
 
 class FollowSerializer(serializers.ModelSerializer):
-    recruiter_company = CompanySerializer(source="recruiter.company", read_only=True)
+    company_id = serializers.PrimaryKeyRelatedField(
+        queryset=Company.objects.all(), write_only=True
+    )
 
     class Meta:
         model = Follow
-        fields = ["id", "follower", "recruiter", "recruiter_company", "created_date"]
-        read_only_fields = ["follower"]  # Đảm bảo user không thể chỉnh follower (chỉ theo dõi chính mình)
+        fields = ["id", "company_id", "follower", "recruiter"]
+        read_only_fields = ["follower", "recruiter"]
 
     def validate(self, attrs):
-        # Ứng viên không thể tự theo dõi mình hoặc theo dõi người không phải nhà tuyển dụng
         request = self.context["request"]
-        recruiter = attrs["recruiter"]
+        company = attrs["company_id"]
 
-        if request.user == recruiter:
+        recruiter = company.user  # Mỗi công ty có 1 recruiter (user) duy nhất
+        if recruiter == request.user:
             raise serializers.ValidationError("Bạn không thể tự theo dõi chính mình.")
 
         if recruiter.role != "recruiter":
-            raise serializers.ValidationError("Bạn chỉ có thể theo dõi nhà tuyển dụng.")
+            raise serializers.ValidationError("Công ty này không phải do nhà tuyển dụng quản lý!")
+
+        attrs["recruiter"] = recruiter
         return attrs
 
     def create(self, validated_data):
         request = self.context["request"]
-        validated_data["follower"] = request.user  # Gán user hiện tại làm follower
+        validated_data["follower"] = request.user
+        validated_data.pop("company_id")  # Không phải trường trong model Follow
 
-        # Kiểm tra nếu đã tồn tại follow
         if Follow.objects.filter(follower=request.user, recruiter=validated_data["recruiter"]).exists():
-            raise serializers.ValidationError({"detail": "Bạn đã theo dõi nhà tuyển dụng này!"})
+            raise serializers.ValidationError({"detail": "Bạn đã theo dõi công ty này rồi!"})
 
         return super().create(validated_data)
