@@ -5,9 +5,6 @@ from rest_framework.decorators import action
 from . import perms, paginators
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, FollowSerializer, CompanySerializer
 from .models import User, JobPost, Application, Follow, Company
-from django.core.mail import send_mail
-from django.http import JsonResponse
-import os
 
 
 class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):

@@ -123,11 +123,13 @@ class JobPostSerializer(serializers.ModelSerializer):
         return obj.applications.count()  # Đếm số lượng Application cho JobPost
 
 class ApplicationSerializer(serializers.ModelSerializer):
-
+    job = serializers.PrimaryKeyRelatedField(queryset=JobPost.objects.all(), write_only=True)  # Chỉ nhận job_id khi tạo
+    job_detail = JobPostSerializer(source="job", read_only=True)  # Xuất thông tin job đầy đủ khi trả về
     class Meta:
         model = Application
-        fields = ['id', "job", "cv", "status"]
-        read_only_fields = ["applicant", "status", "created_date"]  # Không cần nhập applicant, status, created_date khi gửi request
+
+        fields = ['id', "job", "job_detail", "cv", "status"]
+        read_only_fields = ["applicant", "status", "created_date", "job_detail"]  # Không cần nhập applicant, status, created_date khi gửi request
 
     def create(self, validated_data):
         request = self.context["request"]
@@ -161,14 +163,15 @@ class ApplicationSerializer(serializers.ModelSerializer):
         return data
 
 class FollowSerializer(serializers.ModelSerializer):
+    recruiter_company = CompanySerializer(source="recruiter.company", read_only=True)
     company_id = serializers.PrimaryKeyRelatedField(
         queryset=Company.objects.all(), write_only=True
     )
 
     class Meta:
         model = Follow
-        fields = ["id", "company_id", "follower", "recruiter"]
-        read_only_fields = ["follower", "recruiter"]
+        fields = ["id", "company_id", "follower", "recruiter", "recruiter_company", "created_date"]
+        read_only_fields = ["follower", "recruiter", "recruiter_company", "created_date"]
 
     def validate(self, attrs):
         request = self.context["request"]
