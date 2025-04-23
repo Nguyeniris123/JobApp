@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import React from "react"
 import { Image, StyleSheet, View } from "react-native"
 import { Card, IconButton, Paragraph, Text, Title } from "react-native-paper"
 
@@ -25,10 +26,28 @@ const JobCard = ({ job, onPress, onFavorite }) => {
         }
     }
 
+    // Kiểm tra và xử lý companyLogo để đảm bảo nó là một chuỗi URL
+    const getCompanyLogoSource = () => {
+        if (!job.companyLogo) {
+            return require('../../assets/logo.png'); // Sử dụng ảnh mặc định nếu không có logo
+        }
+        
+        if (typeof job.companyLogo === 'string') {
+            return { uri: job.companyLogo };
+        }
+        
+        // Nếu logo là một đối tượng có thuộc tính uri
+        if (job.companyLogo && typeof job.companyLogo === 'object' && job.companyLogo.uri) {
+            return { uri: job.companyLogo.uri };
+        }
+        
+        return require('../../assets/logo.png'); // Trả về ảnh mặc định trong trường hợp khác
+    }
+
     return (
         <Card style={styles.card} onPress={onPress}>
             <Card.Content style={styles.cardContent}>
-                <Image source={{ uri: job.companyLogo }} style={styles.logo} />
+                <Image source={getCompanyLogoSource()} style={styles.logo} />
                 <View style={styles.infoContainer}>
                     <Title style={styles.title}>{job.title}</Title>
                     <Paragraph style={styles.company}>{job.company}</Paragraph>

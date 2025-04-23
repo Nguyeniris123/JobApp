@@ -1,5 +1,6 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Animated, FlatList, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+// Remove the LinearGradient import temporarily
 import { Avatar, Chip, Searchbar, Text } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import AppButton from "../../components/ui/AppButton";
@@ -7,8 +8,10 @@ import { AuthContext } from "../../contexts/AuthContext";
 import { JobContext } from "../../contexts/JobContext";
 
 const HomeScreen = ({ navigation }) => {
+  
   const { loading, jobs, fetchJobs, updateFilters } = useContext(JobContext);
   const { user } = useContext(AuthContext);
+  const username = useMemo(() => user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : "Người dùng", [user]);
   
   // Thêm console.log để kiểm tra user
   console.log("Current user:", user);
@@ -83,15 +86,15 @@ const HomeScreen = ({ navigation }) => {
 
         <View style={styles.tagsContainer}>
           <View style={styles.tag}>
-            <Icon name="location-on" size={16} color="#666" />
+            <Icon name="location-on" size={16} color="#1E88E5" />
             <Text style={styles.tagText}>{item.location}</Text>
           </View>
           <View style={styles.tag}>
-            <Icon name="attach-money" size={16} color="#666" />
+            <Icon name="attach-money" size={16} color="#1E88E5" />
             <Text style={styles.tagText}>{Number(item.salary).toLocaleString('vi-VN')} VNĐ</Text>
           </View>
           <View style={styles.tag}>
-            <Icon name="access-time" size={16} color="#666" />
+            <Icon name="access-time" size={16} color="#1E88E5" />
             <Text style={styles.tagText}>{item.working_hours}</Text>
           </View>
         </View>
@@ -150,9 +153,10 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Replace LinearGradient with a regular View */}
       <View style={styles.header}>
         <Animated.View style={[styles.headerContent, { height: headerHeight }]}>
-          <Text style={styles.greeting}>Xin chào{user ? `, ${user.name}!` : '!'}</Text>
+          <Text style={styles.greeting} numberOfLines={1}>Xin chào{user ? `, ${username}!` : '!'}</Text>
           <Text style={styles.subtitle}>Tìm việc làm phù hợp với bạn</Text>
         </Animated.View>
       </View>
@@ -164,7 +168,7 @@ const HomeScreen = ({ navigation }) => {
           value={searchQuery}
           style={styles.searchBar}
           inputStyle={styles.searchInput}
-          icon={() => <Icon name="search" size={24} color="#666" />}
+          icon={() => <Icon name="search" size={24} color="#1E88E5" />}
         />
       </Animated.View>
 
@@ -191,8 +195,8 @@ const HomeScreen = ({ navigation }) => {
               icon={() => (
                 <Icon
                   name={category.icon}
-                  size={18}
-                  color={selectedCategory === category.id ? '#fff' : '#666'}
+                  size={20}
+                  color={selectedCategory === category.id ? '#fff' : '#1E88E5'}
                 />
               )}
             >
@@ -240,160 +244,233 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFF',
+    backgroundColor: '#F5F7FA',
   },
   header: {
-    paddingTop: 40,
+    paddingTop: 50, // Increased padding to prevent overlap with status bar
     paddingHorizontal: 20,
-    backgroundColor: '#1E88E5',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    backgroundColor: '#1E88E5', // Use a solid color instead of gradient
+    zIndex: 1, // Added to ensure proper layer stacking
   },
   headerContent: {
-    paddingBottom: 20,
+    paddingBottom: 30, // Increased for more space
+    minHeight: 110, // Ensure minimum height for content
   },
   greeting: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 30, // Slightly reduced to ensure it fits
+    fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    marginBottom: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowRadius: 5,
+    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 17,
     color: '#E3F2FD',
-    opacity: 0.9,
+    letterSpacing: 0.3,
+    opacity: 0.95,
   },
   searchContainer: {
     marginTop: -25,
     marginHorizontal: 20,
-    marginBottom: 10,
+    marginBottom: 15, // Increased to provide more space
+    zIndex: 2, // Ensure search bar appears above other elements
   },
   searchBar: {
-    elevation: 8,
-    borderRadius: 12,
+    elevation: 10,
+    borderRadius: 15,
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    height: 50,
+  },
+  searchInput: {
+    fontSize: 16,
   },
   categoriesContainer: {
-    marginVertical: 16,
+    marginVertical: 15, // Adjusted for better spacing
   },
   categoriesList: {
     paddingHorizontal: 20,
+    paddingVertical: 8, // Added vertical padding
   },
   categoryChip: {
-    marginRight: 8,
+    marginRight: 10,
     paddingVertical: 8,
     paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    elevation: 2,
+    borderRadius: 15,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    borderColor: '#E0E0E0',
+    height: 42,
   },
   selectedCategoryChip: {
     backgroundColor: '#1E88E5',
+    borderColor: '#1E88E5',
+    transform: [{scale: 1.05}],
+  },
+  categoryChipText: {
+    color: '#1E88E5',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  selectedCategoryChipText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
   cardContainer: {
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 18,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    elevation: 4,
+    borderRadius: 18,
+    padding: 18,
+    elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    transform: [{translateY: 0}],
+    borderColor: '#F0F0F0',
+    borderWidth: 1,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start', // Changed to prevent text compression
+    marginBottom: 16,
+  },
+  companyLogo: {
+    marginRight: 12,
+    alignSelf: 'flex-start', // Aligned to top
+  },
+  avatar: {
+    backgroundColor: '#E3F2FD',
+  },
+  headerInfo: {
+    flex: 1,
   },
   jobTitle: {
-    fontSize: 20,
+    fontSize: 20, // Slightly reduced for better fit
     fontWeight: 'bold',
-    color: '#1E88E5',
+    color: '#1565C0',
     marginBottom: 8,
+    letterSpacing: 0.3,
   },
   companyName: {
     fontSize: 16,
     color: '#424242',
     marginBottom: 12,
+    fontWeight: '500',
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 18,
   },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: '#EEF5FF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
+    marginVertical: 4, // Added to prevent overlap when wrapped
   },
   tagText: {
     fontSize: 14,
     color: '#1E88E5',
-    marginLeft: 4,
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  specializedContainer: {
+    marginVertical: 10,
+  },
+  specializedChip: {
+    backgroundColor: '#E8F4FD',
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+    paddingVertical: 4, // Added for better text visibility
+  },
+  specializedText: {
+    color: '#0277BD',
+    fontWeight: 'bold',
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
+    gap: 14,
+    marginTop: 18,
   },
   viewButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     borderColor: '#1E88E5',
     borderWidth: 2,
+    elevation: 2,
   },
   viewButtonText: {
     color: '#1E88E5',
     fontWeight: 'bold',
+    fontSize: 15,
   },
   applyButton: {
     flex: 2,
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: '#1E88E5',
+    elevation: 4,
+  },
+  loginButton: {
+    flex: 2,
+    borderRadius: 14,
+    backgroundColor: '#1E88E5',
+    elevation: 4,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFF',
+    backgroundColor: '#F5F7FA',
+    paddingBottom: 50, // Added to center content better
   },
   loadingText: {
     marginTop: 16,
     color: '#1E88E5',
     fontSize: 16,
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-    backgroundColor: '#F8FAFF',
+    backgroundColor: '#F5F7FA',
   },
   emptyText: {
     fontSize: 18,
     color: '#424242',
     textAlign: 'center',
     marginTop: 16,
-    lineHeight: 24,
+    lineHeight: 26,
+  },
+  jobList: {
+    paddingTop: 10,
+    paddingBottom: 20,
   },
 });
 

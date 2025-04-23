@@ -15,14 +15,14 @@ const ProfileScreen = ({ navigation }) => {
     const pickImage = useCallback(async () => {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ImagePicker.MediaTypeOptions.Image,
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 1,
             });
             if (!result.canceled) {
                 // Thực tế có thể cần thêm xử lý cập nhật ảnh lên server
-                console.log("Ảnh đã chọn:", result.assets[0].uri);
+                console.log("Ảnh đã chọn:", result.uri);
             }
         } catch (error) {
             console.log("Lỗi chọn ảnh:", error);

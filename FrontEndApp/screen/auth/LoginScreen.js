@@ -18,9 +18,9 @@ import ScreenContainer from '../../components/layout/ScreenContainer';
 import AppButton from '../../components/ui/AppButton';
 import AppDivider from '../../components/ui/AppDivider';
 
-// ✅ Schema validation bằng Yup
+// ✅ Schema validation bằng Yup - Đổi email thành username
 const loginSchema = yup.object().shape({
-    email: yup.string().email('Email không hợp lệ').required('Vui lòng nhập email'),
+    username: yup.string().required('Vui lòng nhập tên đăng nhập'),
     password: yup.string().min(6, 'Mật khẩu ít nhất 6 ký tự').required('Vui lòng nhập mật khẩu'),
 });
 
@@ -33,7 +33,7 @@ const LoginScreen = ({ navigation }) => {
         resolver: yupResolver(loginSchema),
         mode: 'onBlur',
         defaultValues: {
-            email: '',
+            username: '',
             password: '',
         },
     });
@@ -43,9 +43,9 @@ const LoginScreen = ({ navigation }) => {
         try {
             setLoading(true);
             const jsondata = {
-                client_id: "5Ij2qZoARk5FABxYjlDdvl2hcdJZuT8qsGndyLSv",
-                client_secret: "qwS46Po2kd3rQ6fSv06pJ9WX5pDKiaTuCxzNVd6b8eTQEKGqOS0PLbGqA1pMZsysukCnMWrATw61Hkw1DT52a3qo53K5ibuOTeO63zejzQTqxvmSKQK8m4mBUr00kLpa",
-                username: data.email,
+                client_id: "OidP3ERxQtbZvrMN31JhxjjTWm325MLA3OMTCH5h",
+                client_secret: "UI7wNEiXd6H22GYDOyJU8YcaKNDnhpsBB1Z0Ziq89iGtD1qYzybcLS7AUuNKHV02dlABUVccNxKPLNsOYdAYJLspRffloiTaHG0qVh67JP32zynznskB1fYrmP7jGwon",
+                username: data.username, // Sử dụng username thay vì email
                 password: data.password,
                 grant_type: "password",
             };
@@ -57,7 +57,6 @@ const LoginScreen = ({ navigation }) => {
 
             console.log("===========================\n",access_token, refresh_token,user)
             await login(access_token, refresh_token, user);
-
 
         } catch (error) {
             if (error.response) {
@@ -102,16 +101,15 @@ const LoginScreen = ({ navigation }) => {
 
                 {/* Form đăng nhập */}
                 <View style={styles.formContainer}>
-                    {/* ✅ Email */}
+                    {/* ✅ Username - thay thế Email */}
                     <FormField
                         control={control}
-                        name="email"
-                        label="Email"
-                        keyboardType="email-address"
+                        name="username"
+                        label="Tên đăng nhập"
                         autoCapitalize="none"
-                        error={errors.email}
-                        errorText={errors.email?.message}
-                        left={<MaterialCommunityIcons name="email" size={20} color="#666" />}
+                        error={errors.username}
+                        errorText={errors.username?.message}
+                        left={<MaterialCommunityIcons name="account" size={20} color="#666" />}
                     />
 
                     {/* ✅ Mật khẩu */}

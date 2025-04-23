@@ -5,11 +5,13 @@ import * as FileSystem from "expo-file-system"
 import { useContext, useState } from "react"
 import { Alert, ScrollView, StyleSheet, View } from "react-native"
 import { Button, Checkbox, Divider, HelperText, Text, TextInput } from "react-native-paper"
+import { ApplicationContext } from "../../contexts/ApplicationContext"
 import { JobContext } from "../../contexts/JobContext"
 
 const ApplyScreen = ({ route, navigation }) => {
     const { jobId } = route.params
-    const { jobs, applyForJob } = useContext(JobContext)
+    const { jobs, fetchJobById } = useContext(JobContext)
+    const { submitApplication, loading: submitting } = useContext(ApplicationContext)
     const job = jobs.find((job) => job.id === jobId)
 
     const [formData, setFormData] = useState({
@@ -39,6 +41,7 @@ const ApplyScreen = ({ route, navigation }) => {
 
     const pickDocument = async () => {
         try {
+            // Sử dụng API mới của DocumentPicker để tránh lỗi
             const result = await DocumentPicker.getDocumentAsync({
                 type: [
                     "application/pdf",
@@ -46,26 +49,49 @@ const ApplyScreen = ({ route, navigation }) => {
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 ],
                 copyToCacheDirectory: true,
-            })
+                multiple: false
+            });
 
-            if (result.type === "success") {
-                // Read the file content and convert to base64
-                const base64 = await FileSystem.readAsStringAsync(result.uri, {
-                    encoding: FileSystem.EncodingType.Base64,
-                })
-                setResume({
-                    ...result,
-                    base64: base64,
-                })
-                if (errors.resume) {
-                    setErrors({
-                        ...errors,
-                        resume: null,
-                    })
+            console.log("Document picker result:", JSON.stringify(result));
+
+            // API mới trả về cấu trúc khác với canceled thay vì type
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const selectedFile = result.assets[0];
+                console.log("Selected file:", selectedFile.uri);
+                
+                try {
+                    // Đọc file dưới dạng base64
+                    const base64 = await FileSystem.readAsStringAsync(selectedFile.uri, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    });
+                    
+                    console.log("Base64 conversion successful, length:", base64.length);
+                    
+                    // Lưu thông tin file với base64
+                    setResume({
+                        name: selectedFile.name,
+                        uri: selectedFile.uri,
+                        size: selectedFile.size,
+                        mimeType: selectedFile.mimeType,
+                        base64: base64,
+                    });
+                    
+                    if (errors.resume) {
+                        setErrors({
+                            ...errors,
+                            resume: null,
+                        });
+                    }
+                } catch (fileError) {
+                    console.error("Error reading file:", fileError);
+                    Alert.alert("Lỗi", "Không thể đọc nội dung file. Vui lòng thử lại với file khác.");
                 }
+            } else {
+                console.log("Document picking canceled or failed");
             }
         } catch (error) {
-            console.log("Error picking document:", error)
+            console.error("Error picking document:", error);
+            Alert.alert("Lỗi", "Có lỗi xảy ra khi chọn file. Vui lòng thử lại.");
         }
     }
 
@@ -93,7 +119,7 @@ const ApplyScreen = ({ route, navigation }) => {
         }
 
         // Validate phone
-        const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+        const phoneRegex = /^(84|0[35789])([0-9]{8})$/;
         if (!formData.phone) {
             newErrors.phone = "Số điện thoại là bắt buộc";
             isValid = false;
@@ -120,50 +146,67 @@ const ApplyScreen = ({ route, navigation }) => {
 
     const handleSubmit = async () => {
         if (!validateApplicationForm()) {
-            return
+            return;
         }
 
-        setLoading(true)
+        setLoading(true);
 
         try {
+            // Đảm bảo có job detail đầy đủ
+            let currentJob = job;
+            if (!currentJob) {
+                currentJob = await fetchJobById(jobId);
+                if (!currentJob) {
+                    Alert.alert("Lỗi", "Không thể lấy thông tin công việc. Vui lòng thử lại.");
+                    return;
+                }
+            }
+
             const applicationData = {
                 fullName: formData.fullName,
                 email: formData.email,
                 phone: formData.phone,
+                coverLetter: formData.coverLetter,
                 cv: resume.base64,
                 jobDetail: {
-                    title: job.title,
-                    specialized: job.specialized,
-                    description: job.description,
-                    salary: job.salary,
-                    working_hours: job.working_hours,
-                    location: job.location,
+                    title: currentJob.title,
+                    specialized: currentJob.specialized,
+                    description: currentJob.description,
+                    salary: currentJob.salary,
+                    working_hours: currentJob.working_hours,
+                    location: currentJob.location,
                     company: {
-                        name: job.company.name,
-                        tax_code: job.company.tax_code,
-                        description: job.company.description,
-                        location: job.company.location,
-                        is_verified: job.company.is_verified,
+                        name: currentJob.company.name,
+                        tax_code: currentJob.company.tax_code,
+                        description: currentJob.company.description,
+                        location: currentJob.company.location,
+                        is_verified: currentJob.company.is_verified,
+                        images: currentJob.company.images || []
                     },
                 },
-            }
+            };
 
-            const result = await applyForJob(jobId, applicationData)
+            const result = await submitApplication(jobId, applicationData);
 
             if (result.success) {
-                Alert.alert("Thành công", "Đơn ứng tuyển của bạn đã được gửi thành công", [
-                    {
-                        text: "OK",
-                        onPress: () => navigation.navigate("ApplicationStatus"),
-                    },
-                ])
+                Alert.alert(
+                    "Thành công", 
+                    "Đơn ứng tuyển của bạn đã được gửi thành công", 
+                    [
+                        {
+                            text: "Xem trạng thái ứng tuyển",
+                            onPress: () => navigation.navigate("ApplicationStatus"),
+                        },
+                    ]
+                );
             } else {
-                Alert.alert("Lỗi", result.message || "Có lỗi xảy ra khi gửi đơn ứng tuyển")
+                Alert.alert("Lỗi", result.message || "Có lỗi xảy ra khi gửi đơn ứng tuyển");
             }
         } catch (error) {
-            Alert.alert("Lỗi", "Có lỗi xảy ra khi gửi đơn ứng tuyển")
+            console.error("Error submitting application:", error);
+            Alert.alert("Lỗi", "Có lỗi xảy ra khi gửi đơn ứng tuyển. Vui lòng thử lại sau.");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     }
 
@@ -251,8 +294,8 @@ const ApplyScreen = ({ route, navigation }) => {
                     mode="contained"
                     onPress={handleSubmit}
                     style={styles.submitButton}
-                    loading={loading}
-                    disabled={loading}
+                    loading={loading || submitting}
+                    disabled={loading || submitting}
                 >
                     Gửi đơn ứng tuyển
                 </Button>

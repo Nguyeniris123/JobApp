@@ -1,6 +1,6 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import axios from 'axios';
-import * as ImagePicker from "expo-image-picker";
+import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Alert, Image, StyleSheet, View } from "react-native";
@@ -66,13 +66,14 @@ const RegisterScreen = ({ navigation }) => {
         },
     });
 
-    // 📌 Chọn Avatar (chỉ lấy 1 ảnh)
+    // 📌 Chọn Avatar (chỉ lấy 1 ảnh) - Updated with square aspect ratio
     const pickImage = async () => {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
                 allowsEditing: true,
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                aspect: [1, 1], // Ensure a square aspect ratio for round profile images
                 quality: 1,
+                mediaTypes: ImagePicker.MediaTypeOptions.Images
             });
 
             if (!result.canceled) {
@@ -131,7 +132,7 @@ const RegisterScreen = ({ navigation }) => {
             if (avatar) {
                 formData.append("avatar", avatar.uri);
             }
-    
+
             if (userType === "employer") {
                 formData.append("company_name", data.companyName);
                 formData.append("description", data.description);
@@ -150,7 +151,9 @@ const RegisterScreen = ({ navigation }) => {
                     console.log("Image added to formData:", img);
                 });
             }
-    
+
+            console.log("FormData gửi đi:", formData);
+
             const apiEndpoint = userType === "jobSeeker" ? 
                 API_ENDPOINTS.CANDIDATES_CREATE : 
                 API_ENDPOINTS.RECRUITERS_CREATE;

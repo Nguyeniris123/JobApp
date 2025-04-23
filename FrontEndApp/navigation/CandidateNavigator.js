@@ -9,8 +9,10 @@ import ChatScreen from "../screen/candidate/ChatScreen"
 import FollowingScreen from "../screen/candidate/FollowingScreen"
 import HomeScreen from "../screen/candidate/HomeScreen"
 import JobDetailScreen from "../screen/candidate/JobDetailScreen"
+import NotificationScreen from "../screen/candidate/NotificationScreen"
 import ProfileScreen from "../screen/candidate/ProfileScreen"
 import SettingsScreen from "../screen/candidate/SettingsScreen"
+import EditProfileScreen from "../screen/common/EditProfileScreen"; // Add this import
 
 const Tab = createBottomTabNavigator()
 const Stack = createStackNavigator()
@@ -37,9 +39,21 @@ const FavoriteStack = () => {
                 headerShown: false,
             }}
         >
-            
             <Stack.Screen name="ApplicationStatus" component={ApplicationStatusScreen} />
+        </Stack.Navigator>
+    )
+}
+
+const NotificationStack = () => {
+    return (
+        <Stack.Navigator
+            screenOptions={{
+                headerShown: false,
+            }}
+        >
+            
             <Stack.Screen name="Favorite" component={FollowingScreen} />
+            <Stack.Screen name="Notifications" component={NotificationScreen} />
         </Stack.Navigator>
     )
 }
@@ -53,6 +67,7 @@ const ProfileStack = () => {
         >
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         </Stack.Navigator>
     )
 }
@@ -61,6 +76,7 @@ const CandidateNavigator = () => {
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
+                headerShown: false, // Hide the tab navigation headers
                 tabBarIcon: ({ focused, color, size }) => {
                     let iconName
 
@@ -84,7 +100,7 @@ const CandidateNavigator = () => {
         >
             <Tab.Screen name="HomeTab" component={HomeStack} options={{ tabBarLabel: "Trang chủ" }} />
             <Tab.Screen name="FavoriteTab" component={FavoriteStack} options={{ tabBarLabel: "Yêu thích" }} />
-            <Tab.Screen name="NotificationTab" component={FollowingScreen} options={{ tabBarLabel: "Thông báo" }} />
+            <Tab.Screen name="NotificationTab" component={NotificationStack} options={{ tabBarLabel: "Thông báo" }} />
             <Tab.Screen name="ProfileTab" component={ProfileStack} options={{ tabBarLabel: "Hồ sơ" }} />
         </Tab.Navigator>
     )

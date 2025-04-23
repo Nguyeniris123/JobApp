@@ -99,6 +99,12 @@ const SettingsScreen = ({ navigation }) => {
             <List.Section>
                 <List.Subheader>Tài khoản</List.Subheader>
                 <List.Item
+                    title="Thông tin cá nhân"
+                    left={(props) => <List.Icon {...props} icon="account-outline" />}
+                    onPress={() => navigation.navigate('EditProfile')}
+                />
+                <Divider />
+                <List.Item
                     title="Đổi mật khẩu"
                     left={(props) => <List.Icon {...props} icon="lock-outline" />}
                     onPress={showDialog}

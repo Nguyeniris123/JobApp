@@ -1,5 +1,5 @@
-import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { useContext, useEffect, useState } from 'react';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { CompanyContext } from '../../contexts/CompanyContext';
@@ -9,11 +9,13 @@ const JobDetailScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { jobId } = route.params;
-    const { followCompany, unfollowCompany, followedCompanies, fetchFollowedCompanies } = useContext(CompanyContext);
+    const { followCompany, unfollowCompany, followedCompanies, fetchFollowedCompanies, getFollowedCompanyById } = useContext(CompanyContext);
     const [jobDetail, setJobDetail] = useState(null);
     const [loading, setLoading] = useState(true);
     const { fetchJobById } = useContext(JobContext);
     const [isFollowing, setIsFollowing] = useState(false);
+    const [followLoading, setFollowLoading] = useState(false);
+    const [followRecord, setFollowRecord] = useState(null);
 
     const loadJobDetail = async () => {
         if (!jobId) return;
@@ -29,35 +31,93 @@ const JobDetailScreen = () => {
         }
     };
 
+    // Khi vào màn hình này, cần tải dữ liệu công việc và kiểm tra trạng thái follow
+    useFocusEffect(
+        useCallback(() => {
+            const loadData = async () => {
+                await Promise.all([
+                    loadJobDetail(),
+                    fetchFollowedCompanies()
+                ]);
+            };
+            loadData();
+        }, [jobId])
+    );
+    
+    // Kiểm tra trạng thái follow mỗi khi danh sách công ty theo dõi thay đổi
     useEffect(() => {
-        const init = async () => {
-            await loadJobDetail();
-            if (jobDetail && jobDetail.company) {
-                const isFollowed = followedCompanies.some(
-                    follow => follow.recruiter_company.id === jobDetail.company.id
-                );
-                setIsFollowing(isFollowed);
-            }
-        };
-        init();
-    }, [jobId, followedCompanies]);
+        if (jobDetail && jobDetail.company && followedCompanies.length > 0) {
+            console.log("Kiểm tra trạng thái follow cho công ty:", jobDetail.company.id);
+            
+            // Tìm bản ghi follow cho công ty này
+            const followData = followedCompanies.find(
+                follow => follow.recruiter_company && 
+                jobDetail.company && 
+                follow.recruiter_company.id === jobDetail.company.id
+            );
+            
+            // Cập nhật trạng thái và lưu bản ghi follow (nếu có)
+            setIsFollowing(!!followData);
+            setFollowRecord(followData || null);
+            
+            console.log("Trạng thái follow:", followData ? 
+                `Đã theo dõi (ID: ${followData.id})` : 
+                "Chưa theo dõi");
+        } else {
+            setIsFollowing(false);
+            setFollowRecord(null);
+        }
+    }, [jobDetail, followedCompanies]);
 
     const handleFollow = async () => {
+        if (!jobDetail || !jobDetail.company || followLoading) return;
+        
         try {
-            if (isFollowing) {
-                await unfollowCompany(jobDetail.company.id);
+            setFollowLoading(true);
+            
+            if (isFollowing && followRecord) {
+                // Nếu đang theo dõi và có bản ghi follow, sử dụng ID của bản ghi follow để unfollow
+                console.log(`Đang hủy theo dõi với follow ID: ${followRecord.id} (công ty ID: ${jobDetail.company.id})`);
+                await unfollowCompany(followRecord.id);
+                setIsFollowing(false);
+                setFollowRecord(null);
             } else {
+                // Nếu chưa theo dõi, follow công ty
+                console.log(`Đang theo dõi công ty ${jobDetail.company.id}`);
                 await followCompany(jobDetail.company.id);
+                setIsFollowing(true);
+                
+                // Lấy lại bản ghi follow mới
+                await fetchFollowedCompanies();
+                const newFollowRecord = getFollowedCompanyById(jobDetail.company.id);
+                setFollowRecord(newFollowRecord);
             }
-            // Reload followed companies
-            await fetchFollowedCompanies();
+            
         } catch (error) {
             console.error('Error handling follow:', error);
+        } finally {
+            setFollowLoading(false);
         }
     };
 
     const handleApply = () => {
+        if (!jobDetail) return;
         navigation.navigate('Apply', { jobId: jobDetail.id });
+    };
+
+    // Hàm xử lý hình ảnh để tránh lỗi khi URI không đúng định dạng
+    const getImageSource = (imageUrl) => {
+        if (!imageUrl) return null;
+        
+        if (typeof imageUrl === 'string') {
+            return { uri: imageUrl };
+        }
+        
+        if (typeof imageUrl === 'object' && imageUrl.uri) {
+            return { uri: imageUrl.uri };
+        }
+        
+        return null;
     };
 
     if (loading) {
@@ -68,35 +128,46 @@ const JobDetailScreen = () => {
         return <Text style={styles.errorText}>Không tìm thấy công việc</Text>;
     }
 
+    // Ensure company exists before rendering company-related information
+    const companyExists = jobDetail && jobDetail.company;
+
     return (
         <ScrollView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>{jobDetail.title}</Text>
                 <View style={styles.companyHeaderInfo}>
-                    <Text style={styles.company}>{jobDetail.company.name}</Text>
-                    <Text style={[styles.badge, 
-                        jobDetail.company.is_verified ? styles.verifiedBadge : styles.unverifiedBadge]}>
-                        <Icon name={jobDetail.company.is_verified ? "verified" : "error-outline"}
-                            size={16} color="#FFF" />
-                        {" "}{jobDetail.company.is_verified ? "Đã xác thực" : "Chưa xác thực"}
-                    </Text>
+                    <Text style={styles.company}>{companyExists ? jobDetail.company.name : 'Không có thông tin công ty'}</Text>
+                    {companyExists && (
+                        <Text style={[styles.badge, 
+                            jobDetail.company.is_verified ? styles.verifiedBadge : styles.unverifiedBadge]}>
+                            <Icon name={jobDetail.company.is_verified ? "verified" : "error-outline"}
+                                size={16} color="#FFF" />
+                            {" "}{jobDetail.company.is_verified ? "Đã xác thực" : "Chưa xác thực"}
+                        </Text>
+                    )}
                 </View>
             </View>
 
             <View style={styles.content}>
                 {/* Company Images */}
-                {jobDetail.company.images && jobDetail.company.images.length > 0 ? (
+                {companyExists && jobDetail.company.images && jobDetail.company.images.length > 0 ? (
                     <ScrollView 
                         horizontal 
                         style={styles.imageCarousel}
                         showsHorizontalScrollIndicator={false}>
-                        {jobDetail.company.images.map((image, index) => (
-                            <Image
-                                key={index}
-                                source={{ uri: image }}
-                                style={styles.companyImage}
-                            />
-                        ))}
+                        {jobDetail.company.images.map((image, index) => {
+                            const source = getImageSource(image);
+                            if (!source) return null;
+                            
+                            return (
+                                <Image
+                                    key={index}
+                                    source={source}
+                                    style={styles.companyImage}
+                                    defaultSource={require('../../assets/logo.png')}
+                                />
+                            );
+                        })}
                     </ScrollView>
                 ) : (
                     <View style={styles.noImageContainer}>
@@ -125,20 +196,27 @@ const JobDetailScreen = () => {
                 </View>
 
                 {/* Company Details */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Thông tin công ty</Text>
-                    <View style={styles.companyDetails}>
-                        <View style={styles.infoRow}>
-                            <Icon name="receipt" size={20} color="#666" />
-                            <Text style={styles.companyDetail}>MST: {jobDetail.company.tax_code}</Text>
+                {companyExists ? (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Thông tin công ty</Text>
+                        <View style={styles.companyDetails}>
+                            <View style={styles.infoRow}>
+                                <Icon name="receipt" size={20} color="#666" />
+                                <Text style={styles.companyDetail}>MST: {jobDetail.company.tax_code}</Text>
+                            </View>
+                            <View style={styles.infoRow}>
+                                <Icon name="location-on" size={20} color="#666" />
+                                <Text style={styles.companyDetail}>{jobDetail.company.location}</Text>
+                            </View>
+                            <Text style={styles.companyDescription}>{jobDetail.company.description}</Text>
                         </View>
-                        <View style={styles.infoRow}>
-                            <Icon name="location-on" size={20} color="#666" />
-                            <Text style={styles.companyDetail}>{jobDetail.company.location}</Text>
-                        </View>
-                        <Text style={styles.companyDescription}>{jobDetail.company.description}</Text>
                     </View>
-                </View>
+                ) : (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Thông tin công ty</Text>
+                        <Text>Không có thông tin công ty</Text>
+                    </View>
+                )}
 
                 {/* Job Details */}
                 <View style={styles.section}>
@@ -162,14 +240,27 @@ const JobDetailScreen = () => {
                         <Icon name="send" size={20} color="#FFF" />
                         <Text style={styles.buttonText}>Ứng tuyển ngay</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={[styles.button, isFollowing ? styles.followingButton : styles.followButton]}
-                        onPress={handleFollow}>
-                        <Icon name={isFollowing ? "favorite" : "favorite-border"} size={20} color="#FFF" />
-                        <Text style={styles.buttonText}>
-                            {isFollowing ? "Đang theo dõi" : "Theo dõi"}
-                        </Text>
-                    </TouchableOpacity>
+                    {companyExists && (
+                        <TouchableOpacity 
+                            style={[styles.button, isFollowing ? styles.followingButton : styles.followButton]}
+                            onPress={handleFollow}
+                            disabled={followLoading}>
+                            {followLoading ? (
+                                <ActivityIndicator size="small" color="#FFF" />
+                            ) : (
+                                <>
+                                    <Icon 
+                                        name={isFollowing ? "favorite" : "favorite-border"} 
+                                        size={20} 
+                                        color="#FFF" 
+                                    />
+                                    <Text style={styles.buttonText}>
+                                        {isFollowing ? "Đang theo dõi" : "Theo dõi"}
+                                    </Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
         </ScrollView>

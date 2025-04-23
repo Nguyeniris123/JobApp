@@ -36,7 +36,7 @@ const SettingsScreen = ({ navigation }) => {
                     title="Tài khoản"
                     description="Chỉnh sửa thông tin cá nhân"
                     left={(props) => <List.Icon {...props} icon="account-outline" />}
-                    onPress={() => {}}
+                    onPress={() => navigation.navigate('EditProfile')}
                 />
             </List.Section>
 

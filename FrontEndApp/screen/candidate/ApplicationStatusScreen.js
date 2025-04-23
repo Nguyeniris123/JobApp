@@ -1,68 +1,20 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { useEffect, useState } from "react"
+import { useFocusEffect } from "@react-navigation/native"
+import React, { useCallback, useContext } from "react"
 import { FlatList, StyleSheet, View } from "react-native"
 import { ActivityIndicator, Card, Chip, Divider, Text } from "react-native-paper"
-
-// Mock data for applications
-const mockApplications = [
-    {
-        id: "1",
-        jobTitle: "Nhân viên bán hàng bán thời gian",
-        company: "Công ty ABC",
-        companyLogo: "https://via.placeholder.com/150",
-        status: "pending",
-        appliedDate: new Date(2023, 3, 20),
-        lastUpdated: new Date(2023, 3, 20),
-    },
-    {
-        id: "2",
-        jobTitle: "Gia sư Toán cấp 3",
-        company: "Trung tâm gia sư XYZ",
-        companyLogo: "https://via.placeholder.com/150",
-        status: "reviewing",
-        appliedDate: new Date(2023, 3, 15),
-        lastUpdated: new Date(2023, 3, 18),
-    },
-    {
-        id: "3",
-        jobTitle: "Nhân viên phục vụ quán cà phê",
-        company: "Cà phê DEF",
-        companyLogo: "https://via.placeholder.com/150",
-        status: "accepted",
-        appliedDate: new Date(2023, 3, 10),
-        lastUpdated: new Date(2023, 3, 12),
-    },
-    {
-        id: "4",
-        jobTitle: "Trợ giảng lập trình",
-        company: "Trung tâm đào tạo GHI",
-        companyLogo: "https://via.placeholder.com/150",
-        status: "rejected",
-        appliedDate: new Date(2023, 3, 5),
-        lastUpdated: new Date(2023, 3, 8),
-        feedback: "Chúng tôi cần ứng viên có kinh nghiệm nhiều hơn trong lĩnh vực này.",
-    },
-]
+import { ApplicationContext } from "../../contexts/ApplicationContext"
 
 const ApplicationStatusScreen = ({ navigation }) => {
-    const [applications, setApplications] = useState([])
-    const [loading, setLoading] = useState(true)
+    const { applications, loading, error, fetchApplications } = useContext(ApplicationContext)
 
-    useEffect(() => {
-        // Simulate API call
-        const fetchApplications = async () => {
-            try {
-                await new Promise((resolve) => setTimeout(resolve, 1000))
-                setApplications(mockApplications)
-            } catch (error) {
-                console.log("Error fetching applications:", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchApplications()
-    }, [])
+    // Sử dụng useFocusEffect để tải lại dữ liệu khi màn hình được focus
+    useFocusEffect(
+        useCallback(() => {
+            console.log("ApplicationStatusScreen focused, loading data...")
+            fetchApplications()
+        }, [fetchApplications])
+    )
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -95,7 +47,10 @@ const ApplicationStatusScreen = ({ navigation }) => {
     }
 
     const formatDate = (date) => {
-        return new Date(date).toLocaleDateString("vi-VN", {
+        if (!date || !(date instanceof Date) || isNaN(date)) {
+            return "Không xác định"
+        }
+        return date.toLocaleDateString("vi-VN", {
             year: "numeric",
             month: "long",
             day: "numeric",
@@ -103,7 +58,7 @@ const ApplicationStatusScreen = ({ navigation }) => {
     }
 
     const renderApplicationItem = ({ item }) => (
-        <Card style={styles.card} onPress={() => navigation.navigate("Chat")}>
+        <Card style={styles.card} onPress={() => item.status === "accepted" && navigation.navigate("Chat")}>
             <Card.Content>
                 <View style={styles.cardHeader}>
                     <View style={styles.companyInfo}>
@@ -156,6 +111,29 @@ const ApplicationStatusScreen = ({ navigation }) => {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#1E88E5" />
+                <Text style={styles.loadingText}>Đang tải danh sách đơn ứng tuyển...</Text>
+            </View>
+        )
+    }
+
+    if (error) {
+        return (
+            <View style={styles.errorContainer}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#F44336" />
+                <Text style={styles.errorTitle}>Đã xảy ra lỗi</Text>
+                <Text style={styles.errorText}>{error}</Text>
+                <Card.Actions>
+                    <Card.Actions>
+                        <Chip 
+                            icon="refresh" 
+                            mode="outlined" 
+                            onPress={() => fetchApplications()} 
+                            style={styles.refreshButton}
+                        >
+                            Thử lại
+                        </Chip>
+                    </Card.Actions>
+                </Card.Actions>
             </View>
         )
     }
@@ -168,15 +146,29 @@ const ApplicationStatusScreen = ({ navigation }) => {
 
             {applications.length === 0 ? (
                 <View style={styles.emptyContainer}>
+                    <MaterialCommunityIcons name="file-document-outline" size={64} color="#BDBDBD" />
                     <Text style={styles.emptyText}>Bạn chưa ứng tuyển vào công việc nào</Text>
+                    <Text style={styles.emptySubText}>
+                        Hãy tìm kiếm và ứng tuyển vào các công việc phù hợp với bạn
+                    </Text>
+                    <Chip 
+                        icon="magnify" 
+                        mode="outlined" 
+                        onPress={() => navigation.navigate("Home")} 
+                        style={styles.browseJobsButton}
+                    >
+                        Tìm kiếm việc làm
+                    </Chip>
                 </View>
             ) : (
                 <FlatList
                     data={applications}
                     renderItem={renderApplicationItem}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={styles.applicationList}
                     showsVerticalScrollIndicator={false}
+                    refreshing={loading}
+                    onRefresh={fetchApplications}
                 />
             )}
         </View>
@@ -202,6 +194,35 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: "#F5F5F5",
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
+        color: "#616161",
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+        backgroundColor: "#F5F5F5",
+    },
+    errorTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginTop: 12,
+        marginBottom: 8,
+        color: "#F44336",
+    },
+    errorText: {
+        fontSize: 16,
+        color: "#757575",
+        textAlign: "center",
+        marginBottom: 20,
+    },
+    refreshButton: {
+        backgroundColor: "#E3F2FD",
     },
     emptyContainer: {
         flex: 1,
@@ -210,9 +231,20 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     emptyText: {
+        fontSize: 18,
+        fontWeight: "bold",
+        color: "#424242",
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    emptySubText: {
         fontSize: 16,
         color: "#757575",
         textAlign: "center",
+        marginBottom: 24,
+    },
+    browseJobsButton: {
+        backgroundColor: "#E3F2FD",
     },
     applicationList: {
         padding: 16,

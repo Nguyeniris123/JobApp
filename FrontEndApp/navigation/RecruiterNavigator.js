@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { createStackNavigator } from "@react-navigation/stack"
 
+import EditProfileScreen from "../screen/common/EditProfileScreen"; // Add this import
 import ApplicationListScreen from "../screen/recruiter/ApplicationListScreen"
 import ChatScreen from "../screen/recruiter/ChatScreen"
 import CompanyProfileScreen from "../screen/recruiter/CompanyProfileScreen"
@@ -53,6 +54,7 @@ const ProfileStack = () => {
         >
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="CompanyProfile" component={CompanyProfileScreen} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         </Stack.Navigator>
     )
 }
@@ -61,6 +63,7 @@ const RecruiterNavigator = () => {
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
+                headerShown: false, // Hide the tab navigation headers
                 tabBarIcon: ({ focused, color, size }) => {
                     let iconName
 

@@ -291,6 +291,7 @@ const styles = {
     },
     header: {
         padding: 20,
+        paddingTop: 50, // Increased for status bar
         backgroundColor: '#1E88E5',
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
@@ -303,7 +304,7 @@ const styles = {
     headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start', // Changed to prevent compression
         marginBottom: 20,
     },
     greeting: {
@@ -314,6 +315,7 @@ const styles = {
         fontSize: 24,
         fontWeight: 'bold',
         color: '#FFFFFF',
+        marginTop: 4, // Added spacing
     },
     statsContainer: {
         marginTop: -30,
@@ -391,28 +393,31 @@ const styles = {
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
+        padding: 16, // Added padding for content
     },
     jobHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
+        alignItems: 'flex-start', // Changed to prevent text compression
+        marginBottom: 12, // Increased for better spacing
     },
     jobTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#1E88E5',
+        flex: 1, // Allow text to take available space
+        marginRight: 8, // Provide space for status chip
     },
     statusChip: {
         height: 32,
     },
     jobDetails: {
-        marginBottom: 8,
+        marginBottom: 12, // Increased for better spacing
     },
     jobDetail: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: 4,
+        marginVertical: 6, // Increased vertical spacing
     },
     jobDetailText: {
         marginLeft: 8,

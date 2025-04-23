@@ -2,7 +2,9 @@ import { NavigationContainer } from "@react-navigation/native"
 import { StatusBar } from "react-native"
 import { Provider as PaperProvider } from "react-native-paper"
 import { SafeAreaProvider } from "react-native-safe-area-context"
+import { ApplicationProvider } from "./contexts/ApplicationContext"
 import { AuthProvider } from "./contexts/AuthContext"
+import { CompanyProvider } from "./contexts/CompanyContext"
 import { JobProvider } from "./contexts/JobContext"
 import AppNavigator from "./navigation/AppNavigator"
 import { theme } from "./theme"
@@ -13,12 +15,14 @@ const App = () => {
             <PaperProvider theme={theme}>
                 <AuthProvider>
                     <JobProvider>
-                        {/* <NotificationProvider> */}
-                            <NavigationContainer>
-                                <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
-                                <AppNavigator />
-                            </NavigationContainer>
-                        {/* </NotificationProvider> */}
+                        <CompanyProvider>
+                            <ApplicationProvider>
+                                <NavigationContainer>
+                                    <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
+                                    <AppNavigator />
+                                </NavigationContainer>
+                            </ApplicationProvider>
+                        </CompanyProvider>
                     </JobProvider>
                 </AuthProvider>
             </PaperProvider>

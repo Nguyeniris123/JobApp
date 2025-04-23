@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
     const [accessToken, setAccessToken] = useState(null);
     const [refreshToken, setRefreshToken] = useState(null);
 
+
     // Load token từ AsyncStorage khi app khởi động
     useEffect(() => {
         const loadTokens = async () => {
@@ -48,8 +49,8 @@ export const AuthProvider = ({ children }) => {
                 return null;
             }
             const jsondata = {
-                client_id: "5Ij2qZoARk5FABxYjlDdvl2hcdJZuT8qsGndyLSv",
-                client_secret: "qwS46Po2kd3rQ6fSv06pJ9WX5pDKiaTuCxzNVd6b8eTQEKGqOS0PLbGqA1pMZsysukCnMWrATw61Hkw1DT52a3qo53K5ibuOTeO63zejzQTqxvmSKQK8m4mBUr00kLpa",
+                client_id: "OidP3ERxQtbZvrMN31JhxjjTWm325MLA3OMTCH5h",
+                client_secret: "UI7wNEiXd6H22GYDOyJU8YcaKNDnhpsBB1Z0Ziq89iGtD1qYzybcLS7AUuNKHV02dlABUVccNxKPLNsOYdAYJLspRffloiTaHG0qVh67JP32zynznskB1fYrmP7jGwon",
                 refresh_token: refreshToken,
                 grant_type: "refresh_token"
             };
