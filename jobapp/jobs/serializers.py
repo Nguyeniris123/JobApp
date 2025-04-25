@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
-from .models import User, Company, CompanyImage, JobPost, Application, Follow
+from .models import User, Company, CompanyImage, JobPost, Application, Follow, Review
 
 
 class CandidateSerializer(serializers.ModelSerializer):
@@ -195,4 +195,41 @@ class FollowSerializer(serializers.ModelSerializer):
         if Follow.objects.filter(follower=request.user, recruiter=validated_data["recruiter"]).exists():
             raise serializers.ValidationError({"detail": "Bạn đã theo dõi công ty này rồi!"})
 
+        return super().create(validated_data)
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Review
+        fields = [
+            'id', 'reviewer', 'reviewed_user', 'rating', 'comment',
+            'created_date'
+        ]
+        read_only_fields = ['reviewer', 'created_date']
+
+    def validate(self, attrs):
+        request = self.context['request']
+        reviewer = request.user
+        reviewed = attrs['reviewed_user']
+
+        if reviewer == reviewed:
+            raise serializers.ValidationError("Bạn không thể tự đánh giá chính mình.")
+
+        # Ứng viên chỉ được đánh giá recruiter
+        if reviewer.role == 'candidate' and reviewed.role != 'recruiter':
+            raise serializers.ValidationError("Ứng viên chỉ được đánh giá nhà tuyển dụng.")
+
+        # Recruiter chỉ được đánh giá candidate
+        if reviewer.role == 'recruiter' and reviewed.role != 'candidate':
+            raise serializers.ValidationError("Nhà tuyển dụng chỉ được đánh giá ứng viên.")
+
+        # Không cho các role khác đánh giá
+        if reviewer.role not in ['candidate', 'recruiter']:
+            raise serializers.ValidationError("Bạn không có quyền đánh giá người dùng khác.")
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data['reviewer'] = self.context['request'].user
         return super().create(validated_data)
