@@ -73,3 +73,7 @@ class CanReview(permissions.BasePermission):
             job__recruiter=reviewer,
             status='accepted'
         ).exists()
+
+class DeleteReview(permissions.IsAuthenticated):
+    def has_object_permission(self, request, view, obj):
+        return super().has_object_permission(request, view, obj) and request.user == obj.reviewer

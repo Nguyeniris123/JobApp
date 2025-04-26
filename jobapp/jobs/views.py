@@ -182,12 +182,15 @@ class FollowViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIVi
         data = CandidateSerializer([follow.follower for follow in followers], many=True).data
         return Response(data, status=status.HTTP_200_OK)
 
-class ReviewViewSet(viewsets.ViewSet, generics.CreateAPIView):
+class ReviewViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.DestroyAPIView):
+    queryset = Review.objects.filter(active=True)
     serializer_class = ReviewSerializer
 
     def get_permissions(self):
         if self.request.method == 'POST':
             return [perms.CanReview()]
+        if self.request.method == 'DELETE':
+            return [perms.DeleteReview()]
         # GET request: Bất kỳ ai đã đăng nhập đều có thể xem
         return [permissions.IsAuthenticated()]
 
