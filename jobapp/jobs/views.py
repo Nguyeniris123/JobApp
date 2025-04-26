@@ -187,7 +187,7 @@ class ReviewViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [perms.IsCandidate()]
+            return [perms.CanReview()]
         # GET request: Bất kỳ ai đã đăng nhập đều có thể xem
         return [permissions.IsAuthenticated()]
 
