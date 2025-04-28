@@ -1,13 +1,12 @@
 from django.db.models import Q
 from rest_framework import viewsets, status, generics, parsers, permissions
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from . import perms, paginators
-from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, FollowSerializer, CompanySerializer
-from .models import User, JobPost, Application, Follow, Company
-from django.core.mail import send_mail
-from django.http import JsonResponse
-import os
+from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, \
+    FollowSerializer, CompanySerializer, ReviewSerializer
+from .models import User, JobPost, Application, Follow, Company, Review
 
 
 class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
@@ -156,19 +155,18 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Create
         application.save()
         return Response({"message": "Đơn ứng tuyển đã bị từ chối."}, status=status.HTTP_200_OK)
 
-class FollowViewSet(viewsets.ModelViewSet):
+class FollowViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView, generics.DestroyAPIView):
     serializer_class = FollowSerializer
-    http_method_names = ["get", "post", "delete"]
 
     def get_queryset(self):
         # Ứng viên chỉ xem danh sách những nhà tuyển dụng mình đang theo dõi
         return Follow.objects.filter(follower=self.request.user)
 
     def get_permissions(self):
-        if self.action in ["create", "list", "destroy"]:
-            return [perms.IsCandidate()]  # Chỉ ứng viên mới có thể follow
         if self.action in ["my_followers"]:
             return [perms.IsRecruiterJobPost()]
+        if self.request.method in ['GET', 'POST', 'DELETE']:
+            return [perms.IsCandidate()]  # Chỉ ứng viên mới có thể follow
         return [permissions.AllowAny()]
 
     def destroy(self, request, *args, **kwargs):
@@ -183,3 +181,31 @@ class FollowViewSet(viewsets.ModelViewSet):
         followers = Follow.objects.filter(recruiter=request.user)
         data = CandidateSerializer([follow.follower for follow in followers], many=True).data
         return Response(data, status=status.HTTP_200_OK)
+
+class ReviewViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.DestroyAPIView):
+    queryset = Review.objects.filter(active=True)
+    serializer_class = ReviewSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [perms.CanReview()]
+        if self.request.method == 'DELETE':
+            return [perms.DeleteReview()]
+        # GET request: Bất kỳ ai đã đăng nhập đều có thể xem
+        return [permissions.IsAuthenticated()]
+
+    @action(detail=False, methods=['get'], url_path='recruiter/(?P<recruiter_id>\d+)/candidate-reviews')
+    def get_reviews_for_recruiter(self, request, recruiter_id=None):
+        # Lấy danh sách đánh giá mà ứng viên đã viết về một nhà tuyển dụng cụ thể
+            recruiter = get_object_or_404(User, id=recruiter_id, role='recruiter')
+            queryset = Review.objects.filter(reviewed_user=recruiter, reviewer__role='candidate')
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='candidate/(?P<candidate_id>\d+)/recruiter-reviews')
+    def get_reviews_for_candidate(self, request, candidate_id=None):
+        # Lấy danh sách đánh giá mà nhà tuyển dụng đã viết về một ứng viên cụ thể.
+        candidate = get_object_or_404(User, id=candidate_id, role='candidate')
+        queryset = Review.objects.filter(reviewed_user=candidate, reviewer__role='recruiter')
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

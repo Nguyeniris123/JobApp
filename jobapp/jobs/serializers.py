@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
-from .models import User, Company, CompanyImage, JobPost, Application, Follow
+from .models import User, Company, CompanyImage, JobPost, Application, Follow, Review
 
 
 class CandidateSerializer(serializers.ModelSerializer):
@@ -123,11 +123,13 @@ class JobPostSerializer(serializers.ModelSerializer):
         return obj.applications.count()  # Đếm số lượng Application cho JobPost
 
 class ApplicationSerializer(serializers.ModelSerializer):
-
+    job = serializers.PrimaryKeyRelatedField(queryset=JobPost.objects.all(), write_only=True)  # Chỉ nhận job_id khi tạo
+    job_detail = JobPostSerializer(source="job", read_only=True)  # Xuất thông tin job đầy đủ khi trả về
     class Meta:
         model = Application
-        fields = ['id', "job", "cv", "status"]
-        read_only_fields = ["applicant", "status", "created_date"]  # Không cần nhập applicant, status, created_date khi gửi request
+
+        fields = ['id', "job", "job_detail", "cv", "status"]
+        read_only_fields = ["applicant", "status", "created_date", "job_detail"]  # Không cần nhập applicant, status, created_date khi gửi request
 
     def create(self, validated_data):
         request = self.context["request"]
@@ -161,14 +163,15 @@ class ApplicationSerializer(serializers.ModelSerializer):
         return data
 
 class FollowSerializer(serializers.ModelSerializer):
+    recruiter_company = CompanySerializer(source="recruiter.company", read_only=True)
     company_id = serializers.PrimaryKeyRelatedField(
         queryset=Company.objects.all(), write_only=True
     )
 
     class Meta:
         model = Follow
-        fields = ["id", "company_id", "follower", "recruiter"]
-        read_only_fields = ["follower", "recruiter"]
+        fields = ["id", "company_id", "follower", "recruiter", "recruiter_company", "created_date"]
+        read_only_fields = ["follower", "recruiter", "recruiter_company", "created_date"]
 
     def validate(self, attrs):
         request = self.context["request"]
@@ -192,4 +195,41 @@ class FollowSerializer(serializers.ModelSerializer):
         if Follow.objects.filter(follower=request.user, recruiter=validated_data["recruiter"]).exists():
             raise serializers.ValidationError({"detail": "Bạn đã theo dõi công ty này rồi!"})
 
+        return super().create(validated_data)
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Review
+        fields = [
+            'id', 'reviewer', 'reviewed_user', 'rating', 'comment',
+            'created_date'
+        ]
+        read_only_fields = ['reviewer', 'created_date']
+
+    def validate(self, attrs):
+        request = self.context['request']
+        reviewer = request.user
+        reviewed = attrs['reviewed_user']
+
+        if reviewer == reviewed:
+            raise serializers.ValidationError("Bạn không thể tự đánh giá chính mình.")
+
+        # Ứng viên chỉ được đánh giá recruiter
+        if reviewer.role == 'candidate' and reviewed.role != 'recruiter':
+            raise serializers.ValidationError("Ứng viên chỉ được đánh giá nhà tuyển dụng.")
+
+        # Recruiter chỉ được đánh giá candidate
+        if reviewer.role == 'recruiter' and reviewed.role != 'candidate':
+            raise serializers.ValidationError("Nhà tuyển dụng chỉ được đánh giá ứng viên.")
+
+        # Không cho các role khác đánh giá
+        if reviewer.role not in ['candidate', 'recruiter']:
+            raise serializers.ValidationError("Bạn không có quyền đánh giá người dùng khác.")
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data['reviewer'] = self.context['request'].user
         return super().create(validated_data)
