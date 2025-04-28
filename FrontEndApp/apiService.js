@@ -1,3 +1,5 @@
+import { CLIENT_ID, CLIENT_SECRET } from '@env';
+import axios from "axios";
 import API_ENDPOINTS from "./apiConfig";
 
 const getAuthHeaders = (token) => ({
@@ -8,8 +10,8 @@ const getAuthHeaders = (token) => ({
 export const loginUser = async (email, password) => {
     try {
         const jsonData = {
-            client_id: "OidP3ERxQtbZvrMN31JhxjjTWm325MLA3OMTCH5h",
-            client_secret: "UI7wNEiXd6H22GYDOyJU8YcaKNDnhpsBB1Z0Ziq89iGtD1qYzybcLS7AUuNKHV02dlABUVccNxKPLNsOYdAYJLspRffloiTaHG0qVh67JP32zynznskB1fYrmP7jGwon",
+            client_id: CLIENT_ID,
+            client_secret: CLIENT_SECRET,
             username: email, // Truyền email trực tiếp
             password: password, // Truyền password trực tiếp
             grant_type: "password"

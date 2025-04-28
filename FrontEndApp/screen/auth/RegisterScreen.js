@@ -130,7 +130,22 @@ const RegisterScreen = ({ navigation }) => {
             formData.append("password", data.password);
     
             if (avatar) {
-                formData.append("avatar", avatar.uri);
+                // Fix: Properly format avatar for upload
+                const filename = avatar.split('/').pop();
+                const match = /\.(\w+)$/.exec(filename);
+                const type = match ? `image/${match[1]}` : 'image/jpeg';
+                
+                formData.append("avatar", {
+                    uri: avatar,
+                    name: filename || 'avatar.jpg',
+                    type: type,
+                });
+                
+                console.log("Avatar appended to FormData:", {
+                    uri: avatar,
+                    name: filename,
+                    type
+                });
             }
 
             if (userType === "employer") {
@@ -140,15 +155,21 @@ const RegisterScreen = ({ navigation }) => {
                 formData.append("tax_code", data.taxId);
                 
                 // Fix: Properly format images for upload
-                companyImages.forEach((imageUri) => {
+                companyImages.forEach((imageUri, index) => {
                     const filename = imageUri.split('/').pop();
-                    const img = imageUri.toString();
+                    const match = /\.(\w+)$/.exec(filename);
+                    const type = match ? `image/${match[1]}` : 'image/jpeg';
+                    
                     formData.append('images', {
-                        uri: img,
-                        type: 'image/jpeg',
-                        name: filename || 'image.jpg',
+                        uri: imageUri,
+                        type: type,
+                        name: filename || `company_image_${index}.jpg`,
                     });
-                    console.log("Image added to formData:", img);
+                    console.log(`Company image ${index} added to formData:`, {
+                        uri: imageUri,
+                        type: type,
+                        name: filename || `company_image_${index}.jpg`
+                    });
                 });
             }
 

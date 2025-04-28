@@ -1,3 +1,4 @@
+import { CLIENT_ID, CLIENT_SECRET } from '@env';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
 import axios from 'axios';
@@ -43,8 +44,8 @@ const LoginScreen = ({ navigation }) => {
         try {
             setLoading(true);
             const jsondata = {
-                client_id: "OidP3ERxQtbZvrMN31JhxjjTWm325MLA3OMTCH5h",
-                client_secret: "UI7wNEiXd6H22GYDOyJU8YcaKNDnhpsBB1Z0Ziq89iGtD1qYzybcLS7AUuNKHV02dlABUVccNxKPLNsOYdAYJLspRffloiTaHG0qVh67JP32zynznskB1fYrmP7jGwon",
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
                 username: data.username, // Sử dụng username thay vì email
                 password: data.password,
                 grant_type: "password",
