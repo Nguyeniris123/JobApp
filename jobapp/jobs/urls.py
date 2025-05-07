@@ -6,6 +6,7 @@ from django.urls import path
 router = DefaultRouter()
 router.register('candidates', views.CandidateViewSet, basename='candidate')
 router.register('recruiters', views.RecruiterViewSet, basename='recruiter')
+router.register('avatars', views.UpdateAvatarViewSet, basename='avatar')
 router.register('companys', views.CompanyViewSet, basename='company')
 router.register('jobposts', views.JobPostViewSet, basename='jobpost')
 router.register('applications', views.ApplicationViewSet, basename='application')

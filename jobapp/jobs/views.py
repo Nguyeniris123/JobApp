@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from . import perms, paginators
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, \
-    FollowSerializer, CompanySerializer, ReviewSerializer
+    FollowSerializer, CompanySerializer, ReviewSerializer, UpdateAvatarSerializer
 from .models import User, JobPost, Application, Follow, Company, Review
 
 
@@ -41,6 +41,16 @@ class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
         if request.user.role != 'recruiter':  # Chặn ứng viên truy cập
             return Response({"detail": "Bạn không có quyền truy cập."}, status=status.HTTP_403_FORBIDDEN)
         return Response(self.serializer_class(request.user).data)
+
+class UpdateAvatarViewSet(viewsets.ViewSet, generics.UpdateAPIView):
+    queryset = User.objects.filter(is_active=True)
+    serializer_class = UpdateAvatarSerializer
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+
+    def get_permissions(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return [perms.OwnerPerms()]
+        return [permissions.AllowAny()]
 
 class CompanyViewSet(viewsets.ViewSet, generics.ListAPIView, generics.UpdateAPIView):
     serializer_class = CompanySerializer
