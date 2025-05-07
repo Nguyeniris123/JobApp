@@ -9,10 +9,11 @@ import ChatScreen from "../screen/candidate/ChatScreen"
 import FollowingScreen from "../screen/candidate/FollowingScreen"
 import HomeScreen from "../screen/candidate/HomeScreen"
 import JobDetailScreen from "../screen/candidate/JobDetailScreen"
+import MyReviewsScreen from "../screen/candidate/MyReviewsScreen"; // Thêm import này
 import NotificationScreen from "../screen/candidate/NotificationScreen"
 import ProfileScreen from "../screen/candidate/ProfileScreen"
 import SettingsScreen from "../screen/candidate/SettingsScreen"
-import EditProfileScreen from "../screen/common/EditProfileScreen"; // Add this import
+import EditProfileScreen from "../screen/common/EditProfileScreen"
 
 const Tab = createBottomTabNavigator()
 const Stack = createStackNavigator()
@@ -68,6 +69,7 @@ const ProfileStack = () => {
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+            <Stack.Screen name="MyReviews" component={MyReviewsScreen} />
         </Stack.Navigator>
     )
 }

@@ -1,9 +1,13 @@
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import ReviewCard from '../../components/ui/ReviewCard';
+import ReviewForm from '../../components/ui/ReviewForm';
 import { CompanyContext } from '../../contexts/CompanyContext';
 import { JobContext } from '../../contexts/JobContext';
+import { useReview } from '../../contexts/ReviewContext';
 
 const JobDetailScreen = () => {
     const navigation = useNavigation();
@@ -16,16 +20,30 @@ const JobDetailScreen = () => {
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
     const [followRecord, setFollowRecord] = useState(null);
+    
+    // Review state
+    const [showReviews, setShowReviews] = useState(false);
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    
+    // Sử dụng hook để truy cập review context
+    const { 
+        recruiterReviews,
+        createJobReview, 
+        fetchRecruiterReviews 
+    } = useReview();
 
     const loadJobDetail = async () => {
         if (!jobId) return;
+        
         try {
-            console.log("Đang tải chi tiết công việc với ID:", jobId);
+            setLoading(true);
             const data = await fetchJobById(jobId);
-            console.log("Đã nhận được dữ liệu chi tiết:", data);
             setJobDetail(data);
+            
+            // Fetch reviews for this job
+            await fetchRecruiterReviews();
         } catch (error) {
-            console.error('Error fetching job details:', error);
+            console.error("Error loading job details:", error);
         } finally {
             setLoading(false);
         }
@@ -35,10 +53,8 @@ const JobDetailScreen = () => {
     useFocusEffect(
         useCallback(() => {
             const loadData = async () => {
-                await Promise.all([
-                    loadJobDetail(),
-                    fetchFollowedCompanies()
-                ]);
+                await loadJobDetail();
+                await fetchFollowedCompanies();
             };
             loadData();
         }, [jobId])
@@ -47,56 +63,41 @@ const JobDetailScreen = () => {
     // Kiểm tra trạng thái follow mỗi khi danh sách công ty theo dõi thay đổi
     useEffect(() => {
         if (jobDetail && jobDetail.company && followedCompanies.length > 0) {
-            console.log("Kiểm tra trạng thái follow cho công ty:", jobDetail.company.id);
-            
-            // Tìm bản ghi follow cho công ty này
-            const followData = followedCompanies.find(
-                follow => follow.recruiter_company && 
-                jobDetail.company && 
-                follow.recruiter_company.id === jobDetail.company.id
-            );
-            
-            // Cập nhật trạng thái và lưu bản ghi follow (nếu có)
-            setIsFollowing(!!followData);
-            setFollowRecord(followData || null);
-            
-            console.log("Trạng thái follow:", followData ? 
-                `Đã theo dõi (ID: ${followData.id})` : 
-                "Chưa theo dõi");
+            const foundCompany = getFollowedCompanyById(jobDetail.company.id);
+            setIsFollowing(!!foundCompany);
+            setFollowRecord(foundCompany);
         } else {
             setIsFollowing(false);
             setFollowRecord(null);
         }
     }, [jobDetail, followedCompanies]);
 
-    const handleFollow = async () => {
-        if (!jobDetail || !jobDetail.company || followLoading) return;
-        
+    // Get reviews for this job
+    const getReviewsForThisJob = () => {
+        if (!jobDetail || !recruiterReviews) return [];
+        return recruiterReviews.filter(review => review.job === jobDetail.id);
+    };
+    
+    // Handle review submission
+    const handleReviewSubmit = async (reviewData) => {
         try {
-            setFollowLoading(true);
+            if (!jobDetail) return;
             
-            if (isFollowing && followRecord) {
-                // Nếu đang theo dõi và có bản ghi follow, sử dụng ID của bản ghi follow để unfollow
-                console.log(`Đang hủy theo dõi với follow ID: ${followRecord.id} (công ty ID: ${jobDetail.company.id})`);
-                await unfollowCompany(followRecord.id);
-                setIsFollowing(false);
-                setFollowRecord(null);
-            } else {
-                // Nếu chưa theo dõi, follow công ty
-                console.log(`Đang theo dõi công ty ${jobDetail.company.id}`);
-                await followCompany(jobDetail.company.id);
-                setIsFollowing(true);
-                
-                // Lấy lại bản ghi follow mới
-                await fetchFollowedCompanies();
-                const newFollowRecord = getFollowedCompanyById(jobDetail.company.id);
-                setFollowRecord(newFollowRecord);
+            const result = await createJobReview(
+                jobDetail.id,
+                reviewData.rating,
+                reviewData.comment,
+                reviewData.strengths || [],
+                reviewData.weaknesses || []
+            );
+            
+            if (result.success) {
+                // Refresh reviews after adding a new one
+                await fetchRecruiterReviews();
+                setShowReviewForm(false);
             }
-            
         } catch (error) {
-            console.error('Error handling follow:', error);
-        } finally {
-            setFollowLoading(false);
+            console.error("Error submitting review:", error);
         }
     };
 
@@ -130,6 +131,7 @@ const JobDetailScreen = () => {
 
     // Ensure company exists before rendering company-related information
     const companyExists = jobDetail && jobDetail.company;
+    const jobReviews = getReviewsForThisJob();
 
     return (
         <ScrollView style={styles.container}>
@@ -232,7 +234,72 @@ const JobDetailScreen = () => {
                     </View>
                 </View>
 
-                {/* Action Buttons */}
+                {/* Reviews section */}
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Đánh giá & Nhận xét</Text>
+                        <TouchableOpacity onPress={() => setShowReviews(!showReviews)}>
+                            <Text style={styles.seeAllText}>
+                                {showReviews ? 'Thu gọn' : 'Xem tất cả'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                    
+                    {showReviews ? (
+                        <View style={styles.reviewsContainer}>
+                            {/* Form to add a new review */}
+                            {!showReviewForm ? (
+                                <Button 
+                                    mode="outlined"
+                                    icon="comment-plus"
+                                    onPress={() => setShowReviewForm(true)}
+                                    style={styles.addReviewButton}
+                                >
+                                    Thêm đánh giá của bạn
+                                </Button>
+                            ) : (
+                                <ReviewForm 
+                                    onSubmit={handleReviewSubmit}
+                                    onCancel={() => setShowReviewForm(false)}
+                                />
+                            )}
+                            
+                            {/* List of reviews */}
+                            {jobReviews.length > 0 ? (
+                                <View style={styles.reviewsList}>
+                                    {jobReviews.map((review) => (
+                                        <ReviewCard 
+                                            key={review.id}
+                                            review={review}
+                                            style={styles.reviewCard} 
+                                        />
+                                    ))}
+                                </View>
+                            ) : (
+                                <Text style={styles.noReviewsText}>
+                                    Chưa có đánh giá nào cho công việc này. Hãy là người đầu tiên đánh giá!
+                                </Text>
+                            )}
+                        </View>
+                    ) : jobReviews.length > 0 ? (
+                        <View style={styles.reviewPreview}>
+                            <ReviewCard 
+                                review={jobReviews[0]}
+                                style={styles.reviewCard} 
+                            />
+                            {jobReviews.length > 1 && (
+                                <Text style={styles.moreReviewsText}>
+                                    + {jobReviews.length - 1} đánh giá khác
+                                </Text>
+                            )}
+                        </View>
+                    ) : (
+                        <Text style={styles.noReviewsText}>
+                            Chưa có đánh giá nào cho công việc này. Hãy là người đầu tiên đánh giá!
+                        </Text>
+                    )}
+                </View>
+
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity 
                         style={[styles.button, styles.applyButton]}
@@ -413,6 +480,52 @@ const styles = StyleSheet.create({
         color: '#424242',
         lineHeight: 24,
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    seeAllText: {
+        color: '#2196F3',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    reviewsContainer: {
+        marginVertical: 8,
+    },
+    reviewsList: {
+        marginTop: 12,
+    },
+    reviewCard: {
+        marginBottom: 12,
+        backgroundColor: '#F8F9FA',
+        borderRadius: 8,
+        padding: 12,
+        borderLeftWidth: 3,
+        borderLeftColor: '#2196F3',
+    },
+    addReviewButton: {
+        marginBottom: 16,
+        borderColor: '#2196F3',
+    },
+    noReviewsText: {
+        fontSize: 14,
+        color: '#6c757d',
+        fontStyle: 'italic',
+        textAlign: 'center',
+        marginVertical: 16,
+    },
+    reviewPreview: {
+        marginVertical: 8,
+    },
+    moreReviewsText: {
+        fontSize: 14,
+        color: '#2196F3',
+        textAlign: 'center',
+        marginTop: 8,
+        fontWeight: '500',
+    }
 });
 
 export default JobDetailScreen;

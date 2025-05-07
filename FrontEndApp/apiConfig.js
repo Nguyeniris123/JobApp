@@ -1,4 +1,5 @@
-export const API_URL = 'http://192.168.1.4:8000';
+// export const API_URL = 'http://192.168.1.4:8000';
+export const API_URL = 'http://192.168.88.130:8000';
 // export const API_URL = 'http://10.17.51.133:8000';
 
 export const API_ENDPOINTS = {
@@ -53,4 +54,11 @@ export const API_ENDPOINTS = {
   FOLLOW_MY_FOLLOWERS: `${API_URL}/follow/recruiter-followers/`,
   FOLLOW_READ: (id) => `${API_URL}/follow/${id}/`,
   FOLLOW_DELETE: (id) => `${API_URL}/follow/${id}/`,
+
+  //Review
+  REVIEWS_CREATE: `${API_URL}/reviews/`,
+  REVIEWS_LIST: `${API_URL}/reviews/`,
+  REVIEWS_LIST_FOR_RECRUITER: (id) => `${API_URL}/reviews/recruiter/${id}/candidate-reviews/`,
+  REVIEWS_LIST_FOR_CANDIDATE: (id) => `${API_URL}/reviews/candidate/${id}/recruiter-reviews/`,
+  REVIEWS_DELETE: (id) => `${API_URL}/reviews/${id}/`,
 };

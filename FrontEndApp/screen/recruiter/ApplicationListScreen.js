@@ -4,6 +4,9 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useEffect, useState } from "react"
 import { FlatList, ScrollView, StyleSheet, View } from "react-native"
 import { ActivityIndicator, Avatar, Button, Card, Chip, Divider, Menu, Searchbar, Text } from "react-native-paper"
+import { ReviewCard } from "../../components/ui/ReviewCard"
+import { ReviewForm } from "../../components/ui/ReviewForm"
+import { useReview } from "../../hooks/useReview"
 
 const ApplicationListScreen = ({ route, navigation }) => {
     const { jobId } = route.params || {}
@@ -14,6 +17,26 @@ const ApplicationListScreen = ({ route, navigation }) => {
     const [statusFilter, setStatusFilter] = useState("all")
     const [menuVisible, setMenuVisible] = useState(false)
     const [selectedCandidate, setSelectedCandidate] = useState(null)
+    const [showReviewForm, setShowReviewForm] = useState(false)
+    const [expandedCardId, setExpandedCardId] = useState(null)
+    
+    // Sử dụng hook để truy cập review context
+    const { 
+        candidateReviews, 
+        createApplicationReview, 
+        fetchCandidateReviews, 
+        loading: reviewsLoading 
+    } = useReview();
+
+    // Lấy đánh giá cho ứng viên cụ thể
+    const getReviewsForCandidate = (applicationId) => {
+        return candidateReviews.filter(review => review.application === applicationId);
+    };
+
+    // Xem đánh giá và toggle hiển thị
+    const toggleCardExpand = (candidateId) => {
+        setExpandedCardId(expandedCardId === candidateId ? null : candidateId);
+    };
 
     const getAccessToken = async () => {
         try {
@@ -40,7 +63,7 @@ const ApplicationListScreen = ({ route, navigation }) => {
                         'Content-Type': 'application/json',
                     }
                 })
-                console.log("Response:", response.json())
+                
                 if (!response.ok) {
                     throw new Error('Network response was not ok')
                 }
@@ -48,6 +71,11 @@ const ApplicationListScreen = ({ route, navigation }) => {
                 const data = await response.json()
                 setCandidates(data)
                 setFilteredCandidates(data)
+                
+                // Tải đánh giá khi có ứng viên
+                if (data.length > 0) {
+                    fetchCandidateReviews();
+                }
             } catch (error) {
                 console.log("Error fetching candidates:", error)
             } finally {
@@ -57,6 +85,27 @@ const ApplicationListScreen = ({ route, navigation }) => {
 
         fetchCandidates()
     }, [jobId])
+
+    // Hàm submitting đánh giá mới
+    const handleReviewSubmit = async (applicationId, reviewData) => {
+        try {
+            const result = await createApplicationReview(
+                applicationId,
+                reviewData.rating,
+                reviewData.comment,
+                reviewData.strengths,
+                reviewData.weaknesses
+            );
+            
+            if (result.success) {
+                setShowReviewForm(false);
+                // Tải lại đánh giá sau khi thêm thành công
+                await fetchCandidateReviews();
+            }
+        } catch (error) {
+            console.error("Error submitting review:", error);
+        }
+    };
 
     const onChangeSearch = (query) => {
         setSearchQuery(query)
@@ -215,6 +264,45 @@ const ApplicationListScreen = ({ route, navigation }) => {
                     </View>
                 </View>
 
+                {/* Hiển thị đánh giá nếu card được mở rộng */}
+                {expandedCardId === item.id && (
+                    <View style={styles.reviewsSection}>
+                        <Text style={styles.reviewsSectionTitle}>Đánh giá của bạn</Text>
+                        
+                        {/* Form thêm đánh giá mới */}
+                        {showReviewForm ? (
+                            <ReviewForm 
+                                onSubmit={(reviewData) => handleReviewSubmit(item.id, reviewData)}
+                                onCancel={() => setShowReviewForm(false)}
+                            />
+                        ) : (
+                            <Button 
+                                mode="outlined" 
+                                icon="plus" 
+                                onPress={() => setShowReviewForm(true)}
+                                style={styles.addReviewButton}
+                            >
+                                Thêm đánh giá
+                            </Button>
+                        )}
+                        
+                        {/* Danh sách đánh giá hiện tại */}
+                        {getReviewsForCandidate(item.id).length > 0 ? (
+                            getReviewsForCandidate(item.id).map((review) => (
+                                <ReviewCard 
+                                    key={review.id}
+                                    review={review}
+                                    style={styles.reviewCard} 
+                                />
+                            ))
+                        ) : (
+                            <Text style={styles.emptyReviewsText}>
+                                Chưa có đánh giá nào cho ứng viên này
+                            </Text>
+                        )}
+                    </View>
+                )}
+
                 <View style={styles.actionButtons}>
                     {item.status === "Đang xem xét" ? (
                         <>
@@ -237,15 +325,30 @@ const ApplicationListScreen = ({ route, navigation }) => {
                             </Button>
                         </>
                     ) : (
-                        <Button
-                            mode="outlined"
-                            icon="message-text"
-                            onPress={() => navigation.navigate("Chat")}
-                            style={styles.chatButton}
-                            contentStyle={styles.buttonContent}
-                        >
-                            Nhắn tin
-                        </Button>
+                        <>
+                            <Button
+                                mode="outlined"
+                                icon="message-text"
+                                onPress={() => navigation.navigate("Chat")}
+                                style={[styles.chatButton, { flex: expandedCardId === item.id ? 1 : 2 }]}
+                                contentStyle={styles.buttonContent}
+                            >
+                                Nhắn tin
+                            </Button>
+                            
+                            <Button
+                                mode={expandedCardId === item.id ? "contained" : "outlined"}
+                                icon={expandedCardId === item.id ? "comment-minus" : "comment-text-multiple"}
+                                onPress={() => toggleCardExpand(item.id)}
+                                style={[
+                                    styles.reviewButton,
+                                    expandedCardId === item.id ? styles.reviewButtonActive : null
+                                ]}
+                                contentStyle={styles.buttonContent}
+                            >
+                                {expandedCardId === item.id ? "Thu gọn" : "Đánh giá"}
+                            </Button>
+                        </>
                     )}
                 </View>
             </Card.Content>
@@ -496,6 +599,42 @@ const styles = StyleSheet.create({
         borderColor: "#2563EB",
         borderWidth: 1.5,
     },
+    reviewsSection: {
+        marginTop: 8,
+        marginBottom: 16,
+        backgroundColor: '#F9FAFB',
+        padding: 12,
+        borderRadius: 8,
+    },
+    reviewsSectionTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#111827',
+        marginBottom: 12,
+    },
+    emptyReviewsText: {
+        fontSize: 14,
+        color: '#6B7280',
+        fontStyle: 'italic',
+        textAlign: 'center',
+        paddingVertical: 12,
+    },
+    addReviewButton: {
+        marginBottom: 16,
+        borderColor: '#4F46E5',
+    },
+    reviewCard: {
+        marginBottom: 8,
+    },
+    reviewButton: {
+        flex: 1,
+        marginLeft: 12,
+        borderColor: "#4F46E5",
+        borderWidth: 1.5,
+    },
+    reviewButtonActive: {
+        backgroundColor: "#4F46E5",
+    }
 })
 
 export default ApplicationListScreen

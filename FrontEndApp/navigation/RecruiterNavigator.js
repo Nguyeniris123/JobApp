@@ -1,17 +1,18 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { createStackNavigator } from "@react-navigation/stack"
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createStackNavigator } from "@react-navigation/stack";
 
-import EditProfileScreen from "../screen/common/EditProfileScreen"; // Add this import
-import ApplicationListScreen from "../screen/recruiter/ApplicationListScreen"
-import ChatScreen from "../screen/recruiter/ChatScreen"
-import CompanyProfileScreen from "../screen/recruiter/CompanyProfileScreen"
-import FavoriteCandidatesScreen from "../screen/recruiter/FavoriteCandidatesScreen"
-import HomeScreen from "../screen/recruiter/HomeScreen"
-import JobDetailScreen from "../screen/recruiter/JobDetailScreen"
-import PostJobScreen from "../screen/recruiter/PostJobScreen"
-import ReviewScreen from "../screen/recruiter/ReviewScreen"
-import SettingsScreen from "../screen/recruiter/SettingsScreen"
+import EditProfileScreen from "../screen/common/EditProfileScreen";
+import ApplicationListScreen from "../screen/recruiter/ApplicationListScreen";
+import ChatScreen from "../screen/recruiter/ChatScreen";
+import CompanyProfileScreen from "../screen/recruiter/CompanyProfileScreen";
+import FavoriteCandidatesScreen from "../screen/recruiter/FavoriteCandidatesScreen";
+import HomeScreen from "../screen/recruiter/HomeScreen";
+import JobDetailScreen from "../screen/recruiter/JobDetailScreen";
+import MyReviewsScreen from "../screen/recruiter/MyReviewsScreen"; // Thêm import này
+import PostJobScreen from "../screen/recruiter/PostJobScreen";
+import ReviewScreen from "../screen/recruiter/ReviewScreen";
+import SettingsScreen from "../screen/recruiter/SettingsScreen";
 
 const Tab = createBottomTabNavigator()
 const Stack = createStackNavigator()
@@ -55,6 +56,7 @@ const ProfileStack = () => {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="CompanyProfile" component={CompanyProfileScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+            <Stack.Screen name="MyReviews" component={MyReviewsScreen} />
         </Stack.Navigator>
     )
 }

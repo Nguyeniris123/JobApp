@@ -60,7 +60,21 @@ const ProfileScreen = ({ navigation }) => {
             <CardSection title="Kinh nghiệm làm việc" items={(user?.experience || []).map(exp => ({ title: exp.company, description: `${exp.position} (${exp.duration})\n${exp.description}`, icon: "briefcase" }))} />
 
             <View style={styles.buttonContainer}>
-                <Button mode="contained" onPress={() => navigation.navigate("Settings")} style={styles.settingsButton} icon="cog">
+                <Button 
+                    mode="contained" 
+                    onPress={() => navigation.navigate("MyReviews")} 
+                    style={styles.reviewsButton} 
+                    icon="comment-text-multiple"
+                >
+                    Đánh giá của tôi
+                </Button>
+                
+                <Button 
+                    mode="contained" 
+                    onPress={() => navigation.navigate("Settings")} 
+                    style={styles.settingsButton} 
+                    icon="cog"
+                >
                     Cài đặt tài khoản
                 </Button>
             </View>
@@ -96,6 +110,7 @@ const styles = StyleSheet.create({
     card: { margin: 10 },
     sectionTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
     buttonContainer: { margin: 20 },
+    reviewsButton: { marginTop: 10, marginBottom: 10, backgroundColor: "#4CAF50" },
     settingsButton: { marginTop: 10 }
 });
 

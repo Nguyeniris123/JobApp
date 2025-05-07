@@ -1,220 +1,151 @@
-import { useContext, useState } from "react"
-import { Alert, ScrollView, StyleSheet, View } from "react-native"
-import { Button, Dialog, Divider, List, Portal, Switch, Text, TextInput } from "react-native-paper"
-import { AuthContext } from "../../contexts/AuthContext"
+import { useContext } from "react";
+import { StyleSheet, View } from "react-native";
+import { Avatar, Button, Divider, List, Surface, Text } from "react-native-paper";
+import { ScreenContainer } from "../../components/layout/ScreenContainer";
+import { AuthContext } from "../../contexts/AuthContext";
 
 const SettingsScreen = ({ navigation }) => {
-    const { logout } = useContext(AuthContext)
-    const [darkMode, setDarkMode] = useState(false)
-    const [visible, setVisible] = useState(false)
-    const [currentPassword, setCurrentPassword] = useState("")
-    const [newPassword, setNewPassword] = useState("")
-    const [confirmPassword, setConfirmPassword] = useState("")
-
-    const showDialog = () => setVisible(true)
-    const hideDialog = () => {
-        setVisible(false)
-        setCurrentPassword("")
-        setNewPassword("")
-        setConfirmPassword("")
-    }
-
-    const handleChangePassword = () => {
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin")
-            return
-        }
-
-        if (newPassword !== confirmPassword) {
-            Alert.alert("Lỗi", "Mật khẩu mới không khớp")
-            return
-        }
-
-        // Giả lập API call
-        setTimeout(() => {
-            Alert.alert("Thành công", "Mật khẩu đã được thay đổi")
-            hideDialog()
-        }, 1000)
-    }
-
-    const handleLogout = () => {
-        Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", [
-            {
-                text: "Hủy",
-                style: "cancel",
-            },
-            {
-                text: "Đăng xuất",
-                onPress: () => {
-                    logout()
-                },
-            },
-        ])
-    }
-
-    const handleDeleteAccount = () => {
-        Alert.alert("Xóa tài khoản", "Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.", [
-            {
-                text: "Hủy",
-                style: "cancel",
-            },
-            {
-                text: "Xóa tài khoản",
-                onPress: () => {
-                    // Giả lập API call
-                    setTimeout(() => {
-                        Alert.alert("Thành công", "Tài khoản đã được xóa")
-                        logout()
-                    }, 1000)
-                },
-                style: "destructive",
-            },
-        ])
-    }
+    const { user, logout } = useContext(AuthContext);
 
     return (
-        <ScrollView style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.title}>Cài đặt</Text>
-            </View>
-
-            <List.Section>
-                <List.Subheader>Giao diện</List.Subheader>
-                <List.Item
-                    title="Chế độ tối"
-                    description="Thay đổi giao diện sang chế độ tối"
-                    left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
-                    right={(props) => (
-                        <Switch
-                            value={darkMode}
-                            onValueChange={setDarkMode}
-                            color="#1E88E5"
-                        />
-                    )}
+        <ScreenContainer>
+            <Surface style={styles.header}>
+                <Avatar.Image
+                    source={{ uri: user?.avatar || "https://via.placeholder.com/150" }}
+                    size={80}
                 />
-            </List.Section>
+                <View style={styles.headerInfo}>
+                    <Text style={styles.name}>{user?.username || "Nhà tuyển dụng"}</Text>
+                    <Text style={styles.email}>{user?.email || "email@example.com"}</Text>
+                    <Button
+                        mode="contained"
+                        onPress={() => navigation.navigate("CompanyProfile")}
+                        style={styles.profileButton}
+                        labelStyle={styles.buttonLabel}
+                    >
+                        Hồ sơ công ty
+                    </Button>
+                </View>
+            </Surface>
 
-            <Divider />
+            <Surface style={styles.section}>
+                <List.Section>
+                    <List.Subheader>Tài khoản</List.Subheader>
+                    <List.Item
+                        title="Chỉnh sửa thông tin"
+                        left={props => <List.Icon {...props} icon="account-edit" />}
+                        onPress={() => navigation.navigate("EditProfile")}
+                    />
+                    <Divider />
+                    <List.Item
+                        title="Đánh giá của tôi"
+                        description="Xem danh sách đánh giá bạn đã viết"
+                        left={props => <List.Icon {...props} icon="comment-text-multiple" />}
+                        onPress={() => navigation.navigate("MyReviews")}
+                    />
+                    <Divider />
+                    <List.Item
+                        title="Đổi mật khẩu"
+                        left={props => <List.Icon {...props} icon="lock-reset" />}
+                        onPress={() => {}}
+                    />
+                </List.Section>
+            </Surface>
 
-            <List.Section>
-                <List.Subheader>Tài khoản</List.Subheader>
-                <List.Item
-                    title="Thông tin cá nhân"
-                    left={(props) => <List.Icon {...props} icon="account-outline" />}
-                    onPress={() => navigation.navigate('EditProfile')}
-                />
-                <Divider />
-                <List.Item
-                    title="Đổi mật khẩu"
-                    left={(props) => <List.Icon {...props} icon="lock-outline" />}
-                    onPress={showDialog}
-                />
-                <Divider />
-                <List.Item
-                    title="Hồ sơ công ty"
-                    left={(props) => <List.Icon {...props} icon="domain" />}
-                    onPress={() => navigation.navigate("CompanyProfile")}
-                />
-            </List.Section>
+            <Surface style={styles.section}>
+                <List.Section>
+                    <List.Subheader>Cài đặt ứng dụng</List.Subheader>
+                    <List.Item
+                        title="Ngôn ngữ"
+                        description="Tiếng Việt"
+                        left={props => <List.Icon {...props} icon="translate" />}
+                        onPress={() => {}}
+                    />
+                    <Divider />
+                    <List.Item
+                        title="Thông báo"
+                        left={props => <List.Icon {...props} icon="bell-outline" />}
+                        onPress={() => {}}
+                    />
+                    <Divider />
+                    <List.Item
+                        title="Chế độ tối"
+                        left={props => <List.Icon {...props} icon="brightness-6" />}
+                        onPress={() => {}}
+                    />
+                </List.Section>
+            </Surface>
 
-            <Divider />
+            <Surface style={styles.section}>
+                <List.Section>
+                    <List.Subheader>Hỗ trợ</List.Subheader>
+                    <List.Item
+                        title="Trung tâm hỗ trợ"
+                        left={props => <List.Icon {...props} icon="help-circle" />}
+                        onPress={() => {}}
+                    />
+                    <Divider />
+                    <List.Item
+                        title="Điều khoản sử dụng"
+                        left={props => <List.Icon {...props} icon="file-document" />}
+                        onPress={() => {}}
+                    />
+                </List.Section>
+            </Surface>
 
-            <List.Section>
-                <List.Subheader>Khác</List.Subheader>
-                <List.Item
-                    title="Về ứng dụng"
-                    left={(props) => <List.Icon {...props} icon="information-outline" />}
-                />
-                <Divider />
-                <List.Item
-                    title="Điều khoản sử dụng"
-                    left={(props) => <List.Icon {...props} icon="file-document-outline" />}
-                />
-                <Divider />
-                <List.Item
-                    title="Chính sách bảo mật"
-                    left={(props) => <List.Icon {...props} icon="shield-check-outline" />}
-                />
-            </List.Section>
-
-            <View style={styles.buttonContainer}>
-                <Button mode="outlined" onPress={handleLogout} style={styles.logoutButton} icon="logout">
-                    Đăng xuất
-                </Button>
-                <Button mode="outlined" onPress={handleDeleteAccount} style={styles.deleteButton} icon="delete" color="#D32F2F">
-                    Xóa tài khoản
-                </Button>
-            </View>
-
-            <Portal>
-                <Dialog visible={visible} onDismiss={hideDialog}>
-                    <Dialog.Title>Đổi mật khẩu</Dialog.Title>
-                    <Dialog.Content>
-                        <TextInput
-                            label="Mật khẩu hiện tại"
-                            value={currentPassword}
-                            onChangeText={setCurrentPassword}
-                            secureTextEntry
-                            mode="outlined"
-                            style={styles.input}
-                        />
-                        <TextInput
-                            label="Mật khẩu mới"
-                            value={newPassword}
-                            onChangeText={setNewPassword}
-                            secureTextEntry
-                            mode="outlined"
-                            style={styles.input}
-                        />
-                        <TextInput
-                            label="Xác nhận mật khẩu mới"
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                            secureTextEntry
-                            mode="outlined"
-                            style={styles.input}
-                        />
-                    </Dialog.Content>
-                    <Dialog.Actions>
-                        <Button onPress={hideDialog}>Hủy</Button>
-                        <Button onPress={handleChangePassword}>Xác nhận</Button>
-                    </Dialog.Actions>
-                </Dialog>
-            </Portal>
-        </ScrollView>
-    )
-}
+            <Button
+                mode="outlined"
+                icon="logout"
+                onPress={logout}
+                style={styles.logoutButton}
+            >
+                Đăng xuất
+            </Button>
+        </ScreenContainer>
+    );
+};
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#F5F5F5",
-    },
     header: {
-        padding: 20,
-        paddingTop: 40,
-        backgroundColor: "#1E88E5",
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: "#FFFFFF",
-    },
-    buttonContainer: {
+        flexDirection: "row",
+        alignItems: "center",
         padding: 16,
-        marginBottom: 24,
+        margin: 16,
+        elevation: 2,
+        borderRadius: 8,
+    },
+    headerInfo: {
+        marginLeft: 16,
+        flex: 1,
+    },
+    name: {
+        fontSize: 18,
+        fontWeight: "bold",
+    },
+    email: {
+        color: "#666",
+        marginBottom: 8,
+    },
+    profileButton: {
+        marginTop: 8,
+        alignSelf: "flex-start",
+    },
+    buttonLabel: {
+        fontSize: 12,
+    },
+    section: {
+        marginHorizontal: 16,
+        marginVertical: 8,
+        elevation: 2,
+        borderRadius: 8,
     },
     logoutButton: {
-        marginBottom: 16,
-        borderColor: "#1E88E5",
+        marginVertical: 24,
+        marginHorizontal: 16,
+        borderColor: "#d32f2f",
+        borderWidth: 1,
     },
-    deleteButton: {
-        borderColor: "#D32F2F",
-    },
-    input: {
-        marginBottom: 16,
-    },
-})
+});
 
-export default SettingsScreen
+export default SettingsScreen;
 
