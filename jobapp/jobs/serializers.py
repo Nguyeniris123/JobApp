@@ -213,7 +213,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'first_name', 'last_name', 'email', 'role', 'avatar']
 
-class ReviewSerializer(serializers.ModelSerializer):
+class CandidateReviewRecruiterSerializer(serializers.ModelSerializer):
     reviewer = UserSerializer(read_only=True)  # Trả về thông tin người đánh giá
     reviewed_user = UserSerializer(read_only=True)  # Trả về thông tin người được đánh giá (nhà tuyển dụng)
     company_id = serializers.PrimaryKeyRelatedField(queryset=Company.objects.all(), write_only=True)
@@ -246,6 +246,37 @@ class ReviewSerializer(serializers.ModelSerializer):
         # Gán người đánh giá từ request.user
         validated_data["reviewer"] = self.context["request"].user
         validated_data.pop("company_id")  # Không phải trường trong model Review
+        return super().create(validated_data)
+
+class RecruiterReviewCandidateSerializer(serializers.ModelSerializer):
+    reviewer = UserSerializer(read_only=True)
+    reviewed_user = UserSerializer(read_only=True)
+    candidate_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(role='candidate'), write_only=True)
+
+    class Meta:
+        model = Review
+        fields = ['id', 'reviewer', 'reviewed_user', 'rating', 'comment', 'created_date', 'candidate_id']
+        read_only_fields = ['reviewer', 'reviewed_user', 'created_date']
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        candidate = attrs["candidate_id"]
+
+        # Đảm bảo người dùng hiện tại là nhà tuyển dụng
+        if request.user.role != "recruiter":
+            raise serializers.ValidationError("Chỉ nhà tuyển dụng mới có thể đánh giá ứng viên.")
+
+        # Không được tự đánh giá chính mình
+        if candidate == request.user:
+            raise serializers.ValidationError("Bạn không thể tự đánh giá chính mình.")
+
+        # Gán người được đánh giá
+        attrs["reviewed_user"] = candidate
+        return attrs
+
+    def create(self, validated_data):
+        validated_data["reviewer"] = self.context["request"].user
+        validated_data.pop("candidate_id")
         return super().create(validated_data)
 
 

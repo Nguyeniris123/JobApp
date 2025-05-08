@@ -48,8 +48,8 @@ class IsCandidate(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == "candidate"
 
-class CanReview(permissions.BasePermission):
-    # Chỉ cho phép tạo đánh giá nếu người dùng đã đăng nhập và có một application được chấp nhận giữa họ và người được đánh giá
+class CanCandidateReview(permissions.BasePermission):
+    # Chỉ cho phép tạo đánh giá nếu ứng viên đăng nhập và có một application được chấp nhận giữa họ và nhà tuyển dụng
     def has_permission(self, request, view):
         reviewer = request.user
         company_id = request.data.get('company_id')  # Lấy company_id từ dữ liệu gửi lên
@@ -83,6 +83,34 @@ class CanReview(permissions.BasePermission):
             status='accepted'
         ).exists()
 
+class CanRecruiterReview(permissions.BasePermission):
+    # Chỉ cho phép nhà tuyển dụng đánh giá ứng viên nếu có một application được chấp nhận giữa họ.
+    def has_permission(self, request, view):
+        reviewer = request.user
+        candidate_id = request.data.get('candidate_id')
+
+        if not reviewer.is_authenticated:
+            return False
+
+        if reviewer.role != "recruiter":
+            return False
+
+        if not candidate_id:
+            raise ValidationError("candidate_id không được để trống.")
+
+        try:
+            reviewed_user = User.objects.get(id=candidate_id, role='candidate')
+        except User.DoesNotExist:
+            raise ValidationError("Ứng viên không tồn tại.")
+
+        return self.check_application_status(reviewer, reviewed_user)
+
+    def check_application_status(self, recruiter, candidate):
+        return Application.objects.filter(
+            applicant=candidate,
+            job__recruiter=recruiter,
+            status='accepted'
+        ).exists()
 
 class DeleteReview(permissions.IsAuthenticated):
     def has_object_permission(self, request, view, obj):
