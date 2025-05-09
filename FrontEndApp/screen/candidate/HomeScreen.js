@@ -1,15 +1,16 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Animated, FlatList, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Animated, FlatList, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 // Remove the LinearGradient import temporarily
 import { Avatar, Chip, Searchbar, Text } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import FilterModal from "../../components/FilterModal";
 import AppButton from "../../components/ui/AppButton";
 import { AuthContext } from "../../contexts/AuthContext";
 import { JobContext } from "../../contexts/JobContext";
 
 const HomeScreen = ({ navigation }) => {
   
-  const { loading, jobs, fetchJobs, updateFilters } = useContext(JobContext);
+  const { loading, jobs, fetchJobs, updateFilters, filters } = useContext(JobContext);
   const { user } = useContext(AuthContext);
   const username = useMemo(() => user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : "Người dùng", [user]);
   
@@ -19,6 +20,7 @@ const HomeScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
   const scrollY = new Animated.Value(0);
 
   const headerHeight = scrollY.interpolate({
@@ -170,6 +172,12 @@ const HomeScreen = ({ navigation }) => {
           inputStyle={styles.searchInput}
           icon={() => <Icon name="search" size={24} color="#1E88E5" />}
         />
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setFilterModalVisible(true)}
+        >
+          <Icon name="filter-list" size={24} color="#1E88E5" />
+        </TouchableOpacity>
       </Animated.View>
 
       <View style={styles.categoriesContainer}>
@@ -237,6 +245,29 @@ const HomeScreen = ({ navigation }) => {
           scrollEventThrottle={16}
         />
       )}
+
+      <FilterModal
+        visible={filterModalVisible}
+        onDismiss={() => setFilterModalVisible(false)}
+        initialFilters={filters}
+        onApply={(newFilters) => {
+          updateFilters(newFilters);
+          setFilterModalVisible(false);
+        }}
+        onReset={() => {
+          updateFilters({
+            specialized: '',
+            salary_min: '',
+            salary_max: '',
+            working_hours_min: '',
+            working_hours_max: '',
+            location: '',
+            search: searchQuery,
+            ordering: '-created_date'
+          });
+          setFilterModalVisible(false);
+        }}
+      />
     </View>
   );
 };
@@ -284,6 +315,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 15, // Increased to provide more space
     zIndex: 2, // Ensure search bar appears above other elements
+    flexDirection: 'row', // Added to align search bar and filter button
+    alignItems: 'center', // Center align items
   },
   searchBar: {
     elevation: 10,
@@ -294,9 +327,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 10,
     height: 50,
+    flex: 1, // Added to take available space
   },
   searchInput: {
     fontSize: 16,
+  },
+  filterButton: {
+    marginLeft: 10, // Added margin to separate from search bar
+    padding: 10, // Added padding for better touch area
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
   },
   categoriesContainer: {
     marginVertical: 15, // Adjusted for better spacing

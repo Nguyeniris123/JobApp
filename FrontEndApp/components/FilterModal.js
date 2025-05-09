@@ -3,53 +3,57 @@ import { Controller, useForm } from 'react-hook-form';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Chip, Divider, Modal, Portal, Text, TextInput, Title } from 'react-native-paper';
 
-const FilterModal = ({ visible, onDismiss, onApply, onReset, filters, skills }) => {
-  const [selectedSkills, setSelectedSkills] = useState(filters.skills || []);
-
+const FilterModal = ({ visible, onDismiss, onApply, onReset, initialFilters = {} }) => {
   const { control, handleSubmit, reset, setValue } = useForm({
     defaultValues: {
-      location: filters.location || '',
-      minSalary: filters.minSalary ? filters.minSalary.toString() : '',
-      maxSalary: filters.maxSalary ? filters.maxSalary.toString() : '',
-      workingHours: filters.workingHours || '',
+      specialized: initialFilters.specialized || '',
+      location: initialFilters.location || '',
+      salary_min: initialFilters.salary_min || '',
+      salary_max: initialFilters.salary_max || '',
+      working_hours_min: initialFilters.working_hours_min || '',
+      working_hours_max: initialFilters.working_hours_max || '',
+      ordering: initialFilters.ordering || '-created_date'
     }
   });
 
+  const orderingOptions = [
+    { value: '-created_date', label: 'Mới nhất' },
+    { value: 'created_date', label: 'Cũ nhất' },
+    { value: '-salary', label: 'Lương cao đến thấp' },
+    { value: 'salary', label: 'Lương thấp đến cao' }
+  ];
+  
+  const [selectedOrdering, setSelectedOrdering] = useState(initialFilters.ordering || '-created_date');
+
   // Update form when filters change
   useEffect(() => {
-    setValue('location', filters.location || '');
-    setValue('minSalary', filters.minSalary ? filters.minSalary.toString() : '');
-    setValue('maxSalary', filters.maxSalary ? filters.maxSalary.toString() : '');
-    setValue('workingHours', filters.workingHours || '');
-    setSelectedSkills(filters.skills || []);
-  }, [filters, setValue]);
+    setValue('specialized', initialFilters.specialized || '');
+    setValue('location', initialFilters.location || '');
+    setValue('salary_min', initialFilters.salary_min || '');
+    setValue('salary_max', initialFilters.salary_max || '');
+    setValue('working_hours_min', initialFilters.working_hours_min || '');
+    setValue('working_hours_max', initialFilters.working_hours_max || '');
+    setSelectedOrdering(initialFilters.ordering || '-created_date');
+  }, [initialFilters, setValue]);
 
   const onSubmit = (data) => {
     onApply({
       ...data,
-      minSalary: data.minSalary ? parseFloat(data.minSalary) : '',
-      maxSalary: data.maxSalary ? parseFloat(data.maxSalary) : '',
-      skills: selectedSkills,
+      ordering: selectedOrdering
     });
   };
 
   const handleReset = () => {
     reset({
+      specialized: '',
       location: '',
-      minSalary: '',
-      maxSalary: '',
-      workingHours: '',
+      salary_min: '',
+      salary_max: '',
+      working_hours_min: '',
+      working_hours_max: '',
     });
-    setSelectedSkills([]);
+    setSelectedOrdering('-created_date');
     onReset();
-  };
-
-  const toggleSkill = (skillId) => {
-    if (selectedSkills.includes(skillId)) {
-      setSelectedSkills(selectedSkills.filter(id => id !== skillId));
-    } else {
-      setSelectedSkills([...selectedSkills, skillId]);
-    }
   };
 
   return (
@@ -60,16 +64,33 @@ const FilterModal = ({ visible, onDismiss, onApply, onReset, filters, skills }) 
         contentContainerStyle={styles.container}
       >
         <ScrollView>
-          <Title style={styles.title}>Filter Jobs</Title>
+          <Title style={styles.title}>Tìm kiếm nâng cao</Title>
 
-          <Text style={styles.sectionTitle}>Location</Text>
+          <Text style={styles.sectionTitle}>Chuyên ngành</Text>
           <Controller
             control={control}
             render={({ field: { onChange, onBlur, value } }) => (
               <TextInput
-                label="Location"
+                label="Chuyên ngành"
                 mode="outlined"
-                placeholder="Enter city or area"
+                placeholder="VD: Công nghệ thông tin, Kế toán..."
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+                style={styles.input}
+              />
+            )}
+            name="specialized"
+          />
+
+          <Text style={styles.sectionTitle}>Vị trí</Text>
+          <Controller
+            control={control}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                label="Vị trí"
+                mode="outlined"
+                placeholder="VD: TP.HCM, Hà Nội..."
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -79,74 +100,92 @@ const FilterModal = ({ visible, onDismiss, onApply, onReset, filters, skills }) 
             name="location"
           />
 
-          <Text style={styles.sectionTitle}>Salary Range</Text>
+          <Text style={styles.sectionTitle}>Mức lương (VNĐ)</Text>
           <View style={styles.row}>
             <Controller
               control={control}
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  label="Min Salary"
+                  label="Lương tối thiểu"
                   mode="outlined"
-                  placeholder="Min $"
+                  placeholder="VD: 10000000"
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
                   style={[styles.input, styles.halfInput]}
                   keyboardType="numeric"
-                  left={<TextInput.Affix text="$" />}
                 />
               )}
-              name="minSalary"
+              name="salary_min"
             />
 
             <Controller
               control={control}
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  label="Max Salary"
-                  mode="outlined"
-                  placeholder="Max $"
+                  label="Lương tối đa"
+                  mode="outlined" 
+                  placeholder="VD: 20000000"
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
                   style={[styles.input, styles.halfInput]}
                   keyboardType="numeric"
-                  left={<TextInput.Affix text="$" />}
                 />
               )}
-              name="maxSalary"
+              name="salary_max"
             />
           </View>
 
-          <Text style={styles.sectionTitle}>Working Hours</Text>
-          <Controller
-            control={control}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label="Working Hours"
-                mode="outlined"
-                placeholder="e.g. Evenings, Weekends"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                style={styles.input}
-              />
-            )}
-            name="workingHours"
-          />
+          <Text style={styles.sectionTitle}>Giờ làm việc</Text>
+          <View style={styles.row}>
+            <Controller
+              control={control}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="Tối thiểu"
+                  mode="outlined"
+                  placeholder="VD: 8"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  style={[styles.input, styles.halfInput]}
+                  keyboardType="numeric"
+                />
+              )}
+              name="working_hours_min"
+            />
+            <Controller
+              control={control}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="Tối đa"
+                  mode="outlined"
+                  placeholder="VD: 10"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  style={[styles.input, styles.halfInput]}
+                  keyboardType="numeric"
+                />
+              )}
+              name="working_hours_max"
+            />
+          </View>
 
-          <Text style={styles.sectionTitle}>Skills</Text>
-          <View style={styles.skillsContainer}>
-            {skills.map(skill => (
+          <Text style={styles.sectionTitle}>Sắp xếp theo</Text>
+          <View style={styles.orderingContainer}>
+            {orderingOptions.map(option => (
               <Chip
-                key={skill.id}
-                selected={selectedSkills.includes(skill.id)}
-                onPress={() => toggleSkill(skill.id)}
-                style={styles.skillChip}
-                selectedColor="#fff"
-                mode={selectedSkills.includes(skill.id) ? 'flat' : 'outlined'}
+                key={option.value}
+                selected={selectedOrdering === option.value}
+                onPress={() => setSelectedOrdering(option.value)}
+                style={styles.orderingChip}
+                selectedColor={selectedOrdering === option.value ? '#fff' : '#1E88E5'}
+                mode={selectedOrdering === option.value ? 'flat' : 'outlined'}
+                backgroundColor={selectedOrdering === option.value ? '#1E88E5' : 'transparent'}
               >
-                {skill.name}
+                {option.label}
               </Chip>
             ))}
           </View>
@@ -159,14 +198,14 @@ const FilterModal = ({ visible, onDismiss, onApply, onReset, filters, skills }) 
               onPress={handleReset}
               style={styles.resetButton}
             >
-              Reset
+              Đặt lại
             </Button>
             <Button
               mode="contained"
               onPress={handleSubmit(onSubmit)}
               style={styles.applyButton}
             >
-              Apply Filters
+              Áp dụng
             </Button>
           </View>
         </ScrollView>
@@ -202,12 +241,13 @@ const styles = StyleSheet.create({
   halfInput: {
     width: '48%',
   },
-  skillsContainer: {
+  orderingContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 5,
+    gap: 8,
   },
-  skillChip: {
+  orderingChip: {
     margin: 4,
   },
   divider: {
@@ -224,6 +264,7 @@ const styles = StyleSheet.create({
   applyButton: {
     flex: 1,
     marginLeft: 10,
+    backgroundColor: '#1E88E5',
   },
 });
 
