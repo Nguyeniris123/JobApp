@@ -1,8 +1,7 @@
 from rest_framework import permissions
 from rest_framework.permissions import BasePermission
-
-from jobs.models import Application, User
-
+from rest_framework.exceptions import ValidationError
+from jobs.models import Application, User, Company, Application
 
 class OwnerPerms(permissions.IsAuthenticated):
     def has_object_permission(self, request, view, obj):
@@ -49,21 +48,31 @@ class IsCandidate(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == "candidate"
 
-
-class CanReview(permissions.BasePermission):
-    # Chỉ cho phép tạo đánh giá nếu người dùng đã đăng nhập và có một application được chấp nhận giữa họ và người được đánh giá
+class CanCandidateReview(permissions.BasePermission):
+    # Chỉ cho phép tạo đánh giá nếu ứng viên đăng nhập và có một application được chấp nhận giữa họ và nhà tuyển dụng
     def has_permission(self, request, view):
         reviewer = request.user
-        reviewed_user_id = request.data.get('reviewed_user')
+        company_id = request.data.get('company_id')  # Lấy company_id từ dữ liệu gửi lên
 
         if not reviewer.is_authenticated:
             return False
 
-        reviewed_user = User.objects.get(id=reviewed_user_id)
+        if not company_id:
+            raise ValidationError("company_id không được để trống.")
+
+        try:
+            # Lấy công ty từ company_id
+            company = Company.objects.get(id=company_id)
+            # Lấy nhà tuyển dụng từ công ty
+            reviewed_user = company.user  # Công ty chỉ có một nhà tuyển dụng (recruiter)
+        except Company.DoesNotExist:
+            raise ValidationError("Công ty không tồn tại.")
+
+        # Kiểm tra xem có application nào được chấp nhận giữa reviewer và reviewed_user không
         return self.check_application_status(reviewer, reviewed_user)
 
     def check_application_status(self, reviewer, reviewed_user):
-        # Kiểm tra application được chấp nhận giữa reviewer và reviewed_user.
+        # Kiểm tra application được chấp nhận giữa reviewer và reviewed_user
         return Application.objects.filter(
             applicant=reviewer,
             job__recruiter=reviewed_user,
@@ -71,6 +80,35 @@ class CanReview(permissions.BasePermission):
         ).exists() or Application.objects.filter(
             applicant=reviewed_user,
             job__recruiter=reviewer,
+            status='accepted'
+        ).exists()
+
+class CanRecruiterReview(permissions.BasePermission):
+    # Chỉ cho phép nhà tuyển dụng đánh giá ứng viên nếu có một application được chấp nhận giữa họ.
+    def has_permission(self, request, view):
+        reviewer = request.user
+        candidate_id = request.data.get('candidate_id')
+
+        if not reviewer.is_authenticated:
+            return False
+
+        if reviewer.role != "recruiter":
+            return False
+
+        if not candidate_id:
+            raise ValidationError("candidate_id không được để trống.")
+
+        try:
+            reviewed_user = User.objects.get(id=candidate_id, role='candidate')
+        except User.DoesNotExist:
+            raise ValidationError("Ứng viên không tồn tại.")
+
+        return self.check_application_status(reviewer, reviewed_user)
+
+    def check_application_status(self, recruiter, candidate):
+        return Application.objects.filter(
+            applicant=candidate,
+            job__recruiter=recruiter,
             status='accepted'
         ).exists()
 

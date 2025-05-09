@@ -5,6 +5,7 @@ from django.template.response import TemplateResponse
 from django.urls import path
 from django.utils import timezone
 from datetime import timedelta, datetime
+from django.utils.html import mark_safe
 
 class MyAdminSite(admin.AdminSite):
     site_header = 'Jops App'
@@ -75,13 +76,72 @@ class MyAdminSite(admin.AdminSite):
 
         return TemplateResponse(request, 'admin/stats_view.html', context)
 
+class UserAdmin(admin.ModelAdmin):
+    list_display = ['id', 'username', 'first_name', 'last_name', 'email', 'role', 'is_staff', 'is_active', 'date_joined', 'avatar']
+    list_filter = ['role', 'is_staff', 'is_active']
+    search_fields = ['username', 'first_name', 'last_name', 'email']
+    ordering = ['-date_joined']
+    readonly_fields = ['avatar_display']
+
+    def avatar_display(self, obj):
+        if obj.avatar:
+            return mark_safe(f"<img src='{obj.avatar.url}' width='120' />")
+
+
+class CompanyAdmin(admin.ModelAdmin):
+    list_display = ['id', 'name', 'tax_code', 'location', 'is_verified', 'user', 'created_date', 'updated_date']
+    list_filter = ['is_verified']
+    search_fields = ['name', 'tax_code', 'location', 'description', 'user__username', 'user__email']
+    ordering = ['name']
+
+class CompanyImageAdmin(admin.ModelAdmin):
+    list_display = ['id', 'company', 'image', 'created_date', 'updated_date']
+    list_filter = ['company']
+    search_fields = ['company__name']
+    ordering = ['-created_date']
+    readonly_fields = ['image_display']
+
+    def image_display(self, obj):
+        if obj.image:
+            return mark_safe(f"<img src='{obj.image.url}' width='120' />")
+
+class JobPostAdmin(admin.ModelAdmin):
+    list_display = ['id', 'title', 'specialized', 'salary', 'working_hours', 'location', 'recruiter', 'created_date', 'updated_date']
+    list_filter = ['specialized', 'location', 'recruiter']
+    search_fields = ['title', 'description', 'specialized', 'location', 'recruiter__username', 'recruiter__email']
+    ordering = ['-created_date']
+
+class ApplicationAdmin(admin.ModelAdmin):
+    list_display = ['id', 'applicant', 'job', 'cv', 'status', 'created_date', 'updated_date']
+    list_filter = ['status', 'job', 'applicant']
+    search_fields = ['applicant__username', 'applicant__first_name', 'applicant__last_name', 'job__title']
+    ordering = ['-created_date']
+
+class FollowAdmin(admin.ModelAdmin):
+    list_display = ['id', 'follower', 'recruiter', 'created_date', 'updated_date']
+    list_filter = ['follower', 'recruiter']
+    search_fields = ['follower__username', 'recruiter__username']
+    ordering = ['-created_date']
+
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ['id', 'reviewer', 'reviewed_user', 'rating', 'comment', 'created_date', 'updated_date']
+    list_filter = ['rating', 'reviewer', 'reviewed_user']
+    search_fields = ['reviewer__username', 'reviewed_user__username', 'comment']
+    ordering = ['-created_date']
+
+class VerificationDocumentAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'document', 'status', 'created_date', 'updated_date', 'admin_note']
+    list_filter = ['status', 'user']
+    search_fields = ['user__username']
+    ordering = ['-created_date']
+
 admin_site = MyAdminSite(name='admin')
 
-admin_site.register(User)
-admin_site.register(Company)
-admin_site.register(CompanyImage)
-admin_site.register(JobPost)
-admin_site.register(Application)
-admin_site.register(Review)
-admin_site.register(Follow)
+admin_site.register(User, UserAdmin)
+admin_site.register(Company, CompanyAdmin)
+admin_site.register(CompanyImage, CompanyImageAdmin)
+admin_site.register(JobPost, JobPostAdmin)
+admin_site.register(Application, ApplicationAdmin)
+admin_site.register(Review, ReviewAdmin)
+admin_site.register(Follow,FollowAdmin)
 admin_site.register(VerificationDocument)

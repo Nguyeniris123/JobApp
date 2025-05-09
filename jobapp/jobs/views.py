@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from . import perms, paginators
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, \
-    FollowSerializer, CompanySerializer, ReviewSerializer
+    FollowSerializer, CompanySerializer, UpdateAvatarSerializer, RecruiterReviewCandidateSerializer, \
+    CandidateReviewRecruiterSerializer
 from .models import User, JobPost, Application, Follow, Company, Review
 
 
@@ -41,6 +42,16 @@ class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
         if request.user.role != 'recruiter':  # Chặn ứng viên truy cập
             return Response({"detail": "Bạn không có quyền truy cập."}, status=status.HTTP_403_FORBIDDEN)
         return Response(self.serializer_class(request.user).data)
+
+class UpdateAvatarViewSet(viewsets.ViewSet, generics.UpdateAPIView):
+    queryset = User.objects.filter(is_active=True)
+    serializer_class = UpdateAvatarSerializer
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+
+    def get_permissions(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return [perms.OwnerPerms()]
+        return [permissions.AllowAny()]
 
 class CompanyViewSet(viewsets.ViewSet, generics.ListAPIView, generics.UpdateAPIView):
     serializer_class = CompanySerializer
@@ -182,13 +193,13 @@ class FollowViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIVi
         data = CandidateSerializer([follow.follower for follow in followers], many=True).data
         return Response(data, status=status.HTTP_200_OK)
 
-class ReviewViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.DestroyAPIView):
+class CandidateReviewRecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.DestroyAPIView):
     queryset = Review.objects.filter(active=True)
-    serializer_class = ReviewSerializer
+    serializer_class = CandidateReviewRecruiterSerializer
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [perms.CanReview()]
+            return [perms.CanCandidateReview()]
         if self.request.method == 'DELETE':
             return [perms.DeleteReview()]
         # GET request: Bất kỳ ai đã đăng nhập đều có thể xem
@@ -201,6 +212,18 @@ class ReviewViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.DestroyAP
             queryset = Review.objects.filter(reviewed_user=recruiter, reviewer__role='candidate')
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
+
+class RecruiterReviewCandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.DestroyAPIView):
+    queryset = Review.objects.filter(active=True)
+    serializer_class = RecruiterReviewCandidateSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [perms.CanRecruiterReview()]
+        if self.request.method == 'DELETE':
+            return [perms.DeleteReview()]
+        # GET request: Bất kỳ ai đã đăng nhập đều có thể xem
+        return [permissions.IsAuthenticated()]
 
     @action(detail=False, methods=['get'], url_path='candidate/(?P<candidate_id>\d+)/recruiter-reviews')
     def get_reviews_for_candidate(self, request, candidate_id=None):

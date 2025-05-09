@@ -24,7 +24,6 @@ class CandidateSerializer(serializers.ModelSerializer):
         d['avatar'] = instance.avatar.url if instance.avatar else ''
         return d
 
-
 class RecruiterSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(write_only=True, required=True)
     tax_code = serializers.CharField(write_only=True, required=True)
@@ -93,6 +92,18 @@ class RecruiterSerializer(serializers.ModelSerializer):
         # Thêm avatar vào GET
         data['avatar'] = instance.avatar.url if instance.avatar else ''
         return data
+
+class UpdateAvatarSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(required=True)
+
+    class Meta:
+        model = User
+        fields = ['avatar']
+
+    def update(self, instance, validated_data):
+        instance.avatar = validated_data.get('avatar', instance.avatar)
+        instance.save()
+        return instance
 
 class CompanyImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -197,39 +208,75 @@ class FollowSerializer(serializers.ModelSerializer):
 
         return super().create(validated_data)
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'role', 'avatar']
 
-class ReviewSerializer(serializers.ModelSerializer):
+class CandidateReviewRecruiterSerializer(serializers.ModelSerializer):
+    reviewer = UserSerializer(read_only=True)  # Trả về thông tin người đánh giá
+    reviewed_user = UserSerializer(read_only=True)  # Trả về thông tin người được đánh giá (nhà tuyển dụng)
+    company_id = serializers.PrimaryKeyRelatedField(queryset=Company.objects.all(), write_only=True)
 
     class Meta:
         model = Review
-        fields = [
-            'id', 'reviewer', 'reviewed_user', 'rating', 'comment',
-            'created_date'
-        ]
-        read_only_fields = ['reviewer', 'created_date']
+        fields = ['id', 'reviewer', 'reviewed_user', 'rating', 'comment', 'created_date', 'company_id']
+        read_only_fields = ['reviewer', 'reviewed_user', 'created_date']
 
     def validate(self, attrs):
-        request = self.context['request']
-        reviewer = request.user
-        reviewed = attrs['reviewed_user']
+        request = self.context["request"]
+        company = attrs["company_id"]  # Nhận company_id từ dữ liệu gửi lên
 
-        if reviewer == reviewed:
-            raise serializers.ValidationError("Bạn không thể tự đánh giá chính mình.")
+        # Lấy nhà tuyển dụng (recruiter) từ công ty
+        recruiter = company.user  # Mỗi công ty chỉ có một nhà tuyển dụng (user)
 
-        # Ứng viên chỉ được đánh giá recruiter
-        if reviewer.role == 'candidate' and reviewed.role != 'recruiter':
-            raise serializers.ValidationError("Ứng viên chỉ được đánh giá nhà tuyển dụng.")
+        # Kiểm tra nếu người đánh giá (reviewer) đang cố gắng đánh giá chính công ty của mình
+        if recruiter == request.user:
+            raise serializers.ValidationError("Bạn không thể tự đánh giá công ty của mình.")
 
-        # Recruiter chỉ được đánh giá candidate
-        if reviewer.role == 'recruiter' and reviewed.role != 'candidate':
-            raise serializers.ValidationError("Nhà tuyển dụng chỉ được đánh giá ứng viên.")
+        # Kiểm tra rằng người đánh giá phải là ứng viên (candidate)
+        if request.user.role != "candidate":
+            raise serializers.ValidationError("Chỉ ứng viên mới có thể đánh giá nhà tuyển dụng.")
 
-        # Không cho các role khác đánh giá
-        if reviewer.role not in ['candidate', 'recruiter']:
-            raise serializers.ValidationError("Bạn không có quyền đánh giá người dùng khác.")
-
+        # Gán nhà tuyển dụng là người được đánh giá
+        attrs["reviewed_user"] = recruiter
         return attrs
 
     def create(self, validated_data):
-        validated_data['reviewer'] = self.context['request'].user
+        # Gán người đánh giá từ request.user
+        validated_data["reviewer"] = self.context["request"].user
+        validated_data.pop("company_id")  # Không phải trường trong model Review
         return super().create(validated_data)
+
+class RecruiterReviewCandidateSerializer(serializers.ModelSerializer):
+    reviewer = UserSerializer(read_only=True)
+    reviewed_user = UserSerializer(read_only=True)
+    candidate_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(role='candidate'), write_only=True)
+
+    class Meta:
+        model = Review
+        fields = ['id', 'reviewer', 'reviewed_user', 'rating', 'comment', 'created_date', 'candidate_id']
+        read_only_fields = ['reviewer', 'reviewed_user', 'created_date']
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        candidate = attrs["candidate_id"]
+
+        # Đảm bảo người dùng hiện tại là nhà tuyển dụng
+        if request.user.role != "recruiter":
+            raise serializers.ValidationError("Chỉ nhà tuyển dụng mới có thể đánh giá ứng viên.")
+
+        # Không được tự đánh giá chính mình
+        if candidate == request.user:
+            raise serializers.ValidationError("Bạn không thể tự đánh giá chính mình.")
+
+        # Gán người được đánh giá
+        attrs["reviewed_user"] = candidate
+        return attrs
+
+    def create(self, validated_data):
+        validated_data["reviewer"] = self.context["request"].user
+        validated_data.pop("candidate_id")
+        return super().create(validated_data)
+
+
