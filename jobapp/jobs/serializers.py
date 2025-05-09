@@ -6,7 +6,7 @@ from .models import User, Company, CompanyImage, JobPost, Application, Follow, R
 class CandidateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'username', 'password', 'email', 'avatar']
+        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar']
         extra_kwargs = {
             'password': {'write_only': True},
             'avatar': {'required': True}
@@ -36,7 +36,7 @@ class RecruiterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'first_name', 'last_name', 'username', 'password', 'email', 'avatar',
+            'id', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar',
             'company_name', 'tax_code', 'description', 'location', 'images',
             'company'
         ]
