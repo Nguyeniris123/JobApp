@@ -1,4 +1,5 @@
-export const API_URL = 'http://192.168.1.6:8000';
+export const API_URL = 'http://192.168.1.5:8000';
+// export const API_URL = 'http://127.0.0.0:8000'
 // export const API_URL = 'http://192.168.88.130:8000';
 // export const API_URL = 'http://10.17.51.133:8000';
 

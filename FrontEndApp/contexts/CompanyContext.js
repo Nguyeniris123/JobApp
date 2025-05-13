@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import React, { createContext, useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { API_ENDPOINTS } from '../apiConfig';
 
@@ -351,10 +351,9 @@ export const CompanyProvider = ({ children }) => {
                 throw new Error('No token found');
             }
 
-            // Tạo request body đúng định dạng theo API với cả trường recruiter
+            // Cập nhật theo yêu cầu mới - Chỉ gửi company_id
             const requestBody = {
-                company: 7, // ID công ty
-                recruiter: 5  // Thêm trường recruiter theo yêu cầu của API
+                company_id: companyId
             };
 
             console.log('Sending follow request to:', API_ENDPOINTS.FOLLOW_CREATE);

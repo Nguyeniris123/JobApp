@@ -22,6 +22,11 @@ const Tab = createBottomTabNavigator()
 const TopTab = createMaterialTopTabNavigator()
 const Stack = createStackNavigator()
 
+// Define a common navigationRef that can be used for direct navigation 
+// from anywhere in the app, if needed in the future
+import { createNavigationContainerRef } from '@react-navigation/native'
+export const navigationRef = createNavigationContainerRef()
+
 // Custom TabBar Label with Icon
 const TabBarLabel = ({ label, focused, color, icon }) => (
     <View style={{ 
@@ -122,6 +127,7 @@ const FavoriteStack = () => {
             }}
         >
             <Stack.Screen name="ApplicationStatus" component={ApplicationStatusScreen} />
+            <Stack.Screen name="Chat" component={ChatScreen} />
         </Stack.Navigator>
     )
 }

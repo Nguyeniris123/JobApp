@@ -1,12 +1,15 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useFocusEffect } from "@react-navigation/native"
-import React, { useCallback, useContext } from "react"
+import { useCallback, useContext, useState } from "react"
 import { FlatList, StyleSheet, View } from "react-native"
 import { ActivityIndicator, Card, Chip, Divider, Text } from "react-native-paper"
 import { ApplicationContext } from "../../contexts/ApplicationContext"
+import { JobContext } from "../../contexts/JobContext"
 
 const ApplicationStatusScreen = ({ navigation }) => {
     const { applications, loading, error, fetchApplications } = useContext(ApplicationContext)
+    const { fetchJobById } = useContext(JobContext)
+    const [loadingChat, setLoadingChat] = useState(false)
 
     // Sử dụng useFocusEffect để tải lại dữ liệu khi màn hình được focus
     useFocusEffect(
@@ -57,8 +60,59 @@ const ApplicationStatusScreen = ({ navigation }) => {
         })
     }
 
+    const handleNavigateToChat = async (item) => {
+        if (item.status !== "accepted") return;
+        
+        setLoadingChat(true);
+        try {
+            // Lấy thông tin chi tiết về công việc từ JobContext nếu item.job có giá trị
+            const jobId = item.job; 
+            let jobDetails = item.jobDetail;
+            
+            // Tìm thông tin về nhà tuyển dụng
+            if (jobId && !jobDetails?.recruiter?.id) {
+                console.log("Fetching job details for jobId:", jobId);
+                jobDetails = await fetchJobById(jobId);
+                console.log("Received job details:", jobDetails);
+            }
+            
+            // Log để debug
+            console.log("Job details to use for chat:", {
+                job: jobId,
+                recruiter: jobDetails?.recruiter,
+                company: jobDetails?.company?.name || item.company
+            });
+            
+            // Tạo object navigation params từ dữ liệu có sẵn hoặc jobDetails
+            const chatParams = {
+                recruiterId: jobDetails?.recruiter?.id,
+                recruiterName: jobDetails?.recruiter?.name || "Nhà tuyển dụng",
+                recruiterAvatar: jobDetails?.recruiter?.avatar || item.companyLogo,
+                jobId: jobId,
+                jobTitle: jobDetails?.title || item.jobTitle,
+                company: jobDetails?.company?.name || item.company
+            };
+            
+            console.log("Navigating to chat with params:", chatParams);
+            navigation.navigate("Chat", chatParams);
+        } catch (error) {
+            console.error("Lỗi khi chuyển đến màn hình Chat:", error);
+            // Hiển thị thông báo lỗi cho người dùng
+            alert("Không thể kết nối đến nhà tuyển dụng. Vui lòng thử lại sau.");
+        } finally {
+            setLoadingChat(false);
+        }
+    };
+
     const renderApplicationItem = ({ item }) => (
-        <Card style={styles.card} onPress={() => item.status === "accepted" && navigation.navigate("Chat")}>
+        <Card 
+            style={styles.card} 
+            onPress={() => {
+                if (item.status === "accepted") {
+                    handleNavigateToChat(item);
+                }
+            }}
+        >
             <Card.Content>
                 <View style={styles.cardHeader}>
                     <View style={styles.companyInfo}>
@@ -100,7 +154,15 @@ const ApplicationStatusScreen = ({ navigation }) => {
 
                 {item.status === "accepted" && (
                     <View style={styles.actionContainer}>
-                        <Text style={styles.actionText}>Nhấn để trò chuyện với nhà tuyển dụng</Text>
+                        <Chip 
+                            icon={loadingChat ? "loading" : "chat"}
+                            mode="outlined" 
+                            style={styles.chatChip}
+                            textStyle={styles.chatChipText}
+                            disabled={loadingChat}
+                        >
+                            {loadingChat ? "Đang kết nối..." : "Trò chuyện với nhà tuyển dụng"}
+                        </Chip>
                     </View>
                 )}
             </Card.Content>
@@ -325,11 +387,14 @@ const styles = StyleSheet.create({
     actionContainer: {
         marginTop: 12,
         alignItems: "center",
+        justifyContent: "center",
     },
-    actionText: {
-        fontSize: 14,
+    chatChip: {
+        backgroundColor: "#E3F2FD",
+        borderColor: "#1E88E5",
+    },
+    chatChipText: {
         color: "#1E88E5",
-        fontWeight: "bold",
     },
 })
 
