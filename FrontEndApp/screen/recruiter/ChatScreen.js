@@ -1,54 +1,25 @@
-import { useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native"
 import { ActivityIndicator, Appbar, Avatar, Text, TextInput } from "react-native-paper"
 import ChatItem from '../../components/business/ChatItem'
-
-// Dữ liệu mẫu cho tin nhắn
-const mockMessages = [
-    {
-        id: "1",
-        text: "Xin chào, tôi rất quan tâm đến vị trí Nhân viên bán hàng bán thời gian của quý công ty.",
-        sender: "candidate",
-        timestamp: new Date(2023, 3, 21, 10, 30),
-    },
-    {
-        id: "2",
-        text: "Chào bạn, cảm ơn bạn đã quan tâm đến vị trí của chúng tôi. Bạn có thể cho tôi biết thêm về kinh nghiệm của bạn không?",
-        sender: "recruiter",
-        timestamp: new Date(2023, 3, 21, 10, 35),
-    },
-    {
-        id: "3",
-        text: "Tôi đã có 1 năm kinh nghiệm làm việc tại cửa hàng thời trang và 6 tháng tại siêu thị. Tôi có kỹ năng giao tiếp tốt và khả năng làm việc nhóm hiệu quả.",
-        sender: "candidate",
-        timestamp: new Date(2023, 3, 21, 10, 40),
-    },
-    {
-        id: "4",
-        text: "Nghe có vẻ phù hợp với vị trí của chúng tôi. Bạn có thể làm việc vào cuối tuần không?",
-        sender: "recruiter",
-        timestamp: new Date(2023, 3, 21, 10, 45),
-    },
-    {
-        id: "5",
-        text: "Vâng, tôi có thể làm việc vào cuối tuần. Tôi có thể làm việc từ thứ 6 đến chủ nhật.",
-        sender: "candidate",
-        timestamp: new Date(2023, 3, 21, 10, 50),
-    },
-]
+import { AuthContext } from "../../contexts/AuthContext"
+import ChatService from "../../services/ChatService"
 
 const ChatScreen = ({ navigation, route }) => {
+    const { user } = useContext(AuthContext)
     const {
         candidateId,
-        candidateName = "Nguyễn Văn A",
+        candidateName = "Ứng viên",
+        jobId,
         jobTitle = "Nhân viên bán hàng bán thời gian",
     } = route.params || {}
     const [messages, setMessages] = useState([])
     const [inputMessage, setInputMessage] = useState("")
     const [loading, setLoading] = useState(true)
     const [isTyping, setIsTyping] = useState(false)
+    const [roomId, setRoomId] = useState(null)
     const flatListRef = useRef(null)
-    const { t } = useTranslation()
+    const unsubscribeRef = useRef(null)
 
     // Thông tin ứng viên
     const candidateInfo = {
@@ -57,27 +28,66 @@ const ChatScreen = ({ navigation, route }) => {
         status: "online",
     }
 
+    const [error, setError] = useState(null);
+    
     useEffect(() => {
-        // Giả lập API call
-        const fetchMessages = async () => {
+        let unsubscribe = null;
+
+        const setupChat = async () => {
             try {
-                await new Promise((resolve) => setTimeout(resolve, 1000))
-                setMessages(mockMessages)
+                setError(null);
+                
+                if (!user || !user.id || !candidateId) {
+                    console.error("Missing user ID or candidate ID");
+                    setLoading(false);
+                    setError("Không thể tạo kết nối - Thiếu thông tin người dùng");
+                    return;
+                }
+
+                // Create or get chat room
+                const chatRoomId = await ChatService.createOrGetChatRoom(
+                    user.id, // recruiter ID
+                    candidateId,
+                    jobId
+                ).catch(err => {
+                    console.error("Error creating chat room:", err);
+                    setError("Không thể kết nối đến dịch vụ chat - Vui lòng thử lại sau");
+                    throw err;
+                });
+                
+                setRoomId(chatRoomId);
+
+                // Subscribe to messages
+                unsubscribe = ChatService.subscribeToMessages(chatRoomId, (newMessages) => {
+                    // Convert Firebase timestamp to Date objects
+                    const formattedMessages = newMessages.map(msg => ({
+                        ...msg,
+                        timestamp: msg.timestamp ? msg.timestamp.toDate() : new Date()
+                    }));
+                    
+                    setMessages(formattedMessages);
+                    setLoading(false);
+                });
+
+                unsubscribeRef.current = unsubscribe;
+
+                // Mark all messages as read
+                await ChatService.markMessagesAsRead(chatRoomId, user.id);
             } catch (error) {
-                console.log("Error fetching messages:", error)
-            } finally {
-                setLoading(false)
+                console.error("Error setting up chat:", error);
+                setLoading(false);
             }
-        }
+        };
 
-        fetchMessages()
-
-        // Theo dõi sự kiện xem màn hình chat
-        analyticsService.trackEvent("view_chat", {
-            candidate_id: candidateId,
-            candidate_name: candidateName,
-        })
-    }, [candidateId, candidateName])
+        setupChat();
+        
+        // Clean up subscription on unmount
+        return () => {
+            if (unsubscribeRef.current) {
+                unsubscribeRef.current();
+            }
+        };
+    }, [user, candidateId, jobId])
 
     useEffect(() => {
         // Cuộn xuống dưới khi có tin nhắn mới
@@ -86,39 +96,34 @@ const ChatScreen = ({ navigation, route }) => {
         }
     }, [messages])
 
-    const handleSend = () => {
-        if (inputMessage.trim() === "") return
+    const handleSend = async () => {
+        if (inputMessage.trim() === "" || !roomId || !user || !user.id) return;
 
-        const newMessage = {
-            id: Date.now().toString(),
-            text: inputMessage.trim(),
-            sender: "recruiter",
-            timestamp: new Date(),
+        try {
+            // Clear input immediately for better UX
+            const messageToSend = inputMessage.trim();
+            setInputMessage("");
+            
+            // Send message to Firebase
+            await ChatService.sendMessage(
+                roomId,
+                user.id,
+                messageToSend,
+                'recruiter'
+            );
+            
+            // No need to update messages state manually as the subscription will handle it
+            
+            // For analytics tracking (commented out for now as analyticsService is not available)
+            // if we had an analytics service, we could track the event like:
+            // analyticsService.trackEvent("send_message", {
+            //     candidate_id: candidateId,
+            //     message_length: messageToSend.length,
+            // });
+        } catch (error) {
+            console.error("Error sending message:", error);
+            // Handle error (maybe show a snackbar)
         }
-
-        setMessages([...messages, newMessage])
-        setInputMessage("")
-
-        // Theo dõi sự kiện gửi tin nhắn
-        analyticsService.trackEvent("send_message", {
-            candidate_id: candidateId,
-            message_length: inputMessage.trim().length,
-        })
-
-        // Giả lập ứng viên đang nhập
-        setIsTyping(true)
-        setTimeout(() => {
-            setIsTyping(false)
-
-            // Giả lập phản hồi từ ứng viên sau một khoảng thời gian
-            const candidateResponse = {
-                id: (Date.now() + 1).toString(),
-                text: "Cảm ơn bạn đã phản hồi. Tôi rất mong được làm việc tại công ty của bạn.",
-                sender: "candidate",
-                timestamp: new Date(),
-            }
-            setMessages((prevMessages) => [...prevMessages, candidateResponse])
-        }, 3000)
     }
 
     const formatTime = (date) => {
@@ -208,6 +213,11 @@ const ChatScreen = ({ navigation, route }) => {
                 <Text style={styles.jobInfoText}>
                     Trò chuyện về vị trí: <Text style={styles.jobTitle}>{jobTitle}</Text>
                 </Text>
+                {error && (
+                    <View style={styles.errorContainer}>
+                        <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                )}
             </View>
 
             {loading ? (
@@ -382,6 +392,17 @@ const styles = StyleSheet.create({
     },
     input: {
         backgroundColor: "#FFFFFF",
+    },
+    errorContainer: {
+        backgroundColor: "#FFEBEE",
+        padding: 8,
+        borderRadius: 4,
+        marginTop: 8,
+        marginHorizontal: 16,
+    },
+    errorText: {
+        color: "#D32F2F",
+        fontSize: 14,
     },
 })
 

@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useContext, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Avatar, Button, Card, Chip, FAB, Paragraph, Text, Title } from 'react-native-paper';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useReview } from '../../hooks/useReview';

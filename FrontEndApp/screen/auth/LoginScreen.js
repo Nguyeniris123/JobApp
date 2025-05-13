@@ -2,7 +2,7 @@ import { CLIENT_ID, CLIENT_SECRET } from '@env';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
 import axios from 'axios';
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Image, StyleSheet, View } from 'react-native';
 import { Text, Title, useTheme } from 'react-native-paper';
@@ -147,13 +147,44 @@ const LoginScreen = ({ navigation }) => {
 
                     {/* Chuyển sang trang Đăng ký */}
                     <View style={styles.registerContainer}>
-                        <Text style={styles.registerText}>Chưa có tài khoản?</Text>
+                        
+                        <Text style={styles.registerText}>Chưa có tài khoản?</Text>    
                         <AppButton
                             mode="text"
                             onPress={() => navigation.navigate('Register')}
                             style={styles.registerButton}
                         >
                             Đăng ký
+                        </AppButton>
+                    </View>                    <View style={styles.testButtonContainer}>
+                        <AppButton
+                            mode="outlined"
+                            onPress={() => navigation.navigate('SimpleTestChat')}
+                            icon="firebase"
+                            style={styles.testButton}
+                            labelStyle={{fontSize: 12}}
+                        >
+                            Kiểm tra kết nối Firebase
+                        </AppButton>
+                        
+                        <AppButton
+                            mode="outlined"
+                            onPress={() => navigation.navigate('SimpleTestChatEnhanced')}
+                            icon="chat-processing"
+                            style={[styles.testButton, {marginTop: 10}]}
+                            labelStyle={{fontSize: 12}}
+                        >
+                            Xem tất cả cuộc trò chuyện
+                        </AppButton>
+                        
+                        <AppButton
+                            mode="outlined"
+                            onPress={() => navigation.navigate('UserToChat')}
+                            icon="account-multiple"
+                            style={[styles.testButton, {marginTop: 10}]}
+                            labelStyle={{fontSize: 12}}
+                        >
+                            Chat với người dùng
                         </AppButton>
                     </View>
                 </View>
@@ -223,12 +254,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    registerText: {
+    },    registerText: {
         color: '#666',
     },
     registerButton: {
         marginLeft: 5,
+    },
+    testButtonContainer: {
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    testButton: {
+        borderColor: '#FF5722',
     },
 });
 

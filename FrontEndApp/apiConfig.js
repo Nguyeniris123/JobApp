@@ -39,8 +39,9 @@ export const API_ENDPOINTS = {
   APPLICATIONS_ACCEPT: (id) => `${API_URL}/applications/${id}/accept/`,
   APPLICATIONS_REJECT: (id) => `${API_URL}/applications/${id}/reject/`,
 
-  // Profile
-  PROFILE: `${API_URL}/profile/`,
+  // avatar
+  AVATAR_PUT: (id) => `${API_URL}/avatars/${id}/`,
+  AVATAR_PATCH: (id) => `${API_URL}/avatars/${id}/`,
 
   // Companys
   COMPANIES_LIST: `${API_URL}/companys/`,
@@ -55,10 +56,13 @@ export const API_ENDPOINTS = {
   FOLLOW_READ: (id) => `${API_URL}/follow/${id}/`,
   FOLLOW_DELETE: (id) => `${API_URL}/follow/${id}/`,
 
-  //Review
-  REVIEWS_CREATE: `${API_URL}/reviews/`,
-  REVIEWS_LIST: `${API_URL}/reviews/`,
-  REVIEWS_LIST_FOR_RECRUITER: (id) => `${API_URL}/reviews/recruiter/${id}/candidate-reviews/`,
-  REVIEWS_LIST_FOR_CANDIDATE: (id) => `${API_URL}/reviews/candidate/${id}/recruiter-reviews/`,
-  REVIEWS_DELETE: (id) => `${API_URL}/reviews/${id}/`,
+  //Review_candidate 
+  REVIEWS_CANDIDATE_CREATE: `${API_URL}/review_candidates/`,
+  REVIEWS_LIST_FOR_CANDIDATE: (id) => `${API_URL}/review_candidates/candidate/${id}/recruiter-reviews/`,
+  REVIEWS_DELETE_FOR_CANDIDATE: (id) => `${API_URL}/reviews_candidates/${id}/`,
+
+  //Review_recruiter 
+  REVIEWS_RECRUITER_CREATE: `${API_URL}/review_recruiters/`,
+  REVIEWS_LIST_FOR_RECRUITER: (id) => `${API_URL}/review_recruiters/recruiter/${id}/candidate-reviews/`,
+  REVIEWS_DELETE_FOR_RECRUITER: (id) => `${API_URL}/review_recruiters/${id}/`,
 };

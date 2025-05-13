@@ -8,8 +8,7 @@ import { Button, Card, Chip, Divider, HelperText, Snackbar, Text, TextInput } fr
 import { AuthContext } from "../../contexts/AuthContext"
 
 const CompanyProfileScreen = ({ navigation }) => {
-    const { state } = useContext(AuthContext)
-    const { user } = state
+    const { user } = useContext(AuthContext)
     const { t } = useTranslation()
 
     // Default empty company data
@@ -374,7 +373,7 @@ const CompanyProfileScreen = ({ navigation }) => {
                     <Button
                         mode="outlined"
                         icon="comment-multiple-outline"
-                        onPress={() => navigation.navigate("Review")}
+                        onPress={() => navigation.navigate("MyReviews")}
                         style={styles.viewReviewsButton}
                     >
                         Xem đánh giá

@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useContext, useRef, useState } from 'react';
+import { useCallback, useContext, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { CompanyContext } from '../../contexts/CompanyContext';
 
@@ -227,11 +228,6 @@ const FollowingScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Công ty đang theo dõi</Text>
-                <Text style={styles.headerCount}>{followedCompanies?.length || 0} công ty</Text>
-            </View>
-
             {renderDebugInfo()}
 
             {error && (
@@ -268,10 +264,17 @@ const FollowingScreen = ({ navigation }) => {
                         </Text>
                         <TouchableOpacity
                             style={styles.exploreButton}
-                            onPress={() => navigation.navigate('Home')}
+                            onPress={() => navigation.navigate('HomeTab')}
                         >
                             <Text style={styles.exploreButtonText}>Khám phá công việc</Text>
                         </TouchableOpacity>
+                        <Button
+                            mode="outlined"
+                            style={styles.browseJobsButton}
+                            onPress={() => navigation.navigate('HomeTab')}
+                        >
+                            Tìm công việc
+                        </Button>
                     </View>
                 }
             />
@@ -282,16 +285,7 @@ const FollowingScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
-    },
-    header: {
-        backgroundColor: '#fff',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+        backgroundColor: '#FFFFFF',
     },
     headerTitle: {
         fontSize: 20,
@@ -408,8 +402,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 40,
-        marginTop: 60,
+        padding: 24,
     },
     emptyText: {
         fontSize: 18,
@@ -433,6 +426,10 @@ const styles = StyleSheet.create({
     exploreButtonText: {
         color: 'white',
         fontWeight: 'bold',
+    },
+    browseJobsButton: {
+        marginTop: 16,
+        borderColor: '#2196F3',
     },
     errorContainer: {
         backgroundColor: '#FFEBEE',

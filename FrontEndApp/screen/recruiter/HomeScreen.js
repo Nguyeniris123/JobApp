@@ -3,9 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useContext, useEffect, useMemo, useState } from "react"
 import { Alert, ScrollView, TouchableOpacity, View } from "react-native"
 import { ActivityIndicator, Avatar, Button, Card, Chip, Dialog, FAB, Portal, Searchbar, Text } from "react-native-paper"
+import { AuthContext } from "../../contexts/AuthContext"
 import { JobContext } from "../../contexts/JobContext"
 
 const HomeScreen = ({ navigation }) => {
+    const { user } = useContext(AuthContext)
     const [jobs, setJobs] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
@@ -126,10 +128,13 @@ const HomeScreen = ({ navigation }) => {
                 <View style={styles.headerTop}>
                     <View>
                         <Text style={styles.greeting}>Xin chào!</Text>
-                        <Text style={styles.companyName}>Công ty ABC</Text>
+                        <Text style={styles.companyName}>{user?.company?.name || "Công ty của bạn"}</Text>
                     </View>
                     <TouchableOpacity onPress={() => navigation.navigate("CompanyProfile")}>
-                        <Avatar.Image source={{ uri: "https://via.placeholder.com/150" }} size={50} />
+                        <Avatar.Image 
+                            source={{ uri: user?.avatar || "https://via.placeholder.com/150" }} 
+                            size={50} 
+                        />
                     </TouchableOpacity>
                 </View>
                 <Searchbar
@@ -237,7 +242,7 @@ const HomeScreen = ({ navigation }) => {
                                     <View style={styles.jobActions}>
                                         <Button
                                             mode="contained"
-                                            onPress={() => navigation.navigate("EditJob", { jobId: job.id })}
+                                            onPress={() => navigation.navigate("PostJob", { jobId: job.id })}
                                             style={[styles.actionButton, styles.editButton]}
                                         >
                                             Chỉnh sửa

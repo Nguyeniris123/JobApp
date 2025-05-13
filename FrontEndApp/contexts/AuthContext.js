@@ -159,6 +159,45 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Đổi avatar
+    const changeAvatar = async (avatar) => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const formData = new FormData();
+            formData.append('avatar', {
+                uri: avatar,
+                type: 'image/jpeg',
+                name: 'avatar.jpg',
+            });
+
+            // Lấy user ID từ current user
+            const userId = user?.id;
+            if (!userId) {
+                throw new Error('Không thể xác định ID người dùng');
+            }
+
+            // Sử dụng endpoint đã sửa
+            const response = await axios.patch(API_ENDPOINTS.AVATAR_PATCH(userId), formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+
+            // Cập nhật thông tin user sau khi thay đổi avatar
+            const updatedUser = {...user, avatar: response.data.avatar};
+            setUser(updatedUser);
+            return updatedUser.avatar;
+        } catch (error) {
+            console.error('Lỗi khi đổi avatar:', error);
+            setError(error.response?.data?.detail || 'Đổi avatar thất bại!');
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Đăng ký
     // const register = async (userData) => {
@@ -204,6 +243,7 @@ export const AuthProvider = ({ children }) => {
                 role,
                 // register,
                 logout,
+                changeAvatar,
             }}
         >
             {children}

@@ -14,7 +14,11 @@ export const ReviewContext = createContext({
     addReview: () => {},
     deleteReview: () => {},
     getReviewsForJob: () => {},
-    getReviewsForApplication: () => {}
+    getReviewsForApplication: () => {},
+    createJobReview: () => {},
+    createApplicationReview: () => {},
+    updateReview: () => {},
+    formatReviewData: () => {}
 });
 
 export const ReviewProvider = ({ children }) => {
@@ -114,18 +118,25 @@ export const ReviewProvider = ({ children }) => {
                 return { success: false, message: 'Không có token xác thực' };
             }
 
-            // Cập nhật để phù hợp định dạng API mới
+            // Sử dụng endpoint phù hợp dựa trên loại đánh giá
+            let endpoint;
+            if (role === 'recruiter') {
+                endpoint = API_ENDPOINTS.REVIEWS_CANDIDATE_CREATE;
+            } else {
+                endpoint = API_ENDPOINTS.REVIEWS_RECRUITER_CREATE;
+            }
+
+            
             const apiRequestData = {
-                reviewed_user: reviewData.reviewed_user || reviewData.application || reviewData.job,
+                company_id: reviewData.company_id,
                 rating: reviewData.rating,
-                comment: reviewData.comment,
-                // Các trường bổ sung nếu cần
-                strengths: reviewData.strengths,
-                weaknesses: reviewData.weaknesses
+                comment: reviewData.comment
             };
 
+            console.log('Đang gửi dữ liệu đánh giá:', apiRequestData);
+
             const response = await axios.post(
-                API_ENDPOINTS.REVIEWS_CREATE,
+                endpoint,
                 apiRequestData,
                 {
                     headers: {
@@ -134,6 +145,8 @@ export const ReviewProvider = ({ children }) => {
                     }
                 }
             );
+
+            console.log('Phản hồi từ API:', response.data);
 
             // Tạo đánh giá với thông tin bổ sung từ người dùng hiện tại
             const newReview = {
@@ -144,14 +157,15 @@ export const ReviewProvider = ({ children }) => {
 
             // Cập nhật danh sách đánh giá tương ứng
             if (role === 'recruiter') {
-                setRecruiterReviews(prev => [newReview, ...prev]);
-            } else {
                 setCandidateReviews(prev => [newReview, ...prev]);
+            } else {
+                setRecruiterReviews(prev => [newReview, ...prev]);
             }
 
             return { success: true, data: newReview };
         } catch (error) {
             console.error('Lỗi khi thêm đánh giá:', error);
+            console.error('Chi tiết lỗi:', error.response?.data);
             const errorMsg = error.response?.data?.detail || 'Không thể thêm đánh giá';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -172,8 +186,16 @@ export const ReviewProvider = ({ children }) => {
                 return { success: false, message: 'Không có token xác thực' };
             }
 
+            // Sử dụng endpoint phù hợp dựa trên loại đánh giá
+            let endpoint;
+            if (role === 'recruiter') {
+                endpoint = API_ENDPOINTS.REVIEWS_DELETE_FOR_CANDIDATE(reviewId);
+            } else {
+                endpoint = API_ENDPOINTS.REVIEWS_DELETE_FOR_RECRUITER(reviewId);
+            }
+
             await axios.delete(
-                API_ENDPOINTS.REVIEWS_DELETE(reviewId),
+                endpoint,
                 {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`
@@ -223,6 +245,80 @@ export const ReviewProvider = ({ children }) => {
         }
     }, [user, role]);
 
+    // Các hàm từ useReview.js - chuyển vào ReviewContext
+
+    // Tạo review cho công việc (candidate đánh giá công việc)
+    const createJobReview = async (company_id, rating, comment) => {
+        if (role !== 'candidate') {
+            return { success: false, message: 'Chỉ ứng viên mới có thể đánh giá công việc' };
+        }
+
+        try {
+            return await addReview({
+                company_id,
+                rating,
+                comment
+            });
+        } catch (error) {
+            console.error('Lỗi khi tạo đánh giá cho công việc:', error);
+            return { success: false, message: error.message || 'Không thể tạo đánh giá' };
+        }
+    };
+
+    // Tạo review cho ứng viên (recruiter đánh giá ứng viên)
+    const createApplicationReview = async (applicationId, rating, comment) => {
+        if (role !== 'recruiter') {
+            return { success: false, message: 'Chỉ nhà tuyển dụng mới có thể đánh giá ứng viên' };
+        }
+
+        try {
+            return await addReview({
+                reviewed_user: applicationId, // Sử dụng ID của application làm reviewed_user theo định dạng API mới
+                application: applicationId,
+                rating,
+                comment
+            });
+        } catch (error) {
+            console.error('Lỗi khi tạo đánh giá cho ứng viên:', error);
+            return { success: false, message: error.message || 'Không thể tạo đánh giá' };
+        }
+    };
+
+    // Cập nhật review hiện có
+    const updateReview = async (reviewId, updatedData) => {
+        try {
+            // API hiện tại có thể chưa hỗ trợ cập nhật
+            // Giải pháp tạm thời: xóa review cũ và tạo mới
+            await deleteReview(reviewId);
+            return await addReview(updatedData);
+        } catch (error) {
+            console.error('Lỗi khi cập nhật đánh giá:', error);
+            return { success: false, message: error.message || 'Không thể cập nhật đánh giá' };
+        }
+    };
+
+    // Thêm các tiện ích hỗ trợ hiển thị
+    const formatReviewData = (review) => {
+        if (!review) return null;
+
+        return {
+            ...review,
+            // Thêm tên reviewer nếu không có
+            reviewer_name: review.reviewer_name || user?.username || 'Người dùng ẩn danh',
+            // Thêm các trường khác cần thiết cho hiển thị
+            date: new Date(review.created_date || review.created_at || new Date()).toLocaleDateString('vi-VN'),
+        };
+    };
+
+    // Export useReview function from the context
+    const useReview = () => {
+        const context = useContext(ReviewContext);
+        if (context === undefined) {
+            throw new Error('useReview phải được sử dụng trong ReviewProvider');
+        }
+        return context;
+    };
+
     return (
         <ReviewContext.Provider
             value={{
@@ -235,10 +331,24 @@ export const ReviewProvider = ({ children }) => {
                 addReview,
                 deleteReview,
                 getReviewsForJob,
-                getReviewsForApplication
+                getReviewsForApplication,
+                createJobReview,
+                createApplicationReview,
+                updateReview,
+                formatReviewData,
+                useReview
             }}
         >
             {children}
         </ReviewContext.Provider>
     );
+};
+
+// Export useReview hook directly from ReviewContext
+export const useReview = () => {
+    const context = useContext(ReviewContext);
+    if (context === undefined) {
+        throw new Error('useReview phải được sử dụng trong ReviewProvider');
+    }
+    return context;
 };

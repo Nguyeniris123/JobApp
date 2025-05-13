@@ -288,11 +288,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     backgroundColor: '#1E88E5', // Use a solid color instead of gradient
-    zIndex: 1, // Added to ensure proper layer stacking
-  },
-  headerContent: {
+    zIndex: 1, // Added to ensure proper layer stacking  },  headerContent: {
     paddingBottom: 30, // Increased for more space
     minHeight: 110, // Ensure minimum height for content
+  },
+  headerDebugButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 82, 82, 0.8)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginTop: 5,
+  },
+  headerDebugText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 12,
+    marginLeft: 4,
   },
   greeting: {
     fontSize: 30, // Slightly reduced to ensure it fits
@@ -505,17 +519,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 32,
     backgroundColor: '#F5F7FA',
-  },
-  emptyText: {
+  },  emptyText: {
     fontSize: 18,
     color: '#424242',
     textAlign: 'center',
     marginTop: 16,
     lineHeight: 26,
-  },
-  jobList: {
-    paddingTop: 10,
-    paddingBottom: 20,
   },
 });
 

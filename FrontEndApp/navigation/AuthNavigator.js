@@ -13,6 +13,10 @@ import HomeScreen from "../screen/candidate/HomeScreen";
 import NotificationScreen from "../screen/candidate/NotificationScreen";
 import OnboardingScreen from "../screen/common/OnboardingScreen";
 import SettingScreen from "../screen/common/SettingScreen";
+import SimpleTestChatRoomScreen from "../screen/common/SimpleTestChatRoomScreen";
+import SimpleTestChatScreen from "../screen/common/SimpleTestChatScreen";
+import SimpleTestChatScreenEnhanced from "../screen/common/SimpleTestChatScreenEnhanced";
+import UserToChatScreen from "../screen/common/UserToChatScreen";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -85,6 +89,10 @@ const AuthNavigator = () => {
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen name="SimpleTestChat" component={SimpleTestChatScreen} />
+            <Stack.Screen name="SimpleTestChatEnhanced" component={SimpleTestChatScreenEnhanced} />
+            <Stack.Screen name="UserToChat" component={UserToChatScreen} />
+            <Stack.Screen name="SimpleTestChatRoom" component={SimpleTestChatRoomScreen} />
         </Stack.Navigator>
     );
 };

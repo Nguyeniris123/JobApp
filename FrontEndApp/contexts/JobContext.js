@@ -80,16 +80,21 @@ export const JobProvider = ({ children }) => {
     };
 
     // Thêm công việc mới (chỉ dành cho recruiter)
-    const createJob = async (jobData) => {
+    const createJob = async (jobData, token) => {
         try {
             setLoading(true);
+            // Định dạng dữ liệu theo schema yêu cầu
             const formattedJobData = {
-                title: jobData.title,
-                specialized: jobData.specialized || "General", // Default value if not provided
-                description: jobData.description,
-                salary: jobData.salary,
-                working_hours: jobData.working_hours,
-                location: jobData.location,
+                title: jobData.title, // string, bắt buộc, maxLength: 255, minLength: 1
+                specialized: jobData.specialized || "General", // string, maxLength: 100, minLength: 1
+                description: jobData.description, // string, bắt buộc, minLength: 1
+                salary: jobData.salary, // decimal, bắt buộc
+                working_hours: jobData.working_hours, // string, bắt buộc, maxLength: 50, minLength: 1
+                location: jobData.location, // string, bắt buộc, maxLength: 255, minLength: 1
+                requirements: jobData.requirements || [],
+                benefits: jobData.benefits || [],
+                deadline: jobData.deadline,
+                urgent: jobData.urgent || false,
                 company: {
                     name: jobData.company?.name || "",
                     tax_code: jobData.company?.tax_code || "",
@@ -98,7 +103,12 @@ export const JobProvider = ({ children }) => {
                     is_verified: jobData.company?.is_verified || false
                 }
             };
-            const response = await axios.post(API_ENDPOINTS.JOBPOSTS_CREATE, formattedJobData);
+            
+            const response = await axios.post(API_ENDPOINTS.JOBPOSTS_CREATE, formattedJobData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             setJobs(prevJobs => [...prevJobs, response.data]);
             return response.data;
         } catch (error) {
@@ -125,10 +135,26 @@ export const JobProvider = ({ children }) => {
     };
 
     // Cập nhật công việc (chỉ dành cho recruiter)
-    const updateJob = async (jobId, jobData) => {
+    const updateJob = async (jobId, jobData, token) => {
         try {
             setLoading(true);
-            const response = await axios.put(API_ENDPOINTS.JOBPOSTS_UPDATE(jobId), jobData);
+            
+            // Định dạng dữ liệu trước khi gửi đi
+            const formattedJobData = {
+                title: jobData.title,
+                specialized: jobData.specialized,
+                description: jobData.description,
+                location: jobData.location,
+                salary: jobData.salary,
+                working_hours: jobData.working_hours
+            };
+            
+            const response = await axios.put(API_ENDPOINTS.JOBPOSTS_UPDATE(jobId), formattedJobData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
             setJobs(prevJobs => 
                 prevJobs.map(job => job.id === jobId ? response.data : job)
             );

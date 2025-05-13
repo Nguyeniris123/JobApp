@@ -1,22 +1,101 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs"
 import { createStackNavigator } from "@react-navigation/stack"
+import { Text, View } from "react-native"
 
 // Screens
 import ApplicationStatusScreen from "../screen/candidate/ApplicationStatusScreen"
 import ApplyScreen from "../screen/candidate/ApplyScreen"
+import ChatListScreen from "../screen/candidate/ChatListScreen"
 import ChatScreen from "../screen/candidate/ChatScreen"
+import CreateReviewScreen from "../screen/candidate/CreateReviewScreen"
 import FollowingScreen from "../screen/candidate/FollowingScreen"
 import HomeScreen from "../screen/candidate/HomeScreen"
 import JobDetailScreen from "../screen/candidate/JobDetailScreen"
-import MyReviewsScreen from "../screen/candidate/MyReviewsScreen"; // Thêm import này
-import NotificationScreen from "../screen/candidate/NotificationScreen"
+import MyReviewsScreen from "../screen/candidate/MyReviewsScreen"
 import ProfileScreen from "../screen/candidate/ProfileScreen"
 import SettingsScreen from "../screen/candidate/SettingsScreen"
 import EditProfileScreen from "../screen/common/EditProfileScreen"
 
 const Tab = createBottomTabNavigator()
+const TopTab = createMaterialTopTabNavigator()
 const Stack = createStackNavigator()
+
+// Custom TabBar Label with Icon
+const TabBarLabel = ({ label, focused, color, icon }) => (
+    <View style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 8
+    }}>
+        <MaterialCommunityIcons 
+            name={icon} 
+            size={18} 
+            color={color}
+            style={{ marginRight: 6 }}
+        />
+        <Text style={{ 
+            color, 
+            fontSize: 14, 
+            fontWeight: focused ? "600" : "400"
+        }}>
+            {label}
+        </Text>
+    </View>
+);
+
+// Tabs for Notification section (Favorite and Chat)
+const NotificationTabs = () => {
+    return (
+        <TopTab.Navigator
+            screenOptions={{
+                tabBarActiveTintColor: "#1E88E5",
+                tabBarInactiveTintColor: "#757575",
+                tabBarIndicatorStyle: { backgroundColor: "#1E88E5" },
+                tabBarLabelStyle: { 
+                    textTransform: "none",
+                    display: 'none' // Hide default labels since we use custom ones
+                },
+                tabBarStyle: { 
+                    elevation: 0,
+                    shadowOpacity: 0,
+                    backgroundColor: "#FFFFFF" 
+                },
+            }}
+        >
+            <TopTab.Screen 
+                name="Favorite" 
+                component={FollowingScreen} 
+                options={{ 
+                    tabBarLabel: ({ focused, color }) => (
+                        <TabBarLabel 
+                            label="Đã lưu" 
+                            focused={focused} 
+                            color={color} 
+                            icon="heart" 
+                        />
+                    )
+                }} 
+            />
+            <TopTab.Screen 
+                name="ChatList" 
+                component={ChatListScreen}
+                options={{ 
+                    tabBarLabel: ({ focused, color }) => (
+                        <TabBarLabel 
+                            label="Tin nhắn" 
+                            focused={focused} 
+                            color={color} 
+                            icon="chat" 
+                        />
+                    )
+                }} 
+            />
+        </TopTab.Navigator>
+    )
+}
 
 const HomeStack = () => {
     return (
@@ -24,11 +103,13 @@ const HomeStack = () => {
             screenOptions={{
                 headerShown: false,
             }}
+            initialRouteName="Home"
         >
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="JobDetail" component={JobDetailScreen} />
             <Stack.Screen name="Apply" component={ApplyScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen name="CreateReview" component={CreateReviewScreen} />
         </Stack.Navigator>
     )
 }
@@ -49,12 +130,25 @@ const NotificationStack = () => {
     return (
         <Stack.Navigator
             screenOptions={{
-                headerShown: false,
+                headerShown: true,
             }}
         >
+            <Stack.Screen 
+                name="NotificationTabs" 
+                component={NotificationTabs} 
+                options={{
+                    title: "Thông báo & Tin nhắn",
+                    headerStyle: { elevation: 0, shadowOpacity: 0 }
+                }}
+            />
+            <Stack.Screen 
+                name="Chat" 
+                component={ChatScreen}
+                options={{
+                    headerShown: false
+                }}
+            />
             
-            <Stack.Screen name="Favorite" component={FollowingScreen} />
-            <Stack.Screen name="Notifications" component={NotificationScreen} />
         </Stack.Navigator>
     )
 }

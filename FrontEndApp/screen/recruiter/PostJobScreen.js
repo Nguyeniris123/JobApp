@@ -1,68 +1,88 @@
-import DateTimePicker from "@react-native-community/datetimepicker"
 import { useContext, useEffect, useState } from "react"
 import { Alert, SafeAreaView, ScrollView, StyleSheet, View } from "react-native"
-import { Button, HelperText, Surface, Switch, Text } from "react-native-paper"
+import { Button, Surface, Text } from "react-native-paper"
 import AppInput from "../../components/ui/AppInput"
 import { AuthContext } from "../../contexts/AuthContext"
 import { JobContext } from "../../contexts/JobContext"
 
 const PostJobScreen = ({ navigation, route }) => {
-    const { createJob, updateJob } = useContext(JobContext)
+    const { createJob, updateJob, fetchJobById } = useContext(JobContext)
     const { accessToken } = useContext(AuthContext)
     const [title, setTitle] = useState("")
+    const [specialized, setSpecialized] = useState("")
     const [description, setDescription] = useState("")
     const [location, setLocation] = useState("")
     const [salary, setSalary] = useState("")
     const [workingHours, setWorkingHours] = useState("")
-    const [requirements, setRequirements] = useState("")
-    const [benefits, setBenefits] = useState("")
-    const [deadline, setDeadline] = useState(new Date())
-    const [showDatePicker, setShowDatePicker] = useState(false)
-    const [urgent, setUrgent] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [specialized, setSpecialized] = useState("")
-    const [companyName, setCompanyName] = useState("")
-    const [companyTaxCode, setCompanyTaxCode] = useState("")
-    const [companyDescription, setCompanyDescription] = useState("")
-    const [companyLocation, setCompanyLocation] = useState("")
+    const [loadingJob, setLoadingJob] = useState(false)
 
     const isEditMode = route.params?.jobId;
 
     useEffect(() => {
-        if (isEditMode && route.params.job) {
-            const job = route.params.job;
-            setTitle(job.title);
-            setDescription(job.description);
-            setLocation(job.location);
-            setSalary(job.salary.toString());
-            setWorkingHours(job.working_hours);
-            setRequirements(job.requirements.join('\n'));
-            setBenefits(job.benefits.join('\n'));
-            setDeadline(new Date(job.deadline));
-            setUrgent(job.urgent);
+        if (isEditMode) {
+            const loadJob = async () => {
+                try {
+                    setLoadingJob(true);
+                    const jobData = await fetchJobById(route.params.jobId);
+                    if (jobData) {
+                        setTitle(jobData.title || "");
+                        setSpecialized(jobData.specialized || "");
+                        setDescription(jobData.description || "");
+                        setLocation(jobData.location || "");
+                        setSalary(jobData.salary ? jobData.salary.toString() : "");
+                        setWorkingHours(jobData.working_hours || "");
+                    }
+                } catch (error) {
+                    console.error("Không thể tải thông tin công việc:", error);
+                    Alert.alert("Lỗi", "Không thể tải thông tin công việc");
+                } finally {
+                    setLoadingJob(false);
+                }
+            };
+            loadJob();
         }
-    }, [isEditMode]);
-
-    const handleDateChange = (event, selectedDate) => {
-        const currentDate = selectedDate || deadline
-        setShowDatePicker(false)
-        setDeadline(currentDate)
-    }
-
-    const formatDate = (date) => {
-        return date.toLocaleDateString("vi-VN", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        })
-    }
+    }, [isEditMode, route.params?.jobId]);
 
     const validateForm = () => {
-        if (!title || !description || !location || !salary || !workingHours || !requirements || !benefits) {
-            Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc")
-            return false
+        let isValid = true;
+        let errorMessage = "";
+
+        // Chỉ kiểm tra trường để trống
+        if (!title.trim()) {
+            errorMessage += "- Tiêu đề công việc không được để trống\n";
+            isValid = false;
         }
-        return true
+
+        if (!specialized.trim()) {
+            errorMessage += "- Chuyên môn không được để trống\n";
+            isValid = false;
+        }
+
+        if (!description.trim()) {
+            errorMessage += "- Mô tả công việc không được để trống\n";
+            isValid = false;
+        }
+
+        if (!salary.trim()) {
+            errorMessage += "- Mức lương không được để trống\n";
+            isValid = false;
+        }
+
+        if (!workingHours.trim()) {
+            errorMessage += "- Số giờ làm việc không được để trống\n";
+            isValid = false;
+        }
+
+        if (!location.trim()) {
+            errorMessage += "- Địa điểm làm việc không được để trống\n";
+            isValid = false;
+        }
+
+        if (!isValid) {
+            Alert.alert("Lỗi dữ liệu", errorMessage);
+        }
+        return isValid;
     }
 
     const handleSubmit = async () => {
@@ -76,18 +96,7 @@ const PostJobScreen = ({ navigation, route }) => {
                 description,
                 location,
                 salary: Number(salary),
-                working_hours: workingHours,
-                requirements: requirements.split('\n').filter(req => req.trim()),
-                benefits: benefits.split('\n').filter(ben => ben.trim()),
-                deadline,
-                urgent,
-                company: {
-                    name: companyName,
-                    tax_code: companyTaxCode,
-                    description: companyDescription,
-                    location: companyLocation,
-                    is_verified: false
-                }
+                working_hours: workingHours
             };
 
             let result;
@@ -107,6 +116,7 @@ const PostJobScreen = ({ navigation, route }) => {
                 );
             }
         } catch (error) {
+            console.error("Lỗi khi gửi dữ liệu:", error?.response?.data || error.message);
             Alert.alert(
                 "Lỗi",
                 isEditMode
@@ -126,158 +136,75 @@ const PostJobScreen = ({ navigation, route }) => {
                 </Text>
             </Surface>
 
-            <ScrollView style={styles.container}>
-                <View style={styles.form}>
-                    <Surface style={styles.section} elevation={1}>
-                        <Text style={styles.sectionTitle}>Thông tin cơ bản</Text>
-
-                        <AppInput
-                            label="Tiêu đề công việc *"
-                            value={title}
-                            onChangeText={setTitle}
-                            style={styles.input}
-                        />
-
-                        <AppInput
-                            label="Mô tả công việc *"
-                            value={description}
-                            onChangeText={setDescription}
-                            multiline
-                            numberOfLines={5}
-                            style={styles.input}
-                        />
-
-                        <AppInput
-                            label="Địa điểm làm việc *"
-                            value={location}
-                            onChangeText={setLocation}
-                            style={styles.input}
-                        />
-
-                        <AppInput
-                            label="Mức lương (VNĐ) *"
-                            value={salary}
-                            onChangeText={setSalary}
-                            keyboardType="numeric"
-                            style={styles.input}
-                        />
-
-                        <AppInput
-                            label="Số giờ làm việc mỗi tuần *"
-                            value={workingHours}
-                            onChangeText={setWorkingHours}
-                            placeholder="Ví dụ: 20"
-                            keyboardType="numeric"
-                            style={styles.input}
-                        />
-                    </Surface>
-
-                    <Surface style={styles.section} elevation={1}>
-                        <Text style={styles.sectionTitle}>Thông tin chuyên môn</Text>
-                        <AppInput
-                            label="Chuyên môn *"
-                            value={specialized}
-                            onChangeText={setSpecialized}
-                            style={styles.input}
-                        />
-                    </Surface>
-
-                    <Surface style={styles.section} elevation={1}>
-                        <Text style={styles.sectionTitle}>Thông tin công ty</Text>
-                        <AppInput
-                            label="Tên công ty *"
-                            value={companyName}
-                            onChangeText={setCompanyName}
-                            style={styles.input}
-                        />
-                        <AppInput
-                            label="Mã số thuế"
-                            value={companyTaxCode}
-                            onChangeText={setCompanyTaxCode}
-                            style={styles.input}
-                        />
-                        <AppInput
-                            label="Mô tả công ty"
-                            value={companyDescription}
-                            onChangeText={setCompanyDescription}
-                            multiline
-                            numberOfLines={4}
-                            style={styles.input}
-                        />
-                        <AppInput
-                            label="Địa chỉ công ty"
-                            value={companyLocation}
-                            onChangeText={setCompanyLocation}
-                            style={styles.input}
-                        />
-                    </Surface>
-
-                    <Surface style={styles.section} elevation={1}>
-                        <Text style={styles.sectionTitle}>Yêu cầu và quyền lợi</Text>
-
-                        <AppInput
-                            label="Yêu cầu ứng viên *"
-                            value={requirements}
-                            onChangeText={setRequirements}
-                            multiline
-                            numberOfLines={5}
-                            placeholder="Mỗi yêu cầu một dòng"
-                            style={styles.input}
-                        />
-                        <HelperText type="info">Mỗi yêu cầu viết trên một dòng</HelperText>
-
-                        <AppInput
-                            label="Quyền lợi *"
-                            value={benefits}
-                            onChangeText={setBenefits}
-                            multiline
-                            numberOfLines={5}
-                            placeholder="Mỗi quyền lợi một dòng"
-                            style={styles.input}
-                        />
-                        <HelperText type="info">Mỗi quyền lợi viết trên một dòng</HelperText>
-                    </Surface>
-
-                    <Surface style={styles.section} elevation={1}>
-                        <Text style={styles.sectionTitle}>Thông tin bổ sung</Text>
-
-                        <View style={styles.datePickerContainer}>
-                            <Text style={styles.label}>Hạn nộp hồ sơ *</Text>
-                            <Button mode="outlined" onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
-                                {formatDate(deadline)}
-                            </Button>
-                            {showDatePicker && (
-                                <DateTimePicker
-                                    value={deadline}
-                                    mode="date"
-                                    display="default"
-                                    onChange={handleDateChange}
-                                    minimumDate={new Date()}
-                                />
-                            )}
-                        </View>
-
-                        <View style={styles.switchContainer}>
-                            <View style={styles.switchItem}>
-                                <Text style={styles.switchLabel}>Đánh dấu là tin khẩn cấp</Text>
-                                <Switch value={urgent} onValueChange={setUrgent} color="#1E88E5" />
-                            </View>
-                            <HelperText type="info">Tin khẩn cấp sẽ được ưu tiên hiển thị và có thêm phí</HelperText>
-                        </View>
-                    </Surface>
-
-                    <Button
-                        mode="contained"
-                        onPress={handleSubmit}
-                        style={styles.submitButton}
-                        loading={loading}
-                        disabled={loading}
-                        contentStyle={styles.submitButtonContent}
-                    >
-                        {isEditMode ? "Cập nhật" : "Đăng tin"}
-                    </Button>
+            {loadingJob ? (
+                <View style={styles.loadingContainer}>
+                    <Text>Đang tải...</Text>
                 </View>
-            </ScrollView>
+            ) : (
+                <ScrollView style={styles.container}>
+                    <View style={styles.form}>
+                        <Surface style={styles.section} elevation={1}>
+                            <Text style={styles.sectionTitle}>Thông tin công việc</Text>
+
+                            <AppInput
+                                label="Tiêu đề công việc *"
+                                value={title}
+                                onChangeText={setTitle}
+                                style={styles.input}
+                            />
+
+                            <AppInput
+                                label="Chuyên môn *"
+                                value={specialized}
+                                onChangeText={setSpecialized}
+                                style={styles.input}
+                            />
+
+                            <AppInput
+                                label="Mô tả công việc *"
+                                value={description}
+                                onChangeText={setDescription}
+                                multiline
+                                numberOfLines={5}
+                                style={styles.input}
+                            />
+
+                            <AppInput
+                                label="Mức lương (VNĐ) *"
+                                value={salary}
+                                onChangeText={setSalary}
+                                keyboardType="numeric"
+                                style={styles.input}
+                            />
+
+                            <AppInput
+                                label="Số giờ làm việc *"
+                                value={workingHours}
+                                onChangeText={setWorkingHours}
+                                style={styles.input}
+                            />
+
+                            <AppInput
+                                label="Địa điểm làm việc *"
+                                value={location}
+                                onChangeText={setLocation}
+                                style={styles.input}
+                            />
+                        </Surface>
+
+                        <Button
+                            mode="contained"
+                            onPress={handleSubmit}
+                            style={styles.submitButton}
+                            loading={loading}
+                            disabled={loading}
+                            contentStyle={styles.submitButtonContent}
+                        >
+                            {isEditMode ? "Cập nhật" : "Đăng tin"}
+                        </Button>
+                    </View>
+                </ScrollView>
+            )}
         </SafeAreaView>
     )
 }
@@ -320,36 +247,17 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         backgroundColor: '#FFFFFF',
     },
-    label: {
-        fontSize: 14,
-        color: '#757575',
-        marginBottom: 8,
-        marginTop: 8,
-    },
-    datePickerContainer: {
-        marginBottom: 16,
-    },
-    dateButton: {
-        marginTop: 8,
-    },
-    switchContainer: {
-        marginBottom: 24,
-    },
-    switchItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    switchLabel: {
-        fontSize: 16,
-        color: '#212121',
-    },
     submitButton: {
         marginVertical: 24,
     },
     submitButtonContent: {
         paddingVertical: 8,
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    }
 })
 
 export default PostJobScreen

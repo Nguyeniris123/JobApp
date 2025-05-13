@@ -1,12 +1,15 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useCallback, useContext, useMemo } from "react";
+import { useCallback, useContext, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Avatar, Button, Card, Divider, List, Switch, Text } from "react-native-paper";
+import { Avatar, Button, Card, Divider, List, Snackbar, Switch, Text } from "react-native-paper";
 import { AuthContext } from "../../contexts/AuthContext";
 
 const ProfileScreen = ({ navigation }) => {
-    const { user } = useContext(AuthContext);
+    const { user, changeAvatar } = useContext(AuthContext);
+    const [loading, setLoading] = useState(false);
+    const [snackbarVisible, setSnackbarVisible] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
 
     const username = useMemo(() => user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : "Người dùng", [user]);
     const profileImage = useMemo(() => user?.avatar || "https://via.placeholder.com/150", [user]);
@@ -14,26 +17,53 @@ const ProfileScreen = ({ navigation }) => {
 
     const pickImage = useCallback(async () => {
         try {
+            // Kiểm tra quyền truy cập thư viện ảnh
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                setSnackbarMessage('Cần cấp quyền truy cập thư viện ảnh để thực hiện chức năng này');
+                setSnackbarVisible(true);
+                return;
+            }
+
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Image,
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [1, 1],
-                quality: 1,
+                quality: 0.8,
             });
-            if (!result.canceled) {
-                // Thực tế có thể cần thêm xử lý cập nhật ảnh lên server
-                console.log("Ảnh đã chọn:", result.uri);
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                setLoading(true);
+                try {
+                    // Gọi API để cập nhật avatar
+                    await changeAvatar(result.assets[0].uri);
+                    setSnackbarMessage('Cập nhật ảnh đại diện thành công');
+                    setSnackbarVisible(true);
+                } catch (error) {
+                    console.error('Lỗi khi cập nhật avatar:', error);
+                    setSnackbarMessage('Không thể cập nhật ảnh đại diện. Vui lòng thử lại sau.');
+                    setSnackbarVisible(true);
+                } finally {
+                    setLoading(false);
+                }
             }
         } catch (error) {
             console.log("Lỗi chọn ảnh:", error);
+            setSnackbarMessage('Đã xảy ra lỗi khi chọn ảnh');
+            setSnackbarVisible(true);
         }
-    }, []);
+    }, [changeAvatar]);
 
     return (
         <ScrollView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={pickImage}>
-                    <Avatar.Image source={{ uri: profileImage }} size={100} style={styles.avatar} />
+                <TouchableOpacity onPress={pickImage} disabled={loading}>
+                    <Avatar.Image 
+                        source={{ uri: profileImage }} 
+                        size={100} 
+                        style={styles.avatar} 
+                        loading={loading}
+                    />
                     <View style={styles.editIconContainer}>
                         <MaterialCommunityIcons name="camera" size={20} color="#FFFFFF" />
                     </View>
@@ -78,6 +108,17 @@ const ProfileScreen = ({ navigation }) => {
                     Cài đặt tài khoản
                 </Button>
             </View>
+            
+            <Snackbar
+                visible={snackbarVisible}
+                onDismiss={() => setSnackbarVisible(false)}
+                duration={3000}
+                action={{
+                    label: 'OK',
+                    onPress: () => setSnackbarVisible(false),
+                }}>
+                {snackbarMessage}
+            </Snackbar>
         </ScrollView>
     );
 };

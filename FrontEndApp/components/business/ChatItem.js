@@ -1,102 +1,101 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Avatar, Badge, Text } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
+import { Avatar, Text } from 'react-native-paper';
 
+/**
+ * Component for displaying individual chat messages
+ * 
+ * @param {Object} message - The message object
+ * @param {boolean} isCurrentUser - Whether the message is from the current user
+ * @param {string} avatar - Avatar URL for the other user
+ */
 const ChatItem = ({
-    chat,
-    currentUserId,
-    onPress,
-    style,
-}) => {
-    const otherParticipant = chat.participants.find(p => p.id !== currentUserId);
-    const hasUnread = !chat.last_message_read && chat.last_message_sender_id !== currentUserId;
-
-    return (
-        <TouchableOpacity
-            style={[styles.container, style]}
-            onPress={onPress}
-        >
-            <Avatar.Image
-                size={50}
-                source={{ uri: otherParticipant.avatar || 'https://via.placeholder.com/50' }}
-            />
-
-            <View style={styles.chatInfo}>
-                <View style={styles.nameRow}>
-                    <Text style={styles.name}>{otherParticipant.name}</Text>
-                    <Text style={styles.time}>
-                        {new Date(chat.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                </View>
-
-                {chat.job && (
-                    <Text style={styles.jobTitle}>
-                        <MaterialCommunityIcons name="briefcase" size={14} color="#666" />
-                        {' '}{chat.job.title}
-                    </Text>
-                )}
-
-                <Text
-                    numberOfLines={1}
-                    style={[
-                        styles.lastMessage,
-                        hasUnread && styles.unreadMessage
-                    ]}
-                >
-                    {chat.last_message_sender_id === currentUserId ? 'You: ' : ''}
-                    {chat.last_message}
+    message,
+    isCurrentUser,
+    avatar,
+}) => {    return (
+        <View style={[
+            styles.messageContainer, 
+            isCurrentUser ? styles.currentUserMessage : styles.otherUserMessage
+        ]}>
+            {!isCurrentUser && avatar && (
+                <Avatar.Image
+                    source={{ uri: avatar }}
+                    size={36}
+                    style={styles.avatar}
+                />
+            )}
+            <View style={[
+                styles.messageBubble, 
+                isCurrentUser ? styles.currentUserBubble : styles.otherUserBubble
+            ]}>
+                <Text style={[
+                    styles.messageText,
+                    isCurrentUser ? styles.currentUserText : styles.otherUserText
+                ]}>
+                    {message.text}
+                </Text>
+                <Text style={[
+                    styles.timestamp,
+                    isCurrentUser ? styles.currentUserTimestamp : styles.otherUserTimestamp
+                ]}>
+                    {message.timestamp ? 
+                        new Date(message.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                        : ''}
                 </Text>
             </View>
-
-            {hasUnread && (
-                <Badge style={styles.unreadBadge}>new</Badge>
-            )}
-        </TouchableOpacity>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    messageContainer: {
         flexDirection: 'row',
-        padding: 16,
-        backgroundColor: '#fff',
-        alignItems: 'center',
+        marginBottom: 16,
+        maxWidth: '80%',
     },
-    chatInfo: {
-        flex: 1,
-        marginLeft: 12,
+    currentUserMessage: {
+        alignSelf: 'flex-end',
+        justifyContent: 'flex-end',
     },
-    nameRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+    otherUserMessage: {
+        alignSelf: 'flex-start',
     },
-    name: {
-        fontWeight: 'bold',
-        fontSize: 16,
+    avatar: {
+        marginRight: 8,
+        alignSelf: 'flex-end',
     },
-    time: {
-        fontSize: 12,
-        color: '#999',
+    messageBubble: {
+        padding: 12,
+        borderRadius: 16,
     },
-    jobTitle: {
-        fontSize: 12,
-        color: '#666',
-        marginTop: 2,
+    currentUserBubble: {
+        backgroundColor: '#1E88E5',
+        borderTopRightRadius: 4,
     },
-    lastMessage: {
+    otherUserBubble: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 4,
+    },
+    messageText: {
         fontSize: 14,
-        color: '#666',
+        lineHeight: 20,
+    },
+    currentUserText: {
+        color: '#FFFFFF',
+    },
+    otherUserText: {
+        color: '#212121',
+    },
+    timestamp: {
+        fontSize: 10,
+        alignSelf: 'flex-end',
         marginTop: 4,
     },
-    unreadMessage: {
-        fontWeight: 'bold',
-        color: '#333',
+    currentUserTimestamp: {
+        color: 'rgba(255, 255, 255, 0.7)',
     },
-    unreadBadge: {
-        backgroundColor: '#1E88E5',
-        marginLeft: 8,
+    otherUserTimestamp: {
+        color: '#9E9E9E',
     },
 });
 

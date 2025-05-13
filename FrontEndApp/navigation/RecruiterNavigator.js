@@ -1,9 +1,12 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
+import { Text, View } from "react-native";
 
 import EditProfileScreen from "../screen/common/EditProfileScreen";
 import ApplicationListScreen from "../screen/recruiter/ApplicationListScreen";
+import ChatListScreen from "../screen/recruiter/ChatListScreen";
 import ChatScreen from "../screen/recruiter/ChatScreen";
 import CompanyProfileScreen from "../screen/recruiter/CompanyProfileScreen";
 import FavoriteCandidatesScreen from "../screen/recruiter/FavoriteCandidatesScreen";
@@ -15,7 +18,32 @@ import ReviewScreen from "../screen/recruiter/ReviewScreen";
 import SettingsScreen from "../screen/recruiter/SettingsScreen";
 
 const Tab = createBottomTabNavigator()
+const TopTab = createMaterialTopTabNavigator()
 const Stack = createStackNavigator()
+
+// Custom TabBar Label with Icon
+const TabBarLabel = ({ label, focused, color, icon }) => (
+    <View style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 8
+    }}>
+        <MaterialCommunityIcons 
+            name={icon} 
+            size={18} 
+            color={color}
+            style={{ marginRight: 6 }}
+        />
+        <Text style={{ 
+            color, 
+            fontSize: 14, 
+            fontWeight: focused ? "600" : "400"
+        }}>
+            {label}
+        </Text>
+    </View>
+);
 
 const HomeStack = () => {
     return (
@@ -32,16 +60,86 @@ const HomeStack = () => {
     )
 }
 
+// Tabbed view for Candidates and Messages
+const CandidateTabs = () => {
+    return (
+        <TopTab.Navigator
+            screenOptions={{
+                tabBarActiveTintColor: "#1E88E5",
+                tabBarInactiveTintColor: "#757575",
+                tabBarIndicatorStyle: { backgroundColor: "#1E88E5" },
+                tabBarLabelStyle: { 
+                    textTransform: "none",
+                    display: 'none' // Hide default labels
+                },
+                tabBarStyle: { 
+                    elevation: 0,
+                    shadowOpacity: 0,
+                    backgroundColor: "#FFFFFF" 
+                },
+            }}
+        >
+            <TopTab.Screen 
+                name="CandidateList" 
+                component={ApplicationListScreen} 
+                options={{ 
+                    tabBarLabel: ({ focused, color }) => (
+                        <TabBarLabel 
+                            label="Hồ sơ ứng tuyển" 
+                            focused={focused} 
+                            color={color} 
+                            icon="account-group" 
+                        />
+                    )
+                }} 
+            />
+            <TopTab.Screen 
+                name="ChatList" 
+                component={ChatListScreen}
+                options={{ 
+                    tabBarLabel: ({ focused, color }) => (
+                        <TabBarLabel 
+                            label="Tin nhắn" 
+                            focused={focused} 
+                            color={color} 
+                            icon="chat" 
+                        />
+                    )
+                }} 
+            />
+        </TopTab.Navigator>
+    )
+};
+
 const CandidateStack = () => {
     return (
         <Stack.Navigator
             screenOptions={{
-                headerShown: false,
+                headerShown: true,
             }}
         >
-            <Stack.Screen name="CandidateList" component={ApplicationListScreen} />
-            <Stack.Screen name="FavoriteCandidates" component={FavoriteCandidatesScreen} />
-            <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen 
+                name="CandidateTabs" 
+                component={CandidateTabs} 
+                options={{
+                    title: "Quản lý ứng viên",
+                    headerStyle: { elevation: 0, shadowOpacity: 0 }
+                }}
+            />
+            <Stack.Screen 
+                name="FavoriteCandidates" 
+                component={FavoriteCandidatesScreen} 
+                options={{
+                    headerShown: false
+                }}
+            />
+            <Stack.Screen 
+                name="Chat" 
+                component={ChatScreen} 
+                options={{
+                    headerShown: false
+                }}
+            />
         </Stack.Navigator>
     )
 }

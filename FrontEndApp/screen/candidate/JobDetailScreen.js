@@ -4,7 +4,7 @@ import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacit
 import { Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ReviewCard from '../../components/ui/ReviewCard';
-import ReviewForm from '../../components/ui/ReviewForm';
+import { AuthContext } from '../../contexts/AuthContext';
 import { CompanyContext } from '../../contexts/CompanyContext';
 import { JobContext } from '../../contexts/JobContext';
 import { useReview } from '../../contexts/ReviewContext';
@@ -20,15 +20,14 @@ const JobDetailScreen = () => {
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
     const [followRecord, setFollowRecord] = useState(null);
+    const { user } = useContext(AuthContext);
     
     // Review state
     const [showReviews, setShowReviews] = useState(false);
-    const [showReviewForm, setShowReviewForm] = useState(false);
     
     // Sử dụng hook để truy cập review context
     const { 
         recruiterReviews,
-        createJobReview, 
         fetchRecruiterReviews 
     } = useReview();
 
@@ -46,6 +45,30 @@ const JobDetailScreen = () => {
             console.error("Error loading job details:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Handle follow/unfollow
+    const handleFollow = async () => {
+        if (!companyExists) return;
+        
+        try {
+            setFollowLoading(true);
+            if (isFollowing) {
+                // Unfollow
+                if (followRecord) {
+                    await unfollowCompany(followRecord.id);
+                }
+            } else {
+                // Follow
+                await followCompany(jobDetail.company.id);
+            }
+            // Refresh follow status
+            await fetchFollowedCompanies();
+        } catch (error) {
+            console.error("Error following/unfollowing company:", error);
+        } finally {
+            setFollowLoading(false);
         }
     };
 
@@ -72,35 +95,45 @@ const JobDetailScreen = () => {
         }
     }, [jobDetail, followedCompanies]);
 
-    // Get reviews for this job
-    const getReviewsForThisJob = () => {
-        if (!jobDetail || !recruiterReviews) return [];
-        return recruiterReviews.filter(review => review.job === jobDetail.id);
-    };
-    
-    // Handle review submission
-    const handleReviewSubmit = async (reviewData) => {
-        try {
-            if (!jobDetail) return;
-            
-            const result = await createJobReview(
-                jobDetail.id,
-                reviewData.rating,
-                reviewData.comment,
-                reviewData.strengths || [],
-                reviewData.weaknesses || []
-            );
-            
-            if (result.success) {
-                // Refresh reviews after adding a new one
-                await fetchRecruiterReviews();
-                setShowReviewForm(false);
-            }
-        } catch (error) {
-            console.error("Error submitting review:", error);
-        }
+    // Get reviews for this company instead of just for this job
+    const getReviewsForThisCompany = () => {
+        if (!jobDetail || !companyExists || !recruiterReviews) return [];
+        
+        // Lọc tất cả đánh giá cho công ty này dựa vào company_id
+        const companyId = jobDetail.company.id;
+        console.log('Getting reviews for company ID:', companyId);
+        console.log('All reviews:', recruiterReviews);
+        
+        return recruiterReviews.filter(review => {
+            // Kiểm tra review có company_id khớp với công ty hiện tại không
+            const isForThisCompany = review.company_id === companyId || review.company === companyId;
+            console.log(`Review ${review.id} for company ${review.company_id || review.company}, matches: ${isForThisCompany}`);
+            return isForThisCompany;
+        });
     };
 
+    // Navigate to review creation screen
+    const navigateToCreateReview = () => {
+        if (!jobDetail) {
+            alert('Không thể đánh giá công việc này do thiếu thông tin.');
+            return;
+        }
+        
+        if (!companyExists) {
+            alert('Không thể đánh giá công việc này do không tìm thấy thông tin công ty.');
+            return;
+        }
+        
+        console.log('Navigating to review screen with company:', jobDetail.company);
+        console.log('Company ID:', jobDetail.company?.id);
+        
+        navigation.navigate('CreateReview', { 
+            jobId: jobDetail.id,
+            jobTitle: jobDetail.title,
+            companyId: jobDetail.company.id
+        });
+    };
+    
     const handleApply = () => {
         if (!jobDetail) return;
         navigation.navigate('Apply', { jobId: jobDetail.id });
@@ -131,7 +164,7 @@ const JobDetailScreen = () => {
 
     // Ensure company exists before rendering company-related information
     const companyExists = jobDetail && jobDetail.company;
-    const jobReviews = getReviewsForThisJob();
+    const jobReviews = getReviewsForThisCompany();
 
     return (
         <ScrollView style={styles.container}>
@@ -245,25 +278,17 @@ const JobDetailScreen = () => {
                         </TouchableOpacity>
                     </View>
                     
+                    <Button 
+                        mode="outlined"
+                        icon="star-outline"
+                        onPress={navigateToCreateReview}
+                        style={styles.addReviewButton}
+                    >
+                        Thêm đánh giá của bạn
+                    </Button>
+                    
                     {showReviews ? (
                         <View style={styles.reviewsContainer}>
-                            {/* Form to add a new review */}
-                            {!showReviewForm ? (
-                                <Button 
-                                    mode="outlined"
-                                    icon="comment-plus"
-                                    onPress={() => setShowReviewForm(true)}
-                                    style={styles.addReviewButton}
-                                >
-                                    Thêm đánh giá của bạn
-                                </Button>
-                            ) : (
-                                <ReviewForm 
-                                    onSubmit={handleReviewSubmit}
-                                    onCancel={() => setShowReviewForm(false)}
-                                />
-                            )}
-                            
                             {/* List of reviews */}
                             {jobReviews.length > 0 ? (
                                 <View style={styles.reviewsList}>
@@ -525,7 +550,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 8,
         fontWeight: '500',
-    }
+    },
 });
 
 export default JobDetailScreen;
