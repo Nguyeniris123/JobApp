@@ -205,13 +205,16 @@ class CandidateReviewRecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, 
         # GET request: Bất kỳ ai đã đăng nhập đều có thể xem
         return [permissions.IsAuthenticated()]
 
-    @action(detail=False, methods=['get'], url_path='recruiter/(?P<recruiter_id>\d+)/candidate-reviews')
-    def get_reviews_for_recruiter(self, request, recruiter_id=None):
-        # Lấy danh sách đánh giá mà ứng viên đã viết về một nhà tuyển dụng cụ thể
-            recruiter = get_object_or_404(User, id=recruiter_id, role='recruiter')
-            queryset = Review.objects.filter(reviewed_user=recruiter, reviewer__role='candidate')
-            serializer = self.get_serializer(queryset, many=True)
-            return Response(serializer.data)
+    @action(detail=False, methods=['get'], url_path='company/(?P<company_id>\d+)/candidate-reviews')
+    def get_reviews_for_company(self, request, company_id=None):
+        # Lấy nhà tuyển dụng từ công ty
+        company = get_object_or_404(Company, id=company_id)
+        recruiter = company.user  # Nhà tuyển dụng là user của công ty đó
+
+        # Lọc các review mà ứng viên đã viết về nhà tuyển dụng này
+        queryset = Review.objects.filter(reviewed_user=recruiter, reviewer__role='candidate', active=True)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 class RecruiterReviewCandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.DestroyAPIView):
     queryset = Review.objects.filter(active=True)
