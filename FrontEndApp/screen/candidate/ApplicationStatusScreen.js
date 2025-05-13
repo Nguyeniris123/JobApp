@@ -69,31 +69,42 @@ const ApplicationStatusScreen = ({ navigation }) => {
             const jobId = item.job; 
             let jobDetails = item.jobDetail;
             
-            // Tìm thông tin về nhà tuyển dụng
-            if (jobId && !jobDetails?.recruiter?.id) {
+            // recruiterId đã được trích xuất từ job_detail.recruiter trong ApplicationContext
+            const recruiterId = item.recruiterId;
+            
+            // Nếu không có recruiterId, tìm thêm từ jobDetail
+            if (!recruiterId && jobId) {
                 console.log("Fetching job details for jobId:", jobId);
                 jobDetails = await fetchJobById(jobId);
                 console.log("Received job details:", jobDetails);
             }
             
             // Log để debug
-            console.log("Job details to use for chat:", {
+            console.log("Information for chat:", {
                 job: jobId,
-                recruiter: jobDetails?.recruiter,
+                recruiterId: recruiterId,
                 company: jobDetails?.company?.name || item.company
             });
             
-            // Tạo object navigation params từ dữ liệu có sẵn hoặc jobDetails
+            // Tạo tham số cho chat
             const chatParams = {
-                recruiterId: jobDetails?.recruiter?.id,
-                recruiterName: jobDetails?.recruiter?.name || "Nhà tuyển dụng",
-                recruiterAvatar: jobDetails?.recruiter?.avatar || item.companyLogo,
+                recruiterId: recruiterId, // Sử dụng recruiterId trực tiếp từ item
+                recruiterName: "Nhà tuyển dụng", // Backend sẽ cập nhật sau
+                recruiterAvatar: item.companyLogo,
                 jobId: jobId,
                 jobTitle: jobDetails?.title || item.jobTitle,
                 company: jobDetails?.company?.name || item.company
             };
             
-            console.log("Navigating to chat with params:", chatParams);
+            console.log("Navigating to chat with params:", JSON.stringify(chatParams, null, 2));
+            
+            // Kiểm tra nếu không có recruiterId
+            if (!chatParams.recruiterId) {
+                console.error("Missing recruiterId in application:", item);
+                throw new Error("Thiếu thông tin nhà tuyển dụng để kết nối chat");
+            }
+            
+            console.log(`Starting chat with recruiter ID: ${chatParams.recruiterId} for job: ${chatParams.jobTitle}`);
             navigation.navigate("Chat", chatParams);
         } catch (error) {
             console.error("Lỗi khi chuyển đến màn hình Chat:", error);

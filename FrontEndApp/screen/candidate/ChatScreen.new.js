@@ -1,9 +1,11 @@
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useContext, useEffect, useRef, useState } from "react"
-import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native"
+import { Alert, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native"
 import { Appbar, Avatar, Text, TextInput } from "react-native-paper"
-import ChatItem from "../../components/business/ChatItem"; // Using the ChatItem component
+import ChatItem from "../../components/business/ChatItem"
 import { AuthContext } from "../../contexts/AuthContext"
-import ChatService from "../../services/ChatService.fixed"; // Using the fixed chat service
+import ChatService from "../../services/ChatService.new"; // Sử dụng service mới
+import FirebaseAuthService from "../../services/FirebaseAuthService"
 
 const ChatScreen = ({ navigation, route }) => {
     const { user } = useContext(AuthContext)
@@ -15,7 +17,7 @@ const ChatScreen = ({ navigation, route }) => {
     const flatListRef = useRef(null)
     const unsubscribeRef = useRef(null)
 
-    // Get chat information from route params or use defaults
+    // Lấy thông tin chat từ route params hoặc sử dụng giá trị mặc định
     const { 
         recruiterId, 
         recruiterName = "Nhà tuyển dụng",
@@ -25,7 +27,7 @@ const ChatScreen = ({ navigation, route }) => {
         company = "Tên công ty" 
     } = route.params || {}
     
-    // Chat info for display
+    // Thông tin chat để hiển thị
     const chatInfo = {
         jobTitle,
         company,
@@ -43,44 +45,62 @@ const ChatScreen = ({ navigation, route }) => {
                 setError(null);
                 setLoading(true);
                 
-                console.log("Setting up chat for candidate", user?.id, "with recruiter", recruiterId);
+                console.log("Thiết lập chat cho ứng viên", user?.id, "với nhà tuyển dụng", recruiterId);
                 
                 if (!user || !user.id || !recruiterId) {
-                    console.error("Missing user ID or recruiter ID");
+                    console.error("Thiếu ID người dùng hoặc ID nhà tuyển dụng");
                     setLoading(false);
                     setError("Không thể tạo kết nối - Thiếu thông tin người dùng");
                     return;
                 }
 
-                // Create or get chat room
+                // Đảm bảo đã xác thực với Firebase trước khi tạo chat room
+                try {
+                    await FirebaseAuthService.ensureAuthenticated();
+                } catch (authError) {
+                    console.error("Lỗi xác thực Firebase:", authError);
+                    
+                    // Thử lấy token mới từ backend
+                    const accessToken = await AsyncStorage.getItem('accessToken');
+                    if (!accessToken) {
+                        throw new Error("Không thể xác thực - Thiếu access token");
+                    }
+                    
+                    // Thử xác thực lại
+                    await FirebaseAuthService.authenticateWithBackend();
+                }
+
+                // Tạo hoặc lấy chat room
                 const chatRoomId = await ChatService.createOrGetChatRoom(
                     recruiterId,
                     user.id,
                     jobId
                 ).catch(err => {
-                    console.error("Error creating chat room:", err);
+                    console.error("Lỗi khi tạo chat room:", err);
                     setError("Không thể kết nối đến dịch vụ chat - Vui lòng thử lại sau");
                     throw err;
                 });
                 
-                console.log("Using chat room ID:", chatRoomId);
+                console.log("Sử dụng ID chat room:", chatRoomId);
                 setRoomId(chatRoomId);
 
-                // Subscribe to messages
+                // Đăng ký nhận tin nhắn
                 unsubscribe = ChatService.subscribeToMessages(
                     chatRoomId, 
                     (newMessages) => {
-                        // Convert Firebase timestamp to Date objects
+                        // Chuyển đổi Firebase timestamp thành đối tượng Date
                         const formattedMessages = newMessages.map(msg => ({
                             ...msg,
-                            timestamp: msg.timestamp ? msg.timestamp.toDate() : new Date()
+                            timestamp: msg.timestamp ? 
+                              (msg.timestamp.toDate ? msg.timestamp.toDate() : new Date(msg.timestamp)) 
+                              : new Date()
                         }));
                         
                         setMessages(formattedMessages);
                         setLoading(false);
                     },
                     (error) => {
-                        console.error("Error subscribing to messages:", error);
+                        console.error("Lỗi khi đăng ký nhận tin nhắn:", error);
                         setError("Lỗi khi nhận tin nhắn - Vui lòng thử lại sau");
                         setLoading(false);
                     }
@@ -88,14 +108,20 @@ const ChatScreen = ({ navigation, route }) => {
 
                 unsubscribeRef.current = unsubscribe;
                 
-                // Mark messages as read when entering chat
+                // Đánh dấu tin nhắn là đã đọc khi vào chat
                 await ChatService.markMessagesAsRead(chatRoomId, user.id).catch(err => {
-                    console.error("Error marking messages as read:", err);
+                    console.error("Lỗi khi đánh dấu tin nhắn là đã đọc:", err);
                 });
             } catch (error) {
-                console.error("Error setting up chat:", error);
+                console.error("Lỗi khi thiết lập chat:", error);
                 setLoading(false);
-                setError("Lỗi kết nối - Vui lòng thử lại sau");
+                setError(`Lỗi kết nối - ${error.message || 'Vui lòng thử lại sau'}`);
+                
+                Alert.alert(
+                    "Lỗi kết nối chat",
+                    `Không thể kết nối đến dịch vụ chat: ${error.message || 'Lỗi không xác định'}`,
+                    [{ text: "Đóng", onPress: () => navigation.goBack() }]
+                );
             }
         };
 
@@ -103,7 +129,7 @@ const ChatScreen = ({ navigation, route }) => {
             setupChat();
         }
 
-        // Clean up subscription on unmount
+        // Hủy đăng ký khi unmount
         return () => {
             if (unsubscribeRef.current) {
                 unsubscribeRef.current();
@@ -112,7 +138,7 @@ const ChatScreen = ({ navigation, route }) => {
     }, [user, recruiterId, jobId])
 
     useEffect(() => {
-        // Scroll to bottom when messages change
+        // Cuộn đến tin nhắn cuối cùng khi có tin nhắn mới
         if (flatListRef.current && messages.length > 0) {
             flatListRef.current.scrollToEnd({ animated: true })
         }
@@ -123,11 +149,14 @@ const ChatScreen = ({ navigation, route }) => {
 
         try {
             setSending(true);
-            // Clear input immediately for better UX
+            // Xóa input ngay lập tức để trải nghiệm người dùng tốt hơn
             const messageToSend = inputMessage.trim();
             setInputMessage("");
             
-            // Send message to Firebase
+            // Đảm bảo đã xác thực với Firebase
+            await FirebaseAuthService.ensureAuthenticated();
+            
+            // Gửi tin nhắn đến Firebase
             await ChatService.sendMessage(
                 roomId,
                 user.id,
@@ -135,23 +164,24 @@ const ChatScreen = ({ navigation, route }) => {
                 'candidate'
             );
             
-            // No need to update messages state manually as the subscription will handle it
+            // Không cần cập nhật messages state vì subscription sẽ xử lý
         } catch (error) {
-            console.error("Error sending message:", error);
+            console.error("Lỗi khi gửi tin nhắn:", error);
             setError("Không thể gửi tin nhắn - Vui lòng thử lại");
+            
+            // Khôi phục tin nhắn nếu gửi thất bại
+            setInputMessage(inputMessage);
+            
+            Alert.alert(
+                "Lỗi gửi tin nhắn",
+                "Không thể gửi tin nhắn. Vui lòng thử lại sau."
+            );
         } finally {
             setSending(false);
         }
     }
 
-    const formatTime = (date) => {
-        return new Date(date).toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-        })
-    }
-
-    // Using the ChatItem component instead of custom rendering
+    // Sử dụng component ChatItem thay vì tự tạo UI
     const renderMessage = ({ item }) => (
         <ChatItem 
             message={item}
@@ -206,9 +236,9 @@ const ChatScreen = ({ navigation, route }) => {
                     style={styles.input}
                     right={
                         <TextInput.Icon
-                            icon="send"
+                            icon={sending ? "loading" : "send"}
                             onPress={handleSend}
-                            disabled={inputMessage.trim() === ""}
+                            disabled={inputMessage.trim() === "" || sending}
                             color={inputMessage.trim() === "" ? "#BDBDBD" : "#1E88E5"}
                         />
                     }
@@ -246,94 +276,6 @@ const styles = StyleSheet.create({
     messageList: {
         padding: 16,
     },
-    messageContainer: {
-        flexDirection: "row",
-        marginBottom: 16,
-        maxWidth: "80%",
-    },
-    recruiterMessage: {
-        alignSelf: "flex-start",
-    },
-    candidateMessage: {
-        alignSelf: "flex-end",
-        justifyContent: "flex-end",
-    },
-    avatar: {
-        marginRight: 8,
-        alignSelf: "flex-end",
-    },
-    messageBubble: {
-        padding: 12,
-        borderRadius: 16,
-    },
-    recruiterBubble: {
-        backgroundColor: "#FFFFFF",
-        borderTopLeftRadius: 4,
-    },
-    candidateBubble: {
-        backgroundColor: "#1E88E5",
-        borderTopRightRadius: 4,
-    },
-    messageText: {
-        fontSize: 14,
-        color: "#212121",
-    },
-    candidateMessage: {
-        alignSelf: "flex-end",
-    },
-    candidateBubble: {
-        backgroundColor: "#1E88E5",
-        borderTopRightRadius: 4,
-    },
-    candidateMessage: {
-        alignSelf: "flex-end",
-    },
-    candidateBubble: {
-        backgroundColor: "#1E88E5",
-        borderTopRightRadius: 4,
-    },
-    messageText: {
-        fontSize: 14,
-    },
-    candidateBubble: {
-        backgroundColor: "#1E88E5",
-    },
-    recruiterBubble: {
-        backgroundColor: "#FFFFFF",
-    },
-    messageText: {
-        fontSize: 14,
-        color: "#212121",
-    },
-    candidateBubble: {
-        backgroundColor: "#1E88E5",
-    },
-    candidateMessage: {
-        alignSelf: "flex-end",
-    },
-    messageText: {
-        fontSize: 14,
-        color: "#212121",
-    },
-    candidateBubble: {
-        backgroundColor: "#1E88E5",
-    },
-    messageText: {
-        fontSize: 14,
-    },
-    candidateBubble: {
-        backgroundColor: "#1E88E5",
-    },
-    messageText: {
-        fontSize: 14,
-        color: (props) => (props.sender === "candidate" ? "#FFFFFF" : "#212121"),
-    },
-    timestamp: {
-        fontSize: 10,
-        color: "#9E9E9E",
-        alignSelf: "flex-end",
-        marginTop: 4,
-    },
     inputContainer: {
         padding: 16,
         backgroundColor: "#FFFFFF",
@@ -357,4 +299,3 @@ const styles = StyleSheet.create({
 })
 
 export default ChatScreen
-

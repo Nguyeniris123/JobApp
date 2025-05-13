@@ -51,18 +51,25 @@ export const ApplicationProvider = ({ children }) => {
                 }
             });
 
-            const formattedApplications = (response.data.results || response.data).map(app => ({
-                id: app.id,
-                jobTitle: app.job_detail?.title || 'Không có tiêu đề',
-                company: app.job_detail?.company?.name || 'Không có thông tin công ty',
-                companyLogo: app.job_detail?.company?.images?.[0]?.image || 'https://via.placeholder.com/150',
-                status: app.status || 'pending',
-                appliedDate: new Date(app.created_date),
-                lastUpdated: new Date(app.updated_date || app.created_date),
-                feedback: app.feedback,
-                job: app.job,
-                jobDetail: app.job_detail
-            }));
+            const formattedApplications = (response.data.results || response.data).map(app => {
+                // Log để kiểm tra cấu trúc dữ liệu
+                console.log('Application data structure:', JSON.stringify(app, null, 2));
+                
+                return {
+                    id: app.id,
+                    jobTitle: app.job_detail?.title || 'Không có tiêu đề',
+                    company: app.job_detail?.company?.name || 'Không có thông tin công ty',
+                    companyLogo: app.job_detail?.company?.images?.[0]?.image || 'https://via.placeholder.com/150',
+                    status: app.status || 'pending',
+                    appliedDate: new Date(app.created_date),
+                    lastUpdated: new Date(app.updated_date || app.created_date),
+                    feedback: app.feedback,
+                    job: app.job,
+                    jobDetail: app.job_detail,
+                    // Lấy recruiterId trực tiếp từ job_detail.recruiter
+                    recruiterId: app.job_detail?.recruiter
+                }
+            });
 
             console.log('Fetched applications:', formattedApplications.length);
             setApplications(formattedApplications);

@@ -6,6 +6,7 @@ export const API_URL = 'http://192.168.1.5:8000';
 export const API_ENDPOINTS = {
   // Auth
   LOGIN: `${API_URL}/o/token/`,
+  FIREBASE_TOKEN: `${API_URL}/firebase-token/`,
 
   // JobPosts
   JOBPOSTS_LIST: `${API_URL}/jobposts/`,
@@ -61,9 +62,11 @@ export const API_ENDPOINTS = {
   REVIEWS_CANDIDATE_CREATE: `${API_URL}/review_candidates/`,
   REVIEWS_LIST_FOR_CANDIDATE: (id) => `${API_URL}/review_candidates/candidate/${id}/recruiter-reviews/`,
   REVIEWS_DELETE_FOR_CANDIDATE: (id) => `${API_URL}/reviews_candidates/${id}/`,
-
   //Review_recruiter 
   REVIEWS_RECRUITER_CREATE: `${API_URL}/review_recruiters/`,
   REVIEWS_LIST_FOR_RECRUITER: (id) => `${API_URL}/review_recruiters/recruiter/${id}/candidate-reviews/`,
   REVIEWS_DELETE_FOR_RECRUITER: (id) => `${API_URL}/review_recruiters/${id}/`,
+  
+  // Firebase Authentication
+  FIREBASE_TOKEN: `${API_URL}/firebase-token/`,
 };

@@ -1,17 +1,17 @@
 // Chat service for Firebase integration
 import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    getDocs, // Added this import
-    onSnapshot,
-    orderBy,
-    query,
-    serverTimestamp,
-    setDoc,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs, // Added this import
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
@@ -28,6 +28,11 @@ class ChatService {
    */
   async createOrGetChatRoom(recruiterId, candidateId, jobId = null) {
     try {
+      // Validate inputs
+      if (!recruiterId || !candidateId) {
+        throw new Error('Recruiter ID and Candidate ID are required');
+      }
+      
       // Create a unique ID for the chat room based on the participants
       const roomId = this.generateChatRoomId(recruiterId, candidateId, jobId);
       
@@ -41,24 +46,55 @@ class ChatService {
           recruiterId,
           candidateId,
           jobId,
-          participants: [recruiterId, candidateId], // Vẫn giữ để tiện tham chiếu
+          participants: [recruiterId, candidateId], // Keep for reference
           createdAt: serverTimestamp(),
           lastMessage: null,
-          lastMessageTimestamp: null
+          lastMessageTimestamp: null,
+          lastSenderId: null
         });
         
-        // Thêm participants vào subcollection theo yêu cầu của Firestore Rules
+        // Create participants subcollection for Firestore Rules to work
+        // IMPORTANT: We must create participants subcollection 
         const recruiterParticipantRef = doc(db, 'chatRooms', roomId, 'participants', recruiterId);
         await setDoc(recruiterParticipantRef, {
           type: 'recruiter',
+          userId: recruiterId,
           joinedAt: serverTimestamp()
         });
         
         const candidateParticipantRef = doc(db, 'chatRooms', roomId, 'participants', candidateId);
         await setDoc(candidateParticipantRef, {
           type: 'candidate',
+          userId: candidateId,
           joinedAt: serverTimestamp()
         });
+      } else {
+        console.log(`Chat room ${roomId} already exists`);
+        
+        // Ensure participants subcollection exists (fix for older chat rooms)
+        const recruiterParticipantRef = doc(db, 'chatRooms', roomId, 'participants', recruiterId);
+        const recruiterParticipantSnapshot = await getDoc(recruiterParticipantRef);
+        
+        if (!recruiterParticipantSnapshot.exists()) {
+          console.log(`Creating recruiter participant record for ${recruiterId}`);
+          await setDoc(recruiterParticipantRef, {
+            type: 'recruiter',
+            userId: recruiterId,
+            joinedAt: serverTimestamp()
+          });
+        }
+        
+        const candidateParticipantRef = doc(db, 'chatRooms', roomId, 'participants', candidateId);
+        const candidateParticipantSnapshot = await getDoc(candidateParticipantRef);
+        
+        if (!candidateParticipantSnapshot.exists()) {
+          console.log(`Creating candidate participant record for ${candidateId}`);
+          await setDoc(candidateParticipantRef, {
+            type: 'candidate',
+            userId: candidateId,
+            joinedAt: serverTimestamp()
+          });
+        }
       }
       
       return roomId;
@@ -122,9 +158,10 @@ class ChatService {
    * Listen for new messages in a chat room
    * @param {string} roomId - Chat room ID
    * @param {function} callback - Function to call with new messages
+   * @param {function} errorCallback - Function to call with errors (optional)
    * @returns {function} - Unsubscribe function
    */
-  subscribeToMessages(roomId, callback) {
+  subscribeToMessages(roomId, callback, errorCallback) {
     try {
       const messagesRef = collection(db, 'chatRooms', roomId, 'messages');
       const messagesQuery = query(
@@ -132,15 +169,29 @@ class ChatService {
         orderBy('timestamp', 'asc')
       );
       
-      return onSnapshot(messagesQuery, (snapshot) => {
-        const messages = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        callback(messages);
-      });
+      return onSnapshot(
+        messagesQuery, 
+        (snapshot) => {
+          const messages = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          callback(messages);
+        },
+        (error) => {
+          console.error('Error in messages snapshot:', error);
+          if (errorCallback) {
+            errorCallback(error);
+          } else {
+            console.error('Unhandled error in subscribeToMessages:', error);
+          }
+        }
+      );
     } catch (error) {
       console.error('Error subscribing to messages:', error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
       throw error;
     }
   }
@@ -155,15 +206,16 @@ class ChatService {
    */
   getUserChatRooms(userId, userType, callback, errorCallback) {
     try {
-      // Thay đổi cách truy vấn để phù hợp với Firestore rules (dùng participants subcollection)
-      const roomsRef = collection(db, 'chatRooms');
+      // Modify query to work with Firestore rules (using participants subcollection)
       
       // First try with the full query including ordering
       try {
-        // Lấy danh sách phòng chat mà người dùng tham gia (dựa trên participants subcollection)
-        // Đầu tiên, lấy tất cả các phòng
+        // Since we can't directly query subcollections across documents with the security rules,
+        // we'll use a workaround
+        
+        // Get all chat rooms and then filter by participant
         const participantsQuery = query(
-          collection(db, 'chatRooms'),
+          collection(db, 'chatRooms')
         );
         
         return onSnapshot(
@@ -171,27 +223,31 @@ class ChatService {
           async (snapshot) => {
             const rooms = [];
             
+            // For each room, check if current user is a participant
             for (const roomDoc of snapshot.docs) {
-              // Kiểm tra xem người dùng có trong subcollection participants không
-              const participantRef = doc(db, 'chatRooms', roomDoc.id, 'participants', userId);
-              const participantSnapshot = await getDoc(participantRef);
-              
-              if (participantSnapshot.exists()) {
-                const roomData = roomDoc.data();
+              try {
+                const participantRef = doc(db, 'chatRooms', roomDoc.id, 'participants', userId);
+                const participantSnapshot = await getDoc(participantRef);
                 
-                // Get other participant info
-                const otherParticipantId = userType === 'recruiter' 
-                  ? roomData.candidateId 
-                  : roomData.recruiterId;
-                
-                rooms.push({
-                  id: roomDoc.id,
-                  otherParticipantId,
-                  jobId: roomData.jobId,
-                  lastMessage: roomData.lastMessage,
-                  lastMessageTimestamp: roomData.lastMessageTimestamp,
-                  // Additional fields can be added here
-                });
+                if (participantSnapshot.exists()) {
+                  const roomData = roomDoc.data();
+                  
+                  // Get other participant info
+                  const otherParticipantId = userType === 'recruiter' 
+                    ? roomData.candidateId 
+                    : roomData.recruiterId;
+                  
+                  rooms.push({
+                    id: roomDoc.id,
+                    otherParticipantId,
+                    jobId: roomData.jobId,
+                    lastMessage: roomData.lastMessage,
+                    lastMessageTimestamp: roomData.lastMessageTimestamp,
+                    // Additional fields can be added here
+                  });
+                }
+              } catch (participantError) {
+                console.error(`Error checking participant for room ${roomDoc.id}:`, participantError);
               }
             }
             
@@ -255,33 +311,34 @@ class ChatService {
    * @private
    */
   getUserChatRoomsWithoutOrdering(userId, userType, callback) {
-    const fieldToQuery = userType === 'recruiter' ? 'recruiterId' : 'candidateId';
+    // Get all chat rooms (we can't filter by participant with the new rules structure)
     const roomsRef = collection(db, 'chatRooms');
-    
-    // Simpler query without ordering
-    const simpleQuery = query(
-      roomsRef,
-      where(fieldToQuery, '==', userId)
-    );
+    const simpleQuery = query(roomsRef);
     
     return onSnapshot(simpleQuery, async (snapshot) => {
       const rooms = [];
       
-      for (const doc of snapshot.docs) {
-        const roomData = doc.data();
+      for (const roomDoc of snapshot.docs) {
+        // Check if user is a participant in this room
+        const participantRef = doc(db, 'chatRooms', roomDoc.id, 'participants', userId);
+        const participantSnapshot = await getDoc(participantRef);
         
-        // Get other participant info
-        const otherParticipantId = userType === 'recruiter' 
-          ? roomData.candidateId 
-          : roomData.recruiterId;
-        
-        rooms.push({
-          id: doc.id,
-          otherParticipantId,
-          jobId: roomData.jobId,
-          lastMessage: roomData.lastMessage,
-          lastMessageTimestamp: roomData.lastMessageTimestamp,
-        });
+        if (participantSnapshot.exists()) {
+          const roomData = roomDoc.data();
+          
+          // Get other participant info
+          const otherParticipantId = userType === 'recruiter' 
+            ? roomData.candidateId 
+            : roomData.recruiterId;
+          
+          rooms.push({
+            id: roomDoc.id,
+            otherParticipantId,
+            jobId: roomData.jobId,
+            lastMessage: roomData.lastMessage,
+            lastMessageTimestamp: roomData.lastMessageTimestamp,
+          });
+        }
       }
       
       // Sort manually since we can't do it in the query

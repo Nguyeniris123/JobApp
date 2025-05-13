@@ -10,12 +10,14 @@ const ChatScreen = ({ navigation, route }) => {
     const {
         candidateId,
         candidateName = "Ứng viên",
+        candidateAvatar = "https://via.placeholder.com/150",
         jobId,
         jobTitle = "Nhân viên bán hàng bán thời gian",
     } = route.params || {}
     const [messages, setMessages] = useState([])
     const [inputMessage, setInputMessage] = useState("")
     const [loading, setLoading] = useState(true)
+    const [sending, setSending] = useState(false)
     const [isTyping, setIsTyping] = useState(false)
     const [roomId, setRoomId] = useState(null)
     const flatListRef = useRef(null)
