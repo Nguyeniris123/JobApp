@@ -200,3 +200,9 @@ EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS") == "True"
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.getenv("EMAIL_SEND")
+
+import firebase_admin
+from firebase_admin import credentials
+
+cred = credentials.Certificate('firebase/jobapp-9c8b0-firebase-adminsdk-fbsvc-1da9db7357.json')  # File từ Firebase Console
+firebase_admin.initialize_app(cred)
