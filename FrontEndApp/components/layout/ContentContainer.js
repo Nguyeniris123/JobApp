@@ -1,31 +1,19 @@
-import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-const ContentContainer = ({
-    children,
-    style,
-    scrollable = true,
-    contentContainerStyle,
-    refreshControl,
-}) => {
+const ContentContainer = ({ children, scrollable = true, style, ...props }) => {
     if (scrollable) {
         return (
             <ScrollView
-                style={[styles.container, style]}
-                contentContainerStyle={[styles.contentContainer, contentContainerStyle]}
-                refreshControl={refreshControl}
-                showsVerticalScrollIndicator={false}
+                contentContainerStyle={style}
+                keyboardShouldPersistTaps="handled"
+                {...props}
             >
                 {children}
             </ScrollView>
         );
     }
-
-    return (
-        <View style={[styles.container, styles.contentContainer, style]}>
-            {children}
-        </View>
-    );
+    
+    return <View style={style} {...props}>{children}</View>;
 };
 
 const styles = StyleSheet.create({

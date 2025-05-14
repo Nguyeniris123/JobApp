@@ -7,8 +7,8 @@ import { Text, View } from "react-native"
 // Screens
 import ApplicationStatusScreen from "../screen/candidate/ApplicationStatusScreen"
 import ApplyScreen from "../screen/candidate/ApplyScreen"
-import ChatListScreen from "../screen/candidate/ChatListScreen"
-import ChatScreen from "../screen/candidate/ChatScreen.new.js"
+import ChatListScreenSimple from "../screen/candidate/ChatListScreenSimple"
+import ChatScreenSimple from "../screen/candidate/ChatScreenSimple"
 import CreateReviewScreen from "../screen/candidate/CreateReviewScreen"
 import FollowingScreen from "../screen/candidate/FollowingScreen"
 import HomeScreen from "../screen/candidate/HomeScreen"
@@ -29,21 +29,21 @@ export const navigationRef = createNavigationContainerRef()
 
 // Custom TabBar Label with Icon
 const TabBarLabel = ({ label, focused, color, icon }) => (
-    <View style={{ 
-        flexDirection: 'row', 
+    <View style={{
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 8
     }}>
-        <MaterialCommunityIcons 
-            name={icon} 
-            size={18} 
+        <MaterialCommunityIcons
+            name={icon}
+            size={18}
             color={color}
             style={{ marginRight: 6 }}
         />
-        <Text style={{ 
-            color, 
-            fontSize: 14, 
+        <Text style={{
+            color,
+            fontSize: 14,
             fontWeight: focused ? "600" : "400"
         }}>
             {label}
@@ -59,44 +59,44 @@ const NotificationTabs = () => {
                 tabBarActiveTintColor: "#1E88E5",
                 tabBarInactiveTintColor: "#757575",
                 tabBarIndicatorStyle: { backgroundColor: "#1E88E5" },
-                tabBarLabelStyle: { 
+                tabBarLabelStyle: {
                     textTransform: "none",
                     display: 'none' // Hide default labels since we use custom ones
                 },
-                tabBarStyle: { 
+                tabBarStyle: {
                     elevation: 0,
                     shadowOpacity: 0,
-                    backgroundColor: "#FFFFFF" 
+                    backgroundColor: "#FFFFFF"
                 },
             }}
         >
-            <TopTab.Screen 
-                name="Favorite" 
-                component={FollowingScreen} 
-                options={{ 
+            <TopTab.Screen
+                name="Favorite"
+                component={FollowingScreen}
+                options={{
                     tabBarLabel: ({ focused, color }) => (
-                        <TabBarLabel 
-                            label="Đã lưu" 
-                            focused={focused} 
-                            color={color} 
-                            icon="heart" 
+                        <TabBarLabel
+                            label="Đã lưu"
+                            focused={focused}
+                            color={color}
+                            icon="heart"
                         />
                     )
-                }} 
+                }}
             />
-            <TopTab.Screen 
-                name="ChatList" 
-                component={ChatListScreen}
-                options={{ 
+            <TopTab.Screen
+                name="ChatList"
+                component={ChatListScreenSimple}
+                options={{
                     tabBarLabel: ({ focused, color }) => (
-                        <TabBarLabel 
-                            label="Tin nhắn" 
-                            focused={focused} 
-                            color={color} 
-                            icon="chat" 
+                        <TabBarLabel
+                            label="Tin nhắn"
+                            focused={focused}
+                            color={color}
+                            icon="chat"
                         />
                     )
-                }} 
+                }}
             />
         </TopTab.Navigator>
     )
@@ -113,7 +113,7 @@ const HomeStack = () => {
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="JobDetail" component={JobDetailScreen} />
             <Stack.Screen name="Apply" component={ApplyScreen} />
-            <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen name="Chat" component={ChatScreenSimple} />
             <Stack.Screen name="CreateReview" component={CreateReviewScreen} />
         </Stack.Navigator>
     )
@@ -124,10 +124,9 @@ const FavoriteStack = () => {
         <Stack.Navigator
             screenOptions={{
                 headerShown: false,
-            }}
-        >
+            }}>
             <Stack.Screen name="ApplicationStatus" component={ApplicationStatusScreen} />
-            <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen name="Chat" component={ChatScreenSimple} />
         </Stack.Navigator>
     )
 }
@@ -139,22 +138,19 @@ const NotificationStack = () => {
                 headerShown: true,
             }}
         >
-            <Stack.Screen 
-                name="NotificationTabs" 
-                component={NotificationTabs} 
+            <Stack.Screen
+                name="NotificationTabs"
+                component={NotificationTabs}
                 options={{
                     title: "Thông báo & Tin nhắn",
                     headerStyle: { elevation: 0, shadowOpacity: 0 }
-                }}
-            />
-            <Stack.Screen 
-                name="Chat" 
-                component={ChatScreen}
+                }} />
+            <Stack.Screen
+                name="Chat"
+                component={ChatScreenSimple}
                 options={{
                     headerShown: false
-                }}
-            />
-            
+                }} />
         </Stack.Navigator>
     )
 }

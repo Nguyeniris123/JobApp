@@ -33,13 +33,14 @@ const ChatItem = ({
                     isCurrentUser ? styles.currentUserText : styles.otherUserText
                 ]}>
                     {message.text}
-                </Text>
-                <Text style={[
+                </Text>                <Text style={[
                     styles.timestamp,
                     isCurrentUser ? styles.currentUserTimestamp : styles.otherUserTimestamp
                 ]}>
                     {message.timestamp ? 
-                        new Date(message.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                        (typeof message.timestamp === 'number' || typeof message.timestamp === 'string' ? 
+                            new Date(message.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) :
+                            message.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }))
                         : ''}
                 </Text>
             </View>

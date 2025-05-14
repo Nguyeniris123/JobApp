@@ -6,8 +6,8 @@ import { Text, View } from "react-native";
 
 import EditProfileScreen from "../screen/common/EditProfileScreen";
 import ApplicationListScreen from "../screen/recruiter/ApplicationListScreen";
-import ChatListScreen from "../screen/recruiter/ChatListScreen";
-import ChatScreen from "../screen/recruiter/ChatScreen";
+import ChatListScreenSimple from "../screen/recruiter/ChatListScreenSimple";
+import ChatScreenSimple from "../screen/recruiter/ChatScreenSimple";
 import CompanyProfileScreen from "../screen/recruiter/CompanyProfileScreen";
 import FavoriteCandidatesScreen from "../screen/recruiter/FavoriteCandidatesScreen";
 import HomeScreen from "../screen/recruiter/HomeScreen";
@@ -89,16 +89,15 @@ const CandidateTabs = () => {
                             focused={focused} 
                             color={color} 
                             icon="account-group" 
-                        />
-                    )
+                        />                    )
                 }} 
             />
             <TopTab.Screen 
                 name="ChatList" 
-                component={ChatListScreen}
+                component={ChatListScreenSimple}
                 options={{ 
                     tabBarLabel: ({ focused, color }) => (
-                        <TabBarLabel 
+                        <TabBarLabel
                             label="Tin nhắn" 
                             focused={focused} 
                             color={color} 
@@ -128,14 +127,13 @@ const CandidateStack = () => {
             />
             <Stack.Screen 
                 name="FavoriteCandidates" 
-                component={FavoriteCandidatesScreen} 
-                options={{
+                component={FavoriteCandidatesScreen}                options={{
                     headerShown: false
                 }}
             />
             <Stack.Screen 
                 name="Chat" 
-                component={ChatScreen} 
+                component={ChatScreenSimple} 
                 options={{
                     headerShown: false
                 }}

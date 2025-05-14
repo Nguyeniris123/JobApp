@@ -14,9 +14,9 @@ const SplashScreen = () => {
             useNativeDriver: true,
         }).start()
 
-        // Chuyển sang màn hình Onboarding hoặc Home sau 2 giây
+        // Chuyển sang màn hình Onboarding hoặc Home sau 4 giây
         const timer = setTimeout(() => {
-            navigation.replace("Onboarding") // Hoặc "Home" nếu đã xem Onboarding
+            navigation.navigate("Onboarding") // Hoặc "Home" nếu đã xem Onboarding
         }, 4000)
 
         return () => clearTimeout(timer) // Xóa timer nếu component unmount

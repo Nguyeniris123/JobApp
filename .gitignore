@@ -174,3 +174,7 @@ cython_debug/
 .DS_Store
 .idea/
 
+jobapp/.env
+jobapp/.env
+/jobapp
+FrontEndApp/apiConfig.js

@@ -1,13 +1,11 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useContext, useEffect, useRef, useState } from "react"
-import { Alert, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native"
+import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native"
 import { Appbar, Avatar, Text, TextInput } from "react-native-paper"
 import ChatItem from "../../components/business/ChatItem"
 import { AuthContext } from "../../contexts/AuthContext"
-import ChatService from "../../services/ChatService.new"; // Sử dụng service mới
-import FirebaseAuthService from "../../services/FirebaseAuthService"
+import ChatServiceSimple from "../../services/ChatServiceSimple"
 
-const ChatScreen = ({ navigation, route }) => {
+const ChatScreenSimple = ({ navigation, route }) => {
     const { user } = useContext(AuthContext)
     const [messages, setMessages] = useState([])
     const [inputMessage, setInputMessage] = useState("")
@@ -54,24 +52,8 @@ const ChatScreen = ({ navigation, route }) => {
                     return;
                 }
 
-                // Đảm bảo đã xác thực với Firebase trước khi tạo chat room
-                try {
-                    await FirebaseAuthService.ensureAuthenticated();
-                } catch (authError) {
-                    console.error("Lỗi xác thực Firebase:", authError);
-                    
-                    // Thử lấy token mới từ backend
-                    const accessToken = await AsyncStorage.getItem('accessToken');
-                    if (!accessToken) {
-                        throw new Error("Không thể xác thực - Thiếu access token");
-                    }
-                    
-                    // Thử xác thực lại
-                    await FirebaseAuthService.authenticateWithBackend();
-                }
-
                 // Tạo hoặc lấy chat room
-                const chatRoomId = await ChatService.createOrGetChatRoom(
+                const chatRoomId = await ChatServiceSimple.createOrGetChatRoom(
                     recruiterId,
                     user.id,
                     jobId
@@ -85,110 +67,108 @@ const ChatScreen = ({ navigation, route }) => {
                 setRoomId(chatRoomId);
 
                 // Đăng ký nhận tin nhắn
-                unsubscribe = ChatService.subscribeToMessages(
+                unsubscribe = ChatServiceSimple.subscribeToMessages(
                     chatRoomId, 
                     (newMessages) => {
-                        // Chuyển đổi Firebase timestamp thành đối tượng Date
+                        // Chuyển đổi timestamp thành đối tượng Date
                         const formattedMessages = newMessages.map(msg => ({
                             ...msg,
                             timestamp: msg.timestamp ? 
-                              (msg.timestamp.toDate ? msg.timestamp.toDate() : new Date(msg.timestamp)) 
-                              : new Date()
+                              new Date(msg.timestamp) : new Date()
                         }));
                         
                         setMessages(formattedMessages);
                         setLoading(false);
                     },
-                    (error) => {
-                        console.error("Lỗi khi đăng ký nhận tin nhắn:", error);
-                        setError("Lỗi khi nhận tin nhắn - Vui lòng thử lại sau");
+                    (err) => {
+                        console.error("Lỗi khi nhận tin nhắn:", err);
+                        setError("Không thể nhận tin nhắn - Vui lòng thử lại sau");
                         setLoading(false);
                     }
                 );
-
+                
                 unsubscribeRef.current = unsubscribe;
                 
-                // Đánh dấu tin nhắn là đã đọc khi vào chat
-                await ChatService.markMessagesAsRead(chatRoomId, user.id).catch(err => {
-                    console.error("Lỗi khi đánh dấu tin nhắn là đã đọc:", err);
-                });
-            } catch (error) {
-                console.error("Lỗi khi thiết lập chat:", error);
+                // Đánh dấu tất cả tin nhắn là đã đọc khi vào phòng chat
+                await ChatServiceSimple.markMessagesAsRead(chatRoomId, user.id);
+            } catch (err) {
+                console.error("Lỗi khi thiết lập chat:", err);
+                setError("Không thể thiết lập chat - " + err.message);
                 setLoading(false);
-                setError(`Lỗi kết nối - ${error.message || 'Vui lòng thử lại sau'}`);
-                
-                Alert.alert(
-                    "Lỗi kết nối chat",
-                    `Không thể kết nối đến dịch vụ chat: ${error.message || 'Lỗi không xác định'}`,
-                    [{ text: "Đóng", onPress: () => navigation.goBack() }]
-                );
             }
         };
 
-        if (user && recruiterId) {
-            setupChat();
-        }
+        setupChat();
 
-        // Hủy đăng ký khi unmount
+        // Hủy đăng ký khi component unmount
         return () => {
             if (unsubscribeRef.current) {
                 unsubscribeRef.current();
             }
         };
-    }, [user, recruiterId, jobId])
+    }, [user, recruiterId, jobId]);
 
+    // Cuộn xuống tin nhắn cuối cùng khi có tin nhắn mới
     useEffect(() => {
-        // Cuộn đến tin nhắn cuối cùng khi có tin nhắn mới
-        if (flatListRef.current && messages.length > 0) {
-            flatListRef.current.scrollToEnd({ animated: true })
+        if (messages.length > 0 && flatListRef.current) {
+            setTimeout(() => {
+                flatListRef.current.scrollToEnd({ animated: true });
+            }, 100);
         }
-    }, [messages])
+    }, [messages]);
 
+    // Xử lý gửi tin nhắn
     const handleSend = async () => {
-        if (inputMessage.trim() === "" || !roomId || !user || !user.id || sending) return;
-
         try {
+            if (inputMessage.trim() === "" || sending) {
+                return;
+            }
+
+            if (!roomId) {
+                setError("Không thể gửi tin nhắn - Phòng chat chưa được thiết lập");
+                return;
+            }
+
+            const messageText = inputMessage.trim();
             setSending(true);
-            // Xóa input ngay lập tức để trải nghiệm người dùng tốt hơn
-            const messageToSend = inputMessage.trim();
-            setInputMessage("");
-            
-            // Đảm bảo đã xác thực với Firebase
-            await FirebaseAuthService.ensureAuthenticated();
-            
-            // Gửi tin nhắn đến Firebase
-            await ChatService.sendMessage(
-                roomId,
-                user.id,
-                messageToSend,
+            setInputMessage(""); // Xóa input để UX mượt hơn
+
+            // Gửi tin nhắn
+            await ChatServiceSimple.sendMessage(
+                roomId, 
+                user.id, 
+                messageText,
                 'candidate'
             );
-            
-            // Không cần cập nhật messages state vì subscription sẽ xử lý
+
+            setSending(false);
         } catch (error) {
             console.error("Lỗi khi gửi tin nhắn:", error);
-            setError("Không thể gửi tin nhắn - Vui lòng thử lại");
-            
-            // Khôi phục tin nhắn nếu gửi thất bại
-            setInputMessage(inputMessage);
-            
-            Alert.alert(
-                "Lỗi gửi tin nhắn",
-                "Không thể gửi tin nhắn. Vui lòng thử lại sau."
-            );
-        } finally {
+            setError("Không thể gửi tin nhắn - Vui lòng thử lại sau");
             setSending(false);
+            // Khôi phục tin nhắn vào ô nhập nếu gửi thất bại
+            setInputMessage(inputMessage); 
         }
-    }
+    };
 
-    // Sử dụng component ChatItem thay vì tự tạo UI
+    // Format thời gian tin nhắn
+    const formatTime = (date) => {
+        if (!date) return "";
+        
+        const hours = date.getHours().toString().padStart(2, "0");
+        const minutes = date.getMinutes().toString().padStart(2, "0");
+        
+        return `${hours}:${minutes}`;
+    };
+
+    // Render tin nhắn
     const renderMessage = ({ item }) => (
         <ChatItem 
             message={item}
             isCurrentUser={item.sender === 'candidate'}
             avatar={item.sender === 'recruiter' ? chatInfo.recruiterAvatar : null}
         />
-    )
+    );
 
     return (
         <KeyboardAvoidingView
@@ -218,14 +198,20 @@ const ChatScreen = ({ navigation, route }) => {
                 )}
             </View>
 
-            <FlatList
-                ref={flatListRef}
-                data={messages}
-                renderItem={renderMessage}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.messageList}
-                showsVerticalScrollIndicator={false}
-            />
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <Text>Đang tải tin nhắn...</Text>
+                </View>
+            ) : (
+                <FlatList
+                    ref={flatListRef}
+                    data={messages}
+                    renderItem={renderMessage}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.messageList}
+                    showsVerticalScrollIndicator={false}
+                />
+            )}
 
             <View style={styles.inputContainer}>
                 <TextInput
@@ -234,19 +220,20 @@ const ChatScreen = ({ navigation, route }) => {
                     placeholder="Nhập tin nhắn..."
                     mode="outlined"
                     style={styles.input}
+                    disabled={sending || loading}
                     right={
                         <TextInput.Icon
-                            icon={sending ? "loading" : "send"}
+                            icon="send"
                             onPress={handleSend}
-                            disabled={inputMessage.trim() === "" || sending}
-                            color={inputMessage.trim() === "" ? "#BDBDBD" : "#1E88E5"}
+                            disabled={inputMessage.trim() === "" || sending || loading}
+                            color={inputMessage.trim() === "" || sending || loading ? "#BDBDBD" : "#1E88E5"}
                         />
                     }
                 />
             </View>
         </KeyboardAvoidingView>
-    )
-}
+    );
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -273,6 +260,11 @@ const styles = StyleSheet.create({
     jobTitle: {
         fontWeight: "bold",
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
     messageList: {
         padding: 16,
     },
@@ -290,12 +282,11 @@ const styles = StyleSheet.create({
         padding: 8,
         borderRadius: 4,
         marginTop: 8,
-        marginHorizontal: 16,
     },
     errorText: {
         color: "#D32F2F",
         fontSize: 14,
     },
-})
+});
 
-export default ChatScreen
+export default ChatScreenSimple;

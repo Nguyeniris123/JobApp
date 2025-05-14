@@ -27,7 +27,8 @@ const loginSchema = yup.object().shape({
 
 const LoginScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
-    const { login, error } = useContext(AuthContext);
+    const [loginError, setLoginError] = useState(null);
+    const { login } = useContext(AuthContext);
     const theme = useTheme();
 
     const { control, handleSubmit, formState: { errors } } = useForm({
@@ -39,10 +40,10 @@ const LoginScreen = ({ navigation }) => {
         },
     });
 
-    // ✅ Xử lý đăng nhập
-    const onSubmit = async (data) => {
-        try {
+    // ✅ Xử lý đăng nhập    
+    const onSubmit = async (data) => {        try {
             setLoading(true);
+            setLoginError(null); // Reset error state when attempting login
             const jsondata = {
                 client_id: CLIENT_ID,
                 client_secret: CLIENT_SECRET,
@@ -63,15 +64,18 @@ const LoginScreen = ({ navigation }) => {
             if (error.response) {
                 // Lỗi từ server (ví dụ: 400, 401, 403, ...)
                 console.log("Lỗi response:", error.response.data);
-                setError(error.response.data.detail || "Đăng nhập thất bại, vui lòng kiểm tra lại!");
+                const errorMessage = error.response.status === 401 
+                    ? "Tên đăng nhập hoặc mật khẩu không chính xác"
+                    : error.response.data.detail || "Đăng nhập thất bại, vui lòng kiểm tra lại!";
+                setLoginError(errorMessage);
             } else if (error.request) {
                 // Không có phản hồi từ server (mất mạng, lỗi API)
                 console.log("Lỗi request:", error.request);
-                setError("Không thể kết nối đến máy chủ, vui lòng thử lại sau.");
+                setLoginError("Không thể kết nối đến máy chủ, vui lòng thử lại sau.");
             } else {
                 // Lỗi bất thường
                 console.log("Lỗi khác:", error.message);
-                setError("Có lỗi xảy ra, vui lòng thử lại!");
+                setLoginError("Có lỗi xảy ra, vui lòng thử lại!");
             }
         } finally {
             setLoading(false);
@@ -90,13 +94,11 @@ const LoginScreen = ({ navigation }) => {
                     />
                     <Title style={styles.title}>Chào mừng trở lại</Title>
                     <Text style={styles.subtitle}>Đăng nhập để tiếp tục</Text>
-                </View>
-
-                {/* Hiển thị lỗi từ API (nếu có) */}
-                {error && (
+                </View>                {/* Hiển thị lỗi từ API (nếu có) */}
+                {loginError && (
                     <View style={styles.errorContainer}>
                         <MaterialCommunityIcons name="alert-circle" size={20} color={theme.colors.error} />
-                        <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+                        <Text style={[styles.errorText, { color: theme.colors.error }]}>{loginError}</Text>
                     </View>
                 )}
 
@@ -147,7 +149,6 @@ const LoginScreen = ({ navigation }) => {
 
                     {/* Chuyển sang trang Đăng ký */}
                     <View style={styles.registerContainer}>
-                        
                         <Text style={styles.registerText}>Chưa có tài khoản?</Text>    
                         <AppButton
                             mode="text"
@@ -155,36 +156,6 @@ const LoginScreen = ({ navigation }) => {
                             style={styles.registerButton}
                         >
                             Đăng ký
-                        </AppButton>
-                    </View>                    <View style={styles.testButtonContainer}>
-                        <AppButton
-                            mode="outlined"
-                            onPress={() => navigation.navigate('SimpleTestChat')}
-                            icon="firebase"
-                            style={styles.testButton}
-                            labelStyle={{fontSize: 12}}
-                        >
-                            Kiểm tra kết nối Firebase
-                        </AppButton>
-                        
-                        <AppButton
-                            mode="outlined"
-                            onPress={() => navigation.navigate('SimpleTestChatEnhanced')}
-                            icon="chat-processing"
-                            style={[styles.testButton, {marginTop: 10}]}
-                            labelStyle={{fontSize: 12}}
-                        >
-                            Xem tất cả cuộc trò chuyện
-                        </AppButton>
-                        
-                        <AppButton
-                            mode="outlined"
-                            onPress={() => navigation.navigate('UserToChat')}
-                            icon="account-multiple"
-                            style={[styles.testButton, {marginTop: 10}]}
-                            labelStyle={{fontSize: 12}}
-                        >
-                            Chat với người dùng
                         </AppButton>
                     </View>
                 </View>
@@ -256,16 +227,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },    registerText: {
         color: '#666',
-    },
-    registerButton: {
+    },    registerButton: {
         marginLeft: 5,
-    },
-    testButtonContainer: {
-        marginTop: 20,
-        alignItems: 'center',
-    },
-    testButton: {
-        borderColor: '#FF5722',
     },
 });
 

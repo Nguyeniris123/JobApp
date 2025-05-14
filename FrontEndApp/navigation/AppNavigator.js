@@ -11,6 +11,7 @@ import RecruiterNavigator from "./RecruiterNavigator";
 // Screens
 import SplashScreen from "../screen/common/SplashScreen";
 
+
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
@@ -21,24 +22,17 @@ const AppNavigator = () => {
     console.log("loading:", loading);
 
     if (loading) {
-        return <SplashScreen />;
-    } return (
+        return <SplashScreen />;    } 
+    
+    return (
         <View style={{ flex: 1 }}>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {!isAuthenticated ? (
-                    <>
-                        {console.log("Navigating to AuthNavigator")}
-                        <Stack.Screen name="Auth" component={AuthNavigator} />
-                    </>
+                    <Stack.Screen name="Auth" component={AuthNavigator} />
                 ) : role === "recruiter" ? (
-                    <>
-                        {console.log("Navigating to RecruiterNavigator")}
-                        <Stack.Screen name="Recruiter" component={RecruiterNavigator} />
-                    </>) : (
-                    <>
-                        {console.log("Navigating to CandidateNavigator")}
-                        <Stack.Screen name="Candidate" component={CandidateNavigator} />
-                    </>
+                    <Stack.Screen name="Recruiter" component={RecruiterNavigator} />
+                ) : (
+                    <Stack.Screen name="Candidate" component={CandidateNavigator} />
                 )}
             </Stack.Navigator>
         </View>
