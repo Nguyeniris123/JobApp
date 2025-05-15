@@ -29,7 +29,7 @@ class RecruiterSerializer(serializers.ModelSerializer):
     tax_code = serializers.CharField(write_only=True, required=True)
     description = serializers.CharField(write_only=True, required=True)
     location = serializers.CharField(write_only=True, required=True)
-    images = serializers.ListField(child=serializers.CharField(), write_only=True, required=True)
+    images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=True)
 
     company = serializers.SerializerMethodField()
 
@@ -118,12 +118,12 @@ class CompanySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'tax_code', 'description', 'location', 'is_verified', 'images']  # Thêm images vào fields
 
 class JobPostSerializer(serializers.ModelSerializer):
-    company = CompanySerializer(source='recruiter.company', read_only=True)  # Lấy thông tin công ty từ recruiter
+    recruiter = RecruiterSerializer(read_only=True)
     application_count = serializers.SerializerMethodField()
 
     class Meta:
         model = JobPost
-        fields = ['id', 'title', 'specialized', 'description', 'salary', 'working_hours', 'location', 'recruiter', 'company', 'application_count']
+        fields = ['id', 'title', 'specialized', 'description', 'salary', 'working_hours', 'location', 'recruiter', 'application_count']
         read_only_fields = ['recruiter']
 
     def create(self, validated_data):
@@ -136,11 +136,23 @@ class JobPostSerializer(serializers.ModelSerializer):
 class ApplicationSerializer(serializers.ModelSerializer):
     job = serializers.PrimaryKeyRelatedField(queryset=JobPost.objects.all(), write_only=True)  # Chỉ nhận job_id khi tạo
     job_detail = JobPostSerializer(source="job", read_only=True)  # Xuất thông tin job đầy đủ khi trả về
+
     class Meta:
         model = Application
 
-        fields = ['id', "job", "job_detail", "cv", "status"]
-        read_only_fields = ["applicant", "status", "created_date", "job_detail"]  # Không cần nhập applicant, status, created_date khi gửi request
+        fields = ['id', 'job', 'job_detail', 'cv', 'status']
+        read_only_fields = ['applicant', 'status', 'created_date', 'job_detail']  # Không cần nhập applicant, status, created_date khi gửi request
+
+    def get_recruiter_info(self, obj):
+        recruiter = obj.job.recruiter
+        company = getattr(recruiter, 'company', None)
+
+        return {
+            "username": recruiter.username,
+            "full_name": f"{recruiter.first_name} {recruiter.last_name}".strip(),
+            "email": recruiter.email,
+            "avatar": recruiter.avatar.url if recruiter.avatar else None,
+        }
 
     def create(self, validated_data):
         request = self.context["request"]

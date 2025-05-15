@@ -30,7 +30,6 @@ class CandidateViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
 class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
     queryset = User.objects.filter(is_active=True, role='recruiter')  # Chỉ lấy nhà tuyển dụng
     serializer_class = RecruiterSerializer
-    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
     def get_permissions(self):
         if self.request.method in ['PUT', 'PATCH']:
@@ -126,6 +125,7 @@ class JobPostViewSet(viewsets.ModelViewSet):
 
 class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView, generics.UpdateAPIView):
     serializer_class = ApplicationSerializer
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
     def get_queryset(self):
         # Lọc danh sách đơn ứng tuyển dựa trên role của user

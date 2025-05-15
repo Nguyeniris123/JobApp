@@ -88,11 +88,25 @@ class UserAdmin(admin.ModelAdmin):
             return mark_safe(f"<img src='{obj.avatar.url}' width='120' />")
 
 
+class CompanyImageInlineAdmin(admin.StackedInline):
+    model = CompanyImage
+    fk_name = 'company'
+    readonly_fields = ['image_preview']  # Dùng để hiển thị ảnh
+
+    fields = ['image', 'image_preview']  # Sắp xếp field hiển thị
+    extra = 0
+
+    def image_preview(self, obj):
+        if obj.image:
+            return mark_safe(f"<img src='{obj.image.url}' width='120' />")
+        return "(No image)"
+
 class CompanyAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', 'tax_code', 'location', 'is_verified', 'user', 'created_date', 'updated_date']
     list_filter = ['is_verified']
     search_fields = ['name', 'tax_code', 'location', 'description', 'user__username', 'user__email']
     ordering = ['name']
+    inlines = [CompanyImageInlineAdmin, ]
 
 class CompanyImageAdmin(admin.ModelAdmin):
     list_display = ['id', 'company', 'image', 'created_date', 'updated_date']
