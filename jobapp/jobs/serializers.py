@@ -136,23 +136,13 @@ class JobPostSerializer(serializers.ModelSerializer):
 class ApplicationSerializer(serializers.ModelSerializer):
     job = serializers.PrimaryKeyRelatedField(queryset=JobPost.objects.all(), write_only=True)  # Chỉ nhận job_id khi tạo
     job_detail = JobPostSerializer(source="job", read_only=True)  # Xuất thông tin job đầy đủ khi trả về
+    applicant_detail = CandidateSerializer(source='applicant', read_only=True)  # Thêm đây
 
     class Meta:
         model = Application
 
-        fields = ['id', 'job', 'job_detail', 'cv', 'status']
-        read_only_fields = ['applicant', 'status', 'created_date', 'job_detail']  # Không cần nhập applicant, status, created_date khi gửi request
-
-    def get_recruiter_info(self, obj):
-        recruiter = obj.job.recruiter
-        company = getattr(recruiter, 'company', None)
-
-        return {
-            "username": recruiter.username,
-            "full_name": f"{recruiter.first_name} {recruiter.last_name}".strip(),
-            "email": recruiter.email,
-            "avatar": recruiter.avatar.url if recruiter.avatar else None,
-        }
+        fields = ['id', 'applicant_detail', 'job', 'job_detail', 'cv', 'status']
+        read_only_fields = ['applicant', 'status', 'created_date', 'job_detail', 'applicant_detail']  # Không cần nhập applicant, status, created_date khi gửi request
 
     def create(self, validated_data):
         request = self.context["request"]
