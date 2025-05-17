@@ -33,16 +33,16 @@ def notify_followers_on_job_create(sender, instance, created, **kwargs):
                 fail_silently=True
             )
 
-@receiver(post_save, sender=CompanyImage)
-def auto_verify_company_image(sender, instance, created, **kwargs):
-    if created:
-        # Gọi Vision API kiểm tra ảnh
-        result = verify_image_with_google_vision(instance.image.url)
-
-        print(f"🧠 Ảnh upload từ {instance.image.url}")
-        print(f"✅ Kết quả xác minh: {result['is_real']} - {result['reason']}")
-
-        # Nếu ảnh được xác minh là thật → cập nhật công ty
-        if result['is_real'] and not instance.company.is_verified:
-            instance.company.is_verified = True
-            instance.company.save()
+# @receiver(post_save, sender=CompanyImage)
+# def auto_verify_company_image(sender, instance, created, **kwargs):
+#     if created:
+#         # Gọi Vision API kiểm tra ảnh
+#         result = verify_image_with_google_vision(instance.image.url)
+#
+#         print(f"🧠 Ảnh upload từ {instance.image.url}")
+#         print(f"✅ Kết quả xác minh: {result['is_real']} - {result['reason']}")
+#
+#         # Nếu ảnh được xác minh là thật → cập nhật công ty
+#         if result['is_real'] and not instance.company.is_verified:
+#             instance.company.is_verified = True
+#             instance.company.save()
