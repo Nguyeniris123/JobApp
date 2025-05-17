@@ -175,6 +175,6 @@ cython_debug/
 .idea/
 
 jobapp/.env
-jobapp/.env
-/jobapp
 FrontEndApp/apiConfig.js
+jobapp/config/jobapp-9c8b0-752103c18042.json
+jobapp/firebase/jobapp-9c8b0-firebase-adminsdk-fbsvc-1da9db7357.json
