@@ -218,12 +218,13 @@ class UserSerializer(serializers.ModelSerializer):
 class CandidateReviewRecruiterSerializer(serializers.ModelSerializer):
     reviewer = UserSerializer(read_only=True)  # Trả về thông tin người đánh giá
     reviewed_user = UserSerializer(read_only=True)  # Trả về thông tin người được đánh giá (nhà tuyển dụng)
+    reviewed_company = CompanySerializer(source="reviewed_user.company", read_only=True) # Trả về thông tin công ty
     company_id = serializers.PrimaryKeyRelatedField(queryset=Company.objects.all(), write_only=True)
 
     class Meta:
         model = Review
-        fields = ['id', 'reviewer', 'reviewed_user', 'rating', 'comment', 'created_date', 'company_id']
-        read_only_fields = ['reviewer', 'reviewed_user', 'created_date']
+        fields = ['id', 'reviewer', 'reviewed_user', 'reviewed_company', 'rating', 'comment', 'created_date', 'company_id']
+        read_only_fields = ['reviewer', 'reviewed_user', 'reviewed_company', 'created_date']
 
     def validate(self, attrs):
         request = self.context["request"]
