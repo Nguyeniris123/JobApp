@@ -78,6 +78,7 @@ class RecruiterSerializer(serializers.ModelSerializer):
     def get_company(self, obj):
         if hasattr(obj, 'company'):
             return {
+                'id': obj.company.id,
                 'name': obj.company.name,
                 'tax_code': obj.company.tax_code,
                 'description': obj.company.description,
