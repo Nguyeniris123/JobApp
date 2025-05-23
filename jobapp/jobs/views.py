@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from . import perms, paginators
 from .serializers import CandidateSerializer, RecruiterSerializer, JobPostSerializer, ApplicationSerializer, \
     FollowSerializer, CompanySerializer, UpdateAvatarSerializer, RecruiterReviewCandidateSerializer, \
-    CandidateReviewRecruiterSerializer
+    CandidateReviewRecruiterSerializer, CompanyImageUploadSerializer
 from .models import User, JobPost, Application, Follow, Company, Review
 
 
@@ -41,6 +41,19 @@ class RecruiterViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Update
         if request.user.role != 'recruiter':  # Chặn ứng viên truy cập
             return Response({"detail": "Bạn không có quyền truy cập."}, status=status.HTTP_403_FORBIDDEN)
         return Response(self.serializer_class(request.user).data)
+
+    @action(detail=False, methods=['patch'], url_path='update-company-images')
+    def update_company_images(self, request):
+        user = request.user
+        company = getattr(user, 'company', None)
+        if not company:
+            return Response({"detail": "Company not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = CompanyImageUploadSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.update(company, serializer.validated_data)
+            return Response(self.serializer_class(request.user).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UpdateAvatarViewSet(viewsets.ViewSet, generics.UpdateAPIView):
     queryset = User.objects.filter(is_active=True)

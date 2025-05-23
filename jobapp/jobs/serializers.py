@@ -118,6 +118,20 @@ class CompanySerializer(serializers.ModelSerializer):
         model = Company
         fields = ['id', 'name', 'tax_code', 'description', 'location', 'is_verified', 'images']  # Thêm images vào fields
 
+class CompanyImageUploadSerializer(serializers.Serializer):
+    images = serializers.ListField(child=serializers.ImageField(), allow_empty=False, write_only=True)
+
+    def update(self, instance, validated_data):
+        # Xóa ảnh cũ (nếu muốn)
+        instance.images.all().delete()
+
+        images = validated_data.get('images', [])
+        for img in images:
+            CompanyImage.objects.create(company=instance, image=img)
+
+        return instance
+
+
 class JobPostSerializer(serializers.ModelSerializer):
     recruiter = RecruiterSerializer(read_only=True)
     application_count = serializers.SerializerMethodField()
