@@ -1,9 +1,8 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import { useContext, useEffect, useState } from "react";
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Avatar, Button, Text, TextInput, Title } from "react-native-paper";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import { Button, TextInput, Title } from "react-native-paper";
 import { API_ENDPOINTS } from "../../apiConfig";
 import { AuthContext } from "../../contexts/AuthContext";
 
@@ -119,20 +118,6 @@ const EditProfileScreen = ({ navigation }) => {
                 <Title style={styles.title}>Chỉnh sửa thông tin cá nhân</Title>
             </View>
 
-            <View style={styles.avatarContainer}>
-                <TouchableOpacity onPress={pickImage}>
-                    <Avatar.Image 
-                        source={profileImage ? { uri: profileImage } : require('../../assets/user-icon.png')} 
-                        size={120} 
-                        style={styles.avatar} 
-                    />
-                    <View style={styles.editIconContainer}>
-                        <MaterialCommunityIcons name="camera" size={24} color="#FFFFFF" />
-                    </View>
-                </TouchableOpacity>
-                <Text style={styles.changePhotoText}>Thay đổi ảnh đại diện</Text>
-            </View>
-
             <View style={styles.formContainer}>
                 <TextInput
                     label="Họ"
@@ -157,33 +142,6 @@ const EditProfileScreen = ({ navigation }) => {
                     mode="outlined"
                     keyboardType="email-address"
                     style={styles.input}
-                />
-
-                <TextInput
-                    label="Số điện thoại"
-                    value={formData.phone}
-                    onChangeText={(text) => handleInputChange("phone", text)}
-                    mode="outlined"
-                    keyboardType="phone-pad"
-                    style={styles.input}
-                />
-
-                <TextInput
-                    label="Địa chỉ"
-                    value={formData.address}
-                    onChangeText={(text) => handleInputChange("address", text)}
-                    mode="outlined"
-                    style={styles.input}
-                />
-
-                <TextInput
-                    label="Giới thiệu bản thân"
-                    value={formData.bio}
-                    onChangeText={(text) => handleInputChange("bio", text)}
-                    mode="outlined"
-                    multiline
-                    numberOfLines={4}
-                    style={styles.bioInput}
                 />
 
                 <View style={styles.buttonContainer}>

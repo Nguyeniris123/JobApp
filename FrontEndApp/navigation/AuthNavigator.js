@@ -80,7 +80,7 @@ const AuthNavigator = () => {
             {isFirstLaunch ? (
                 <Stack.Screen name="Onboarding" component={OnboardingScreen} />
             ) : (
-                <Stack.Screen name="Main" component={BottomTabs} />
+                <Stack.Screen name="HomeTab" component={BottomTabs} />
             )}
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />

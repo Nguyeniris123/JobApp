@@ -1,79 +1,43 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { Alert, ScrollView, StyleSheet, View } from "react-native"
-import { ActivityIndicator, Button, Card, Chip, Divider, IconButton, List, Menu, Text } from "react-native-paper"
-
-// Mock data for job details
-const mockJob = {
-    id: "1",
-    title: "Nhân viên bán hàng bán thời gian",
-    location: "Hà Nội",
-    salary: 5000000,
-    category: "Bán hàng",
-    description: "Chúng tôi đang tìm kiếm nhân viên bán hàng bán thời gian làm việc tại cửa hàng của chúng tôi ở Hà Nội.",
-    requirements: ["Tối thiểu 18 tuổi", "Có khả năng giao tiếp tốt", "Có thể làm việc vào cuối tuần"],
-    benefits: ["Lương cạnh tranh", "Môi trường làm việc năng động", "Cơ hội thăng tiến"],
-    type: "Bán thời gian",
-    hours: "20 giờ/tuần",
-    postedDate: new Date(2023, 3, 15),
-    deadline: new Date(2023, 4, 15),
-    status: "active",
-    applicants: 12,
-    views: 156,
-    savedBy: 8,
-}
-
-// Mock data for applicants
-const mockApplicants = [
-    {
-        id: "1",
-        name: "Nguyễn Văn A",
-        avatar: "https://via.placeholder.com/150",
-        appliedDate: new Date(2023, 3, 16),
-        status: "pending",
-        matchRate: 85,
-    },
-    {
-        id: "2",
-        name: "Trần Thị B",
-        avatar: "https://via.placeholder.com/150",
-        appliedDate: new Date(2023, 3, 17),
-        status: "reviewing",
-        matchRate: 92,
-    },
-    {
-        id: "3",
-        name: "Lê Văn C",
-        avatar: "https://via.placeholder.com/150",
-        appliedDate: new Date(2023, 3, 18),
-        status: "accepted",
-        matchRate: 78,
-    },
-]
+import { ActivityIndicator, Button, Card, Chip, Divider, IconButton, Menu, Text } from "react-native-paper"
+import { ApplicationContext } from "../../contexts/ApplicationContext"
+import { AuthContext } from "../../contexts/AuthContext"
+import { JobContext } from "../../contexts/JobContext"
 
 const RecruiterJobDetailScreen = ({ route, navigation }) => {
     const { jobId } = route.params || { jobId: "1" }
+    const { fetchJobById } = useContext(JobContext)
+    const { accessToken } = useContext(AuthContext)
+    const { applications, fetchApplications, loading: loadingApplications } = useContext(ApplicationContext)
     const [job, setJob] = useState(null)
-    const [applicants, setApplicants] = useState([])
     const [loading, setLoading] = useState(true)
     const [menuVisible, setMenuVisible] = useState(false)
+    const [applicants, setApplicants] = useState([])
 
     useEffect(() => {
-        // Simulate API call
-        const fetchJobDetails = async () => {
+        const fetchJob = async () => {
+            setLoading(true)
             try {
-                await new Promise((resolve) => setTimeout(resolve, 1000))
-                setJob(mockJob)
-                setApplicants(mockApplicants)
+                const data = await fetchJobById(jobId)
+                setJob(data)
             } catch (error) {
                 console.log("Error fetching job details:", error)
             } finally {
                 setLoading(false)
             }
         }
-
-        fetchJobDetails()
+        if (jobId) fetchJob()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [jobId])
+
+    useEffect(() => {
+        // Lọc ứng viên đúng với jobId hiện tại
+        if (applications && jobId) {
+            setApplicants(applications.filter(app => String(app.job) === String(jobId)))
+        }
+    }, [applications, jobId])
 
     const formatSalary = (salary) => {
         return new Intl.NumberFormat("vi-VN", {
@@ -81,14 +45,6 @@ const RecruiterJobDetailScreen = ({ route, navigation }) => {
             currency: "VND",
             maximumFractionDigits: 0,
         }).format(salary)
-    }
-
-    const formatDate = (date) => {
-        return new Date(date).toLocaleDateString("vi-VN", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        })
     }
 
     const handleEditJob = () => {
@@ -216,12 +172,6 @@ const RecruiterJobDetailScreen = ({ route, navigation }) => {
                 <View style={styles.header}>
                     <View style={styles.headerContent}>
                         <Text style={styles.title}>{job.title}</Text>
-                        <Chip
-                            style={[styles.statusChip, { backgroundColor: getStatusColor(job.status) + "20" }]}
-                            textStyle={{ color: getStatusColor(job.status) }}
-                        >
-                            {getStatusText(job.status)}
-                        </Chip>
                     </View>
                     <Menu
                         visible={menuVisible}
@@ -235,58 +185,21 @@ const RecruiterJobDetailScreen = ({ route, navigation }) => {
                     </Menu>
                 </View>
 
-                <Card style={styles.statsCard}>
-                    <Card.Content style={styles.statsContent}>
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{job.applicants}</Text>
-                            <Text style={styles.statLabel}>Ứng viên</Text>
-                        </View>
-                        <View style={styles.statDivider} />
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{job.views}</Text>
-                            <Text style={styles.statLabel}>Lượt xem</Text>
-                        </View>
-                        <View style={styles.statDivider} />
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{job.savedBy}</Text>
-                            <Text style={styles.statLabel}>Đã lưu</Text>
-                        </View>
-                    </Card.Content>
-                </Card>
-
                 <Card style={styles.card}>
                     <Card.Content>
                         <Text style={styles.sectionTitle}>Thông tin công việc</Text>
-
                         <View style={styles.infoContainer}>
                             <View style={styles.infoItem}>
                                 <MaterialCommunityIcons name="map-marker" size={20} color="#757575" />
                                 <Text style={styles.infoText}>{job.location}</Text>
                             </View>
-
                             <View style={styles.infoItem}>
                                 <MaterialCommunityIcons name="currency-usd" size={20} color="#757575" />
                                 <Text style={styles.infoText}>{formatSalary(job.salary)}</Text>
                             </View>
-
                             <View style={styles.infoItem}>
-                                <MaterialCommunityIcons name="tag" size={20} color="#757575" />
-                                <Text style={styles.infoText}>{job.category}</Text>
-                            </View>
-
-                            <View style={styles.infoItem}>
-                                <MaterialCommunityIcons name="clock-outline" size={20} color="#757575" />
-                                <Text style={styles.infoText}>{job.hours}</Text>
-                            </View>
-
-                            <View style={styles.infoItem}>
-                                <MaterialCommunityIcons name="calendar" size={20} color="#757575" />
-                                <Text style={styles.infoText}>Đăng ngày: {formatDate(job.postedDate)}</Text>
-                            </View>
-
-                            <View style={styles.infoItem}>
-                                <MaterialCommunityIcons name="calendar-clock" size={20} color="#757575" />
-                                <Text style={styles.infoText}>Hạn nộp hồ sơ: {formatDate(job.deadline)}</Text>
+                                <MaterialCommunityIcons name="office-building" size={20} color="#757575" />
+                                <Text style={styles.infoText}>{job.recruiter?.company?.name || '---'}</Text>
                             </View>
                         </View>
                     </Card.Content>
@@ -301,70 +214,22 @@ const RecruiterJobDetailScreen = ({ route, navigation }) => {
 
                 <Card style={styles.card}>
                     <Card.Content>
-                        <Text style={styles.sectionTitle}>Yêu cầu</Text>
-                        <List.Section>
-                            {job.requirements.map((requirement, index) => (
-                                <List.Item
-                                    key={index}
-                                    title={requirement}
-                                    left={() => <List.Icon icon="check" color="#1E88E5" />}
-                                    titleStyle={styles.listItemTitle}
-                                />
-                            ))}
-                        </List.Section>
-                    </Card.Content>
-                </Card>
-
-                <Card style={styles.card}>
-                    <Card.Content>
-                        <Text style={styles.sectionTitle}>Quyền lợi</Text>
-                        <List.Section>
-                            {job.benefits.map((benefit, index) => (
-                                <List.Item
-                                    key={index}
-                                    title={benefit}
-                                    left={() => <List.Icon icon="star" color="#FF8F00" />}
-                                    titleStyle={styles.listItemTitle}
-                                />
-                            ))}
-                        </List.Section>
-                    </Card.Content>
-                </Card>
-
-                <Card style={styles.card}>
-                    <Card.Content>
                         <View style={styles.applicantsHeader}>
                             <Text style={styles.sectionTitle}>Ứng viên ({applicants.length})</Text>
-                            <Button mode="text" onPress={() => navigation.navigate("CandidateList", { jobId: job.id })}>
-                                Xem tất cả
-                            </Button>
                         </View>
-
                         {applicants.length === 0 ? (
                             <Text style={styles.emptyText}>Chưa có ứng viên nào</Text>
                         ) : (
                             applicants.map((applicant) => (
-                                <Card key={applicant.id} style={styles.applicantCard} onPress={() => navigation.navigate("Chat")}>
+                                <Card key={applicant.id} style={styles.applicantCard}>
                                     <Card.Content style={styles.applicantContent}>
                                         <View style={styles.applicantInfo}>
-                                            <Card.Cover source={{ uri: applicant.avatar }} style={styles.applicantAvatar} />
+                                            <Card.Cover source={{ uri: applicant.applicant_detail?.avatar }} style={styles.applicantAvatar} />
                                             <View style={styles.applicantDetails}>
-                                                <Text style={styles.applicantName}>{applicant.name}</Text>
-                                                <Text style={styles.applicantDate}>Ứng tuyển: {formatDate(applicant.appliedDate)}</Text>
-                                                <Chip
-                                                    style={[
-                                                        styles.applicantStatusChip,
-                                                        { backgroundColor: getApplicantStatusColor(applicant.status) + "20" },
-                                                    ]}
-                                                    textStyle={{ color: getApplicantStatusColor(applicant.status) }}
-                                                >
-                                                    {getApplicantStatusText(applicant.status)}
-                                                </Chip>
+                                                <Text style={styles.applicantName}>{applicant.applicant_detail?.first_name} {applicant.applicant_detail?.last_name}</Text>
+                                                <Text style={styles.applicantDate}>Email: {applicant.applicant_detail?.email}</Text>
+                                                <Chip style={styles.applicantStatusChip}>{getApplicantStatusText(applicant.status)}</Chip>
                                             </View>
-                                        </View>
-                                        <View style={styles.matchRate}>
-                                            <Text style={styles.matchRateValue}>{applicant.matchRate}%</Text>
-                                            <Text style={styles.matchRateLabel}>Phù hợp</Text>
                                         </View>
                                     </Card.Content>
                                 </Card>
@@ -373,7 +238,6 @@ const RecruiterJobDetailScreen = ({ route, navigation }) => {
                     </Card.Content>
                 </Card>
             </ScrollView>
-
             <View style={styles.footer}>
                 <Button mode="outlined" icon="pencil" onPress={handleEditJob} style={styles.editButton}>
                     Chỉnh sửa
@@ -426,35 +290,6 @@ const styles = StyleSheet.create({
     statusChip: {
         alignSelf: "flex-start",
     },
-    statsCard: {
-        margin: 16,
-        marginTop: -20,
-        borderRadius: 8,
-        elevation: 4,
-    },
-    statsContent: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        paddingVertical: 8,
-    },
-    statItem: {
-        alignItems: "center",
-        flex: 1,
-    },
-    statValue: {
-        fontSize: 20,
-        fontWeight: "bold",
-        color: "#1E88E5",
-        marginBottom: 4,
-    },
-    statLabel: {
-        fontSize: 12,
-        color: "#757575",
-    },
-    statDivider: {
-        width: 1,
-        backgroundColor: "#EEEEEE",
-    },
     card: {
         margin: 16,
         marginTop: 0,
@@ -484,10 +319,6 @@ const styles = StyleSheet.create({
     description: {
         fontSize: 14,
         lineHeight: 22,
-        color: "#212121",
-    },
-    listItemTitle: {
-        fontSize: 14,
         color: "#212121",
     },
     applicantsHeader: {
@@ -539,19 +370,6 @@ const styles = StyleSheet.create({
     applicantStatusChip: {
         alignSelf: "flex-start",
         height: 24,
-    },
-    matchRate: {
-        alignItems: "center",
-        marginLeft: 8,
-    },
-    matchRateValue: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#4CAF50",
-    },
-    matchRateLabel: {
-        fontSize: 12,
-        color: "#757575",
     },
     footer: {
         flexDirection: "row",

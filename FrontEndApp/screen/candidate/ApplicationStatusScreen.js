@@ -61,109 +61,77 @@ const ApplicationStatusScreen = ({ navigation }) => {
     }
 
     const handleNavigateToChat = async (item) => {
-        if (item.status !== "accepted") return;
-        
         setLoadingChat(true);
         try {
-            // Lấy thông tin chi tiết về công việc từ JobContext nếu item.job có giá trị
-            const jobId = item.job; 
-            let jobDetails = item.jobDetail;
-            
-            // recruiterId đã được trích xuất từ job_detail.recruiter trong ApplicationContext
-            const recruiterId = item.recruiterId;
-            
-            // Nếu không có recruiterId, tìm thêm từ jobDetail
-            if (!recruiterId && jobId) {
-                console.log("Fetching job details for jobId:", jobId);
-                jobDetails = await fetchJobById(jobId);
-                console.log("Received job details:", jobDetails);
-            }
-            
-            // Log để debug
-            console.log("Information for chat:", {
-                job: jobId,
-                recruiterId: recruiterId,
-                company: jobDetails?.company?.name || item.company
-            });
-            
-            // Tạo tham số cho chat
+            // Lấy thông tin recruiter từ job_detail
+            const recruiter = item.jobDetail?.recruiter;
+            const company = recruiter?.company;
             const chatParams = {
-                recruiterId: recruiterId, // Sử dụng recruiterId trực tiếp từ item
-                recruiterName: "Nhà tuyển dụng", // Backend sẽ cập nhật sau
-                recruiterAvatar: item.companyLogo,
-                jobId: jobId,
-                jobTitle: jobDetails?.title || item.jobTitle,
-                company: jobDetails?.company?.name || item.company
+                recruiterId: recruiter?.id,
+                recruiterName: recruiter ? `${recruiter.first_name} ${recruiter.last_name}` : 'Nhà tuyển dụng',
+                recruiterAvatar: recruiter?.avatar,
+                jobId: item.jobDetail?.id,
+                jobTitle: item.jobDetail?.title,
+                company: company?.name,
+                companyLogo: company?.images?.[0] || '',
+                applicationId: item.id,
             };
-            
-            console.log("Navigating to chat with params:", JSON.stringify(chatParams, null, 2));
-            
-            // Kiểm tra nếu không có recruiterId
-            if (!chatParams.recruiterId) {
-                console.error("Missing recruiterId in application:", item);
-                throw new Error("Thiếu thông tin nhà tuyển dụng để kết nối chat");
-            }
-            
-            console.log(`Starting chat with recruiter ID: ${chatParams.recruiterId} for job: ${chatParams.jobTitle}`);
             navigation.navigate("Chat", chatParams);
         } catch (error) {
-            console.error("Lỗi khi chuyển đến màn hình Chat:", error);
-            // Hiển thị thông báo lỗi cho người dùng
             alert("Không thể kết nối đến nhà tuyển dụng. Vui lòng thử lại sau.");
         } finally {
             setLoadingChat(false);
         }
     };
 
-    const renderApplicationItem = ({ item }) => (
-        <Card 
-            style={styles.card} 
-            onPress={() => {
-                if (item.status === "accepted") {
-                    handleNavigateToChat(item);
-                }
-            }}
-        >
-            <Card.Content>
-                <View style={styles.cardHeader}>
-                    <View style={styles.companyInfo}>
-                        <View style={styles.logoContainer}>
-                            <Card.Cover source={{ uri: item.companyLogo }} style={styles.logo} />
+    const renderApplicationItem = ({ item }) => {
+        const recruiter = item.jobDetail?.recruiter;
+        const company = recruiter?.company;
+        return (
+            <Card style={styles.card} onPress={() => handleNavigateToChat(item)}>
+                <Card.Content>
+                    <View style={styles.cardHeader}>
+                        <View style={styles.companyInfo}>
+                            <View style={styles.logoContainer}>
+                                <Card.Cover source={{ uri: company?.images?.[0] || 'https://via.placeholder.com/150' }} style={styles.logo} />
+                            </View>
+                            <View style={styles.jobInfo}>
+                                <Text style={styles.jobTitle}>{item.jobDetail?.title}</Text>
+                                <Text style={styles.company}>{company?.name}</Text>
+                            </View>
                         </View>
-                        <View style={styles.jobInfo}>
-                            <Text style={styles.jobTitle}>{item.jobTitle}</Text>
-                            <Text style={styles.company}>{item.company}</Text>
+                        <Chip
+                            style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + "20" }]}
+                            textStyle={{ color: getStatusColor(item.status) }}
+                        >
+                            {getStatusText(item.status)}
+                        </Chip>
+                    </View>
+                    <Divider style={styles.divider} />
+                    <View style={styles.dateInfo}>
+                        <View style={styles.dateItem}>
+                            <MaterialCommunityIcons name="calendar-plus" size={16} color="#757575" />
+                            <Text style={styles.dateText}>Ngày ứng tuyển: {formatDate(item.appliedDate)}</Text>
                         </View>
                     </View>
-                    <Chip
-                        style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + "20" }]}
-                        textStyle={{ color: getStatusColor(item.status) }}
-                    >
-                        {getStatusText(item.status)}
-                    </Chip>
-                </View>
-
-                <Divider style={styles.divider} />
-
-                <View style={styles.dateInfo}>
-                    <View style={styles.dateItem}>
-                        <MaterialCommunityIcons name="calendar-plus" size={16} color="#757575" />
-                        <Text style={styles.dateText}>Ngày ứng tuyển: {formatDate(item.appliedDate)}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                        <MaterialCommunityIcons name="account" size={18} color="#757575" />
+                        <Text style={{ marginLeft: 6, fontSize: 14 }}>
+                            Nhà tuyển dụng: {recruiter ? `${recruiter.first_name} ${recruiter.last_name}` : 'Không rõ'}
+                        </Text>
                     </View>
-                    <View style={styles.dateItem}>
-                        <MaterialCommunityIcons name="calendar-clock" size={16} color="#757575" />
-                        <Text style={styles.dateText}>Cập nhật: {formatDate(item.lastUpdated)}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                        <MaterialCommunityIcons name="email" size={18} color="#757575" />
+                        <Text style={{ marginLeft: 6, fontSize: 14 }}>
+                            Email: {recruiter?.email || 'Không rõ'}
+                        </Text>
                     </View>
-                </View>
-
-                {item.feedback && (
-                    <View style={styles.feedbackContainer}>
-                        <Text style={styles.feedbackLabel}>Phản hồi:</Text>
-                        <Text style={styles.feedbackText}>{item.feedback}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                        <MaterialCommunityIcons name="office-building" size={18} color="#757575" />
+                        <Text style={{ marginLeft: 6, fontSize: 14 }}>
+                            Địa chỉ công ty: {company?.location || 'Không rõ'}
+                        </Text>
                     </View>
-                )}
-
-                {item.status === "accepted" && (
                     <View style={styles.actionContainer}>
                         <Chip 
                             icon={loadingChat ? "loading" : "chat"}
@@ -171,14 +139,15 @@ const ApplicationStatusScreen = ({ navigation }) => {
                             style={styles.chatChip}
                             textStyle={styles.chatChipText}
                             disabled={loadingChat}
+                            onPress={() => handleNavigateToChat(item)}
                         >
                             {loadingChat ? "Đang kết nối..." : "Trò chuyện với nhà tuyển dụng"}
                         </Chip>
                     </View>
-                )}
-            </Card.Content>
-        </Card>
-    )
+                </Card.Content>
+            </Card>
+        );
+    }
 
     if (loading) {
         return (
@@ -213,10 +182,6 @@ const ApplicationStatusScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.title}>Trạng thái ứng tuyển</Text>
-            </View>
-
             {applications.length === 0 ? (
                 <View style={styles.emptyContainer}>
                     <MaterialCommunityIcons name="file-document-outline" size={64} color="#BDBDBD" />

@@ -1,18 +1,19 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { LinearGradient } from 'expo-linear-gradient'
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { FlatList, ScrollView, StyleSheet, View } from "react-native"
 import { ActivityIndicator, Avatar, Button, Card, Chip, Divider, Menu, Searchbar, Text } from "react-native-paper"
 import { ReviewCard } from "../../components/ui/ReviewCard"
 import { ReviewForm } from "../../components/ui/ReviewForm"
+import { ApplicationContext } from "../../contexts/ApplicationContext"
 import { useReview } from "../../hooks/useReview"
 
 const ApplicationListScreen = ({ route, navigation }) => {
     const { jobId } = route.params || {}
-    const [candidates, setCandidates] = useState([])
+    // Remove unused fetchApplications from context
+    const { applications, loading: contextLoading } = useContext(ApplicationContext)
     const [filteredCandidates, setFilteredCandidates] = useState([])
-    const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
     const [statusFilter, setStatusFilter] = useState("all")
     const [menuVisible, setMenuVisible] = useState(false)
@@ -20,12 +21,11 @@ const ApplicationListScreen = ({ route, navigation }) => {
     const [showReviewForm, setShowReviewForm] = useState(false)
     const [expandedCardId, setExpandedCardId] = useState(null)
     
-    // Sử dụng hook để truy cập review context
+    // Remove unused reviewsLoading from useReview
     const { 
         candidateReviews, 
         createApplicationReview, 
-        fetchCandidateReviews, 
-        loading: reviewsLoading 
+        fetchCandidateReviews 
     } = useReview();
 
     // Lấy đánh giá cho ứng viên cụ thể
@@ -49,42 +49,17 @@ const ApplicationListScreen = ({ route, navigation }) => {
     }
 
     useEffect(() => {
-        const fetchCandidates = async () => {
-            try {
-                const token = await getAccessToken()
-                if (!token) {
-                    throw new Error('No access token found')
-                }
-
-                const response = await fetch('http://192.168.1.5:8000/applications/recruiter/', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    }
-                })
-                
-                if (!response.ok) {
-                    throw new Error('Network response was not ok')
-                }
-
-                const data = await response.json()
-                setCandidates(data)
-                setFilteredCandidates(data)
-                
-                // Tải đánh giá khi có ứng viên
-                if (data.length > 0) {
-                    fetchCandidateReviews();
-                }
-            } catch (error) {
-                console.log("Error fetching candidates:", error)
-            } finally {
-                setLoading(false)
-            }
+        // Lọc ứng viên từ ApplicationContext
+        let filtered = applications
+        if (jobId) {
+            filtered = filtered.filter(app => String(app.jobDetail?.id || app.job) === String(jobId))
         }
-
-        fetchCandidates()
-    }, [jobId])
+        setFilteredCandidates(filtered)
+        // Tải đánh giá khi có ứng viên
+        if (filtered.length > 0) {
+            fetchCandidateReviews();
+        }
+    }, [applications, jobId])
 
     // Hàm submitting đánh giá mới
     const handleReviewSubmit = async (applicationId, reviewData) => {
@@ -113,16 +88,16 @@ const ApplicationListScreen = ({ route, navigation }) => {
     }
 
     const filterCandidates = (query, status) => {
-        let filtered = candidates
-
-        if (query) {
-            filtered = filtered.filter((candidate) => candidate.applicant.username.toLowerCase().includes(query.toLowerCase()))
+        let filtered = applications
+        if (jobId) {
+            filtered = filtered.filter(app => String(app.jobDetail?.id || app.job) === String(jobId))
         }
-
+        if (query) {
+            filtered = filtered.filter((candidate) => candidate.applicant_detail?.username?.toLowerCase().includes(query.toLowerCase()))
+        }
         if (status !== "all") {
             filtered = filtered.filter((candidate) => candidate.status === status)
         }
-
         setFilteredCandidates(filtered)
     }
 
@@ -145,12 +120,18 @@ const ApplicationListScreen = ({ route, navigation }) => {
     }
 
     const handleCandidatePress = (candidate) => {
-        navigation.navigate("CandidateDetail", { candidateId: candidate.id })
+        navigation.navigate("ApplicationDetail", { application: candidate })
     }
 
-    const handleCandidateAction = (candidate, action) => {
-        setSelectedCandidate(candidate)
-        setMenuVisible(true)
+    // Thêm hàm nhắn tin
+    const handleChatPress = (candidate) => {
+        navigation.navigate("Chat", {
+            candidateId: candidate.applicant_detail.id,
+            candidateName: candidate.applicant_detail.username,
+            candidateAvatar: candidate.applicant_detail.avatar,
+            jobId: candidate.job_detail.id,
+            jobTitle: candidate.job_detail.title
+        })
     }
 
     const handleAcceptCandidate = async (candidate) => {
@@ -172,7 +153,7 @@ const ApplicationListScreen = ({ route, navigation }) => {
                 throw new Error('Failed to accept candidate')
             }
 
-            const updatedCandidates = candidates.map((c) => {
+            const updatedCandidates = applications.map((c) => {
                 if (c.id === candidate.id) {
                     return { ...c, status: "Đã phỏng vấn" }
                 }
@@ -204,7 +185,7 @@ const ApplicationListScreen = ({ route, navigation }) => {
                 throw new Error('Failed to reject candidate')
             }
 
-            const updatedCandidates = candidates.map((c) => {
+            const updatedCandidates = applications.map((c) => {
                 if (c.id === candidate.id) {
                     return { ...c, status: "Từ chối" }
                 }
@@ -224,12 +205,12 @@ const ApplicationListScreen = ({ route, navigation }) => {
                 <View style={styles.candidateHeader}>
                     <View style={styles.candidateInfo}>
                         <Avatar.Image 
-                            source={{ uri: item.applicant.avatar }} 
+                            source={{ uri: item.applicant_detail.avatar }} 
                             size={70} 
                             style={styles.avatar}
                         />
                         <View style={styles.candidateDetails}>
-                            <Text style={styles.candidateName}>{item.applicant.username}</Text>
+                            <Text style={styles.candidateName}>{item.applicant_detail.lastname}</Text>
                             <Text style={styles.candidateJob} numberOfLines={2}>
                                 {item.job_detail.title}
                             </Text>
@@ -329,7 +310,7 @@ const ApplicationListScreen = ({ route, navigation }) => {
                             <Button
                                 mode="outlined"
                                 icon="message-text"
-                                onPress={() => navigation.navigate("Chat")}
+                                onPress={() => handleChatPress(item)}
                                 style={[styles.chatButton, { flex: expandedCardId === item.id ? 1 : 2 }]}
                                 contentStyle={styles.buttonContent}
                             >
@@ -355,7 +336,7 @@ const ApplicationListScreen = ({ route, navigation }) => {
         </Card>
     )
 
-    if (loading) {
+    if (contextLoading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#1E88E5" />

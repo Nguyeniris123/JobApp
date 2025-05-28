@@ -1,14 +1,14 @@
 // Chat service for Firebase Realtime Database
 import {
-    get,
-    onValue,
-    orderByChild,
-    push,
-    query,
-    ref,
-    serverTimestamp,
-    set,
-    update
+  get,
+  onValue,
+  orderByChild,
+  push,
+  query,
+  ref,
+  serverTimestamp,
+  set,
+  update
 } from 'firebase/database';
 import { database } from '../firebase/config';
 
@@ -98,39 +98,35 @@ class ChatServiceSimple {
    * @param {string} senderId - ID of the message sender
    * @param {string} text - Message content
    * @param {string} senderType - Type of sender ('recruiter' or 'candidate')
+   * @param {object} senderInfo - Thông tin thật của người gửi (tùy chọn)
    * @returns {Promise<string>} - ID of the new message
    */
-  async sendMessage(roomId, senderId, text, senderType) {
+  async sendMessage(roomId, senderId, text, senderType, senderInfo) {
     try {
       if (!roomId || !senderId || !text) {
         throw new Error('RoomId, senderId, and text are required');
       }
-      
       // Reference to the messages collection in the chat room
       const messagesRef = ref(database, `chatRooms/${roomId}/messages`);
-      
       // Create a new message with a unique ID
       const newMessageRef = push(messagesRef);
-      
       const message = {
         id: newMessageRef.key,
         text,
         senderId,
         sender: senderType,
+        senderInfo: senderInfo || null,
         timestamp: serverTimestamp(),
         read: false
       };
-      
       // Save the new message
       await set(newMessageRef, message);
-      
       // Update the last message in the chat room
       await update(ref(database, `chatRooms/${roomId}`), {
         lastMessage: text,
         lastMessageTimestamp: serverTimestamp(),
         lastSenderId: senderId
       });
-      
       return newMessageRef.key;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -351,6 +347,22 @@ class ChatServiceSimple {
       return unreadCount;
     } catch (error) {
       console.error('Error getting unread message count:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Xóa toàn bộ phòng chat và tin nhắn
+   * @param {string} roomId
+   * @returns {Promise<void>}
+   */
+  async deleteChatRoom(roomId) {
+    try {
+      if (!roomId) throw new Error('roomId is required');
+      const roomRef = ref(database, `chatRooms/${roomId}`);
+      await set(roomRef, null);
+    } catch (error) {
+      console.error('Error deleting chat room:', error);
       throw error;
     }
   }

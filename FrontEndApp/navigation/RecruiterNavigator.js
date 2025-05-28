@@ -5,6 +5,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { Text, View } from "react-native";
 
 import EditProfileScreen from "../screen/common/EditProfileScreen";
+import ApplicationDetailScreen from '../screen/recruiter/ApplicationDetailScreen';
 import ApplicationListScreen from "../screen/recruiter/ApplicationListScreen";
 import ChatListScreenSimple from "../screen/recruiter/ChatListScreenSimple";
 import ChatScreenSimple from "../screen/recruiter/ChatScreenSimple";
@@ -134,6 +135,13 @@ const CandidateStack = () => {
             <Stack.Screen 
                 name="Chat" 
                 component={ChatScreenSimple} 
+                options={{
+                    headerShown: false
+                }}
+            />
+            <Stack.Screen 
+                name="ApplicationDetail" 
+                component={ApplicationDetailScreen} 
                 options={{
                     headerShown: false
                 }}

@@ -10,7 +10,7 @@ const slides = [
         id: "1",
         title: "Tìm việc làm bán thời gian",
         description: "Hàng ngàn công việc bán thời gian đang chờ bạn khám phá",
-        image: "https://via.placeholder.com/300",
+        image: "../../assets/images/title1.png",
     },
     {
         id: "2",
@@ -22,7 +22,7 @@ const slides = [
         id: "3",
         title: "Kết nối với nhà tuyển dụng",
         description: "Trò chuyện trực tiếp với nhà tuyển dụng để hiểu rõ hơn về công việc",
-        image: "https://via.placeholder.com/300",
+        image: "../../assets/images/title2.png",
     },
 ]
 
@@ -35,7 +35,10 @@ const OnboardingScreen = ({ navigation }) => {
         const checkOnboarding = async () => {
             const hasSeenOnboarding = await AsyncStorage.getItem("hasSeenOnboarding")
             if (hasSeenOnboarding) {
-                navigation.navigate("Main")
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: "HomeTab" }],
+                })
             }
         }
         checkOnboarding()
@@ -67,13 +70,19 @@ const OnboardingScreen = ({ navigation }) => {
             setCurrentIndex(currentIndex + 1)
         } else {
             await AsyncStorage.setItem("hasSeenOnboarding", "true")
-            navigation.navigate("Main")
+            navigation.reset({
+                index: 0,
+                routes: [{ name: "HomeTab" }],
+            })
         }
     }
 
     const handleSkip = async () => {
         await AsyncStorage.setItem("hasSeenOnboarding", "true")
-        navigation.navigate("Main")
+        navigation.reset({
+            index: 0,
+            routes: [{ name: "HomeTab" }],
+        })
     }
 
     return (

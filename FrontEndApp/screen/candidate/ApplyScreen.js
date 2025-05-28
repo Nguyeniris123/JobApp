@@ -1,7 +1,6 @@
 "use client"
 
-import * as DocumentPicker from "expo-document-picker"
-import * as FileSystem from "expo-file-system"
+import * as ImagePicker from "expo-image-picker"
 import { useContext, useState } from "react"
 import { Alert, ScrollView, StyleSheet, View } from "react-native"
 import { Button, Checkbox, Divider, HelperText, Text, TextInput } from "react-native-paper"
@@ -21,9 +20,9 @@ const ApplyScreen = ({ route, navigation }) => {
         coverLetter: "",
     })
     const [resume, setResume] = useState(null)
-    const [agreeTerms, setAgreeTerms] = useState(false)
-    const [loading, setLoading] = useState(false)
     const [errors, setErrors] = useState({})
+    const [agreeTerms, setAgreeTerms] = useState(false)
+    const [loading, setLoading] = useState(false) // Thêm dòng này để khai báo state loading
 
     const updateFormData = (field, value) => {
         setFormData({
@@ -39,59 +38,33 @@ const ApplyScreen = ({ route, navigation }) => {
         }
     }
 
-    const pickDocument = async () => {
+    // Thay thế pickDocument bằng pickImage
+    const pickImage = async () => {
         try {
-            // Sử dụng API mới của DocumentPicker để tránh lỗi
-            const result = await DocumentPicker.getDocumentAsync({
-                type: [
-                    "application/pdf",
-                    "application/msword",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ],
-                copyToCacheDirectory: true,
-                multiple: false
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 0.7,
+                base64: true,
             });
-
-            console.log("Document picker result:", JSON.stringify(result));
-
-            // API mới trả về cấu trúc khác với canceled thay vì type
             if (!result.canceled && result.assets && result.assets.length > 0) {
-                const selectedFile = result.assets[0];
-                console.log("Selected file:", selectedFile.uri);
-                
-                try {
-                    // Đọc file dưới dạng base64
-                    const base64 = await FileSystem.readAsStringAsync(selectedFile.uri, {
-                        encoding: FileSystem.EncodingType.Base64,
-                    });
-                    
-                    console.log("Base64 conversion successful, length:", base64.length);
-                    
-                    // Lưu thông tin file với base64
-                    setResume({
-                        name: selectedFile.name,
-                        uri: selectedFile.uri,
-                        size: selectedFile.size,
-                        mimeType: selectedFile.mimeType,
-                        base64: base64,
-                    });
-                    
-                    if (errors.resume) {
-                        setErrors({
-                            ...errors,
-                            resume: null,
-                        });
-                    }
-                } catch (fileError) {
-                    console.error("Error reading file:", fileError);
-                    Alert.alert("Lỗi", "Không thể đọc nội dung file. Vui lòng thử lại với file khác.");
+                const selectedImage = result.assets[0];
+                setResume({
+                    name: selectedImage.fileName || 'image.jpg',
+                    uri: selectedImage.uri,
+                    size: selectedImage.fileSize,
+                    mimeType: selectedImage.type || 'image/jpeg',
+                    base64: selectedImage.base64,
+                });
+                if (errors.resume) {
+                    setErrors({ ...errors, resume: null });
                 }
             } else {
-                console.log("Document picking canceled or failed");
+                console.log("Image picking canceled or failed");
             }
         } catch (error) {
-            console.error("Error picking document:", error);
-            Alert.alert("Lỗi", "Có lỗi xảy ra khi chọn file. Vui lòng thử lại.");
+            console.error("Error picking image:", error);
+            Alert.alert("Lỗi", "Có lỗi xảy ra khi chọn ảnh. Vui lòng thử lại.");
         }
     }
 
@@ -260,11 +233,11 @@ const ApplyScreen = ({ route, navigation }) => {
 
                 <Button
                     mode="outlined"
-                    icon="file-upload"
-                    onPress={pickDocument}
+                    icon="image"
+                    onPress={pickImage}
                     style={[styles.uploadButton, errors.resume && styles.errorButton]}
                 >
-                    {resume ? "Đã chọn: " + resume.name : "Tải lên CV của bạn *"}
+                    {resume ? "Đã chọn ảnh: " + resume.name : "Tải lên ảnh đại diện *"}
                 </Button>
                 {errors.resume && <HelperText type="error">{errors.resume}</HelperText>}
 

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../apiConfig';
 
 export const JobContext = createContext();
@@ -43,8 +43,15 @@ export const JobProvider = ({ children }) => {
             const url = `${API_ENDPOINTS.JOBPOSTS_LIST}${queryString ? `?${queryString}` : ''}`;
             
             const response = await axios.get(url);
-            setJobs(response.data.results || []);
-            return response.data;
+            // Map lại dữ liệu để đảm bảo mỗi job có trường company
+            const jobsWithCompany = (response.data.results || []).map(job => {
+                if (job.recruiter && job.recruiter.company) {
+                    return { ...job, company: job.recruiter.company };
+                }
+                return job;
+            });
+            setJobs(jobsWithCompany);
+            return { ...response.data, results: jobsWithCompany };
         } catch (error) {
             setError(error.response?.data?.detail || 'Lỗi khi lấy danh sách công việc!');
             return null;
@@ -66,8 +73,13 @@ export const JobProvider = ({ children }) => {
             console.log("Bắt đầu fetch job detail với ID:", jobId);
             setLoading(true);
             const response = await axios.get(API_ENDPOINTS.JOBPOSTS_READ(jobId));
-            console.log("Job detail data:", response.data);
-            return response.data;
+            let job = response.data;
+            // Map lại dữ liệu để đảm bảo job có trường company
+            if (job.recruiter && job.recruiter.company) {
+                job = { ...job, company: job.recruiter.company };
+            }
+            console.log("Job detail data:", job);
+            return job;
         } catch (error) {
             console.error("Lỗi khi fetch job detail:", error);
             console.error("Error message:", error.message);

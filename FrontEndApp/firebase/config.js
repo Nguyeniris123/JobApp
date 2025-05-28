@@ -21,7 +21,3 @@ const database = getDatabase(app);
 
 // Export database
 export { database };
-
-
-
-

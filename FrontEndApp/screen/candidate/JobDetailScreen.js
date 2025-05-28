@@ -1,9 +1,9 @@
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import ReviewCard from '../../components/ui/ReviewCard';
+import { ReviewCard } from '../../components/ui/ReviewCard';
 import { AuthContext } from '../../contexts/AuthContext';
 import { CompanyContext } from '../../contexts/CompanyContext';
 import { JobContext } from '../../contexts/JobContext';
@@ -136,7 +136,7 @@ const JobDetailScreen = () => {
     
     const handleApply = () => {
         if (!jobDetail) return;
-        navigation.navigate('Apply', { jobId: jobDetail.id });
+        navigation.navigate('ApplyScreen', { jobId: jobDetail.id });
     };
 
     // Hàm xử lý hình ảnh để tránh lỗi khi URI không đúng định dạng

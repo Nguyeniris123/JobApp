@@ -1,7 +1,9 @@
-export const API_URL = 'http://192.168.1.5:8000';
+// export const API_URL = 'http://192.168.1.5:8000';
 // export const API_URL = 'http://127.0.0.0:8000'
 // export const API_URL = 'http://192.168.88.130:8000';
 // export const API_URL = 'http://10.17.51.133:8000';
+export const API_URL = 'http://192.168.1.3:8000';
+
 
 export const API_ENDPOINTS = {
   // Auth
@@ -64,7 +66,7 @@ export const API_ENDPOINTS = {
   REVIEWS_DELETE_FOR_CANDIDATE: (id) => `${API_URL}/reviews_candidates/${id}/`,
   //Review_recruiter 
   REVIEWS_RECRUITER_CREATE: `${API_URL}/review_recruiters/`,
-  REVIEWS_LIST_FOR_RECRUITER: (id) => `${API_URL}/review_recruiters/recruiter/${id}/candidate-reviews/`,
+  REVIEWS_LIST_FOR_RECRUITER: (id) => `${API_URL}/review_recruiters/company/${id}/candidate-reviews/`,
   REVIEWS_DELETE_FOR_RECRUITER: (id) => `${API_URL}/review_recruiters/${id}/`,
   
   // Firebase Authentication

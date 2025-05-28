@@ -1,12 +1,12 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useCallback, useContext, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Avatar, Button, Card, Divider, List, Snackbar, Switch, Text } from "react-native-paper";
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Avatar, Button, Card, Divider, List, Snackbar, Text } from "react-native-paper";
 import { AuthContext } from "../../contexts/AuthContext";
 
 const ProfileScreen = ({ navigation }) => {
-    const { user, changeAvatar } = useContext(AuthContext);
+    const { user, changeAvatar, logout, role } = useContext(AuthContext);
     const [loading, setLoading] = useState(false);
     const [snackbarVisible, setSnackbarVisible] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -54,6 +54,13 @@ const ProfileScreen = ({ navigation }) => {
         }
     }, [changeAvatar]);
 
+    const handleLogout = () => {
+        Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", [
+            { text: "Hủy", style: "cancel" },
+            { text: "Đăng xuất", onPress: () => logout() },
+        ]);
+    };
+
     return (
         <ScrollView style={styles.container}>
             <View style={styles.header}>
@@ -70,25 +77,9 @@ const ProfileScreen = ({ navigation }) => {
                 </TouchableOpacity>
                 <Text style={styles.name}>{username}</Text>
                 <Text style={styles.email}>{user?.email || "user@example.com"}</Text>
-                <View style={styles.statusContainer}>
-                    <Text style={styles.statusLabel}>Trạng thái tìm việc:</Text>
-                    <View style={styles.statusToggle}>
-                        <Text style={styles.statusText}>{availableForWork ? "Đang tìm việc" : "Không tìm việc"}</Text>
-                        <Switch value={availableForWork} onValueChange={() => { }} color="#1E88E5" />
-                    </View>
-                </View>
             </View>
 
-            <CardSection title="Thông tin cá nhân" items={[
-                { title: "Số điện thoại", description: user?.phone || "Chưa cập nhật", icon: "phone" },
-                { title: "Địa chỉ", description: user?.address || "Chưa cập nhật", icon: "map-marker" },
-                { title: "Ngày sinh", description: user?.dob || "Chưa cập nhật", icon: "calendar" }
-            ]} />
-
-            <CardSection title="Kỹ năng" items={(user?.skills || []).map(skill => ({ title: skill, icon: "star" }))} />
-            <CardSection title="Học vấn" items={(user?.education || []).map(edu => ({ title: edu.school, description: `${edu.degree} - ${edu.year}`, icon: "school" }))} />
-            <CardSection title="Kinh nghiệm làm việc" items={(user?.experience || []).map(exp => ({ title: exp.company, description: `${exp.position} (${exp.duration})\n${exp.description}`, icon: "briefcase" }))} />
-
+            {/* Các nút thao tác tài khoản */}
             <View style={styles.buttonContainer}>
                 <Button 
                     mode="contained" 
@@ -98,17 +89,23 @@ const ProfileScreen = ({ navigation }) => {
                 >
                     Đánh giá của tôi
                 </Button>
-                
                 <Button 
                     mode="contained" 
-                    onPress={() => navigation.navigate("Settings")} 
+                    onPress={() => navigation.navigate("EditProfile")} 
                     style={styles.settingsButton} 
-                    icon="cog"
+                    icon="account-outline"
                 >
-                    Cài đặt tài khoản
+                    Chỉnh sửa thông tin cá nhân
                 </Button>
             </View>
-            
+
+            {/* Nút đăng xuất */}
+            <View style={styles.buttonContainer}>
+                <Button mode="outlined" onPress={handleLogout} style={styles.logoutButton} icon="logout">
+                    Đăng xuất
+                </Button>
+            </View>
+
             <Snackbar
                 visible={snackbarVisible}
                 onDismiss={() => setSnackbarVisible(false)}
@@ -152,7 +149,8 @@ const styles = StyleSheet.create({
     sectionTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
     buttonContainer: { margin: 20 },
     reviewsButton: { marginTop: 10, marginBottom: 10, backgroundColor: "#4CAF50" },
-    settingsButton: { marginTop: 10 }
+    settingsButton: { marginTop: 10 },
+    logoutButton: { marginTop: 10 }
 });
 
 export default ProfileScreen;

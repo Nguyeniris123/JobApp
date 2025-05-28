@@ -10,7 +10,6 @@ const FollowingScreen = ({ navigation }) => {
     const { loading, followedCompanies, fetchFollowedCompanies, unfollowCompany, error } = useContext(CompanyContext);
     const [refreshing, setRefreshing] = useState(false);
     const [unfollowingId, setUnfollowingId] = useState(null);
-    const [debugInfo, setDebugInfo] = useState(null);
     
     // Ref để theo dõi việc load data chỉ diễn ra một lần
     const didInitialLoadRef = useRef(false);
@@ -39,14 +38,6 @@ const FollowingScreen = ({ navigation }) => {
 
             const result = await fetchFollowedCompanies();
             console.log('Followed companies data loaded in FollowingScreen, count:', result?.length || 0);
-
-            // Lưu thông tin debug
-            setDebugInfo({
-                tokenExists: !!token,
-                companiesCount: followedCompanies?.length || 0,
-                apiResponseCount: result?.length || 0,
-                error: error
-            });
         } catch (error) {
             console.error('Error in loadData:', error);
             Alert.alert('Lỗi', 'Không thể tải danh sách công ty. ' + (error.message || ''));
@@ -169,54 +160,6 @@ const FollowingScreen = ({ navigation }) => {
         );
     };
 
-    const renderDebugInfo = () => {
-        if (!__DEV__ || !debugInfo) return null;
-
-        return (
-            <View style={styles.debugContainer}>
-                <Text style={styles.debugTitle}>Debug Info:</Text>
-                <Text>Token exists: {debugInfo.tokenExists ? 'Yes' : 'No'}</Text>
-                <Text>Context companies count: {debugInfo.companiesCount}</Text>
-                <Text>API response count: {debugInfo.apiResponseCount}</Text>
-                <Text>Error: {debugInfo.error || 'None'}</Text>
-
-                <View style={styles.debugButtonsContainer}>
-                    <TouchableOpacity
-                        style={styles.debugButton}
-                        onPress={async () => {
-                            const token = await AsyncStorage.getItem('accessToken');
-                            Alert.alert('Token', token || 'No token found');
-                        }}
-                    >
-                        <Text style={styles.debugButtonText}>Show Token</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.debugButton}
-                        onPress={() => {
-                            console.log('Current followedCompanies:', followedCompanies);
-                            Alert.alert(
-                                'Companies Data',
-                                `Count: ${followedCompanies?.length || 0}\n${followedCompanies && followedCompanies.length > 0 ?
-                                    JSON.stringify(followedCompanies[0], null, 2).substring(0, 200) + '...' :
-                                    'No companies'}`
-                            );
-                        }}
-                    >
-                        <Text style={styles.debugButtonText}>Show Companies Data</Text>
-                    </TouchableOpacity>
-                </View>
-                
-                <TouchableOpacity
-                    style={styles.refreshButton}
-                    onPress={onRefresh}
-                >
-                    <Text style={styles.debugButtonText}>Tải lại dữ liệu</Text>
-                </TouchableOpacity>
-            </View>
-        );
-    };
-
     if (loading && !refreshing) {
         return (
             <View style={styles.loadingContainer}>
@@ -228,8 +171,6 @@ const FollowingScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            {renderDebugInfo()}
-
             {error && (
                 <View style={styles.errorContainer}>
                     <Icon name="error-outline" size={24} color="#FF5252" />
@@ -456,42 +397,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 12,
     },
-    debugContainer: {
-        backgroundColor: '#E3F2FD',
-        padding: 10,
-        margin: 8,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#90CAF9'
-    },
-    debugTitle: {
-        fontWeight: 'bold',
-        marginBottom: 4
-    },
-    debugButtonsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 8
-    },
-    debugButton: {
-        backgroundColor: '#2196F3',
-        padding: 8,
-        borderRadius: 4,
-        alignItems: 'center',
-        flex: 0.48
-    },
-    debugButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 12
-    },
-    refreshButton: {
-        backgroundColor: '#4CAF50',
-        padding: 12,
-        borderRadius: 4,
-        alignItems: 'center',
-        marginTop: 10
-    }
 });
 
 export default FollowingScreen;

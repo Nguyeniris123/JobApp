@@ -1,27 +1,24 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons"
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
 import * as ImagePicker from "expo-image-picker"
 import { useContext, useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native"
-import { Button, Card, Chip, Divider, HelperText, Snackbar, Text, TextInput } from "react-native-paper"
+import { Image, ScrollView, StyleSheet, View } from "react-native"
+import { Button, Card, HelperText, Snackbar, Text, TextInput } from "react-native-paper"
+import { API_ENDPOINTS } from '../../apiConfig'
 import { AuthContext } from "../../contexts/AuthContext"
 
 const CompanyProfileScreen = ({ navigation }) => {
-    const { user } = useContext(AuthContext)
-    const { t } = useTranslation()
+    const { user, accessToken } = useContext(AuthContext)
 
     // Default empty company data
     const emptyCompanyData = {
         name: "",
         logo: "https://via.placeholder.com/150",
-        industry: "",
-        size: "",
-        website: "",
+        tax_code: "",
         description: "",
-        address: "",
-        phone: "",
-        email: "",
+        location: "",
+        is_verified: false,
+        images: [],
     }
 
     const [companyData, setCompanyData] = useState(emptyCompanyData)
@@ -33,22 +30,12 @@ const CompanyProfileScreen = ({ navigation }) => {
 
     // Fetch company data on component mount
     useEffect(() => {
-        fetchCompanyData()
-    }, [])
-
-    const fetchCompanyData = async () => {
-        try {
-            const response = await axios.get('http://192.168.1.5:8000/company/profile/')
-            if (response.data) {
-                setCompanyData(response.data)
-                setLogo(response.data.logo)
-            }
-        } catch (error) {
-            console.error("Error fetching company data:", error)
-            setSnackbarMessage("Không thể tải thông tin công ty")
-            setSnackbarVisible(true)
+        // Nếu user có company (role recruiter) thì set luôn
+        if (user && user.company) {
+            setCompanyData(user.company);
+            setLogo(user.company.logo || emptyCompanyData.logo);
         }
-    }
+    }, [user]);
 
     const updateCompanyData = (field, value) => {
         setCompanyData({
@@ -82,6 +69,50 @@ const CompanyProfileScreen = ({ navigation }) => {
         }
     }
 
+    // Thêm hàm chọn và cập nhật nhiều ảnh công ty
+    const pickCompanyImages = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsMultipleSelection: true,
+                selectionLimit: 5,
+                quality: 1,
+            });
+            if (!result.canceled) {
+                // Lấy danh sách uri ảnh mới
+                const newImages = result.assets.map(asset => asset.uri);
+                // Lấy accessToken mới nhất từ AsyncStorage
+                const token = await AsyncStorage.getItem('accessToken');
+                // Gửi PATCH lên API cập nhật images cho company
+                if (companyData.id && token) {
+                    const formData = new FormData();
+                    newImages.forEach((uri, idx) => {
+                        formData.append('images', {
+                            uri,
+                            type: 'image/jpeg',
+                            name: `company_image_${idx}.jpg`,
+                        });
+                    });
+                    await axios.patch(API_ENDPOINTS.COMPANIES_PARTIAL_UPDATE(companyData.id), formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+                    // Reload lại dữ liệu công ty
+                    setCompanyData({ ...companyData, images: [...(companyData.images || []), ...newImages] });
+                } else if (!token) {
+                    setSnackbarMessage('Không tìm thấy accessToken, vui lòng đăng nhập lại!');
+                    setSnackbarVisible(true);
+                }
+            }
+        } catch (error) {
+            console.error('Lỗi khi cập nhật ảnh công ty:', error);
+            setSnackbarMessage('Cập nhật ảnh công ty thất bại!');
+            setSnackbarVisible(true);
+        }
+    };
+
     const validateForm = () => {
         const newErrors = {}
         let isValid = true
@@ -91,18 +122,8 @@ const CompanyProfileScreen = ({ navigation }) => {
             isValid = false
         }
 
-        if (!companyData.industry || companyData.industry.trim() === "") {
-            newErrors.industry = "Ngành nghề là bắt buộc"
-            isValid = false
-        }
-
         if (!companyData.description || companyData.description.trim() === "") {
             newErrors.description = "Mô tả công ty là bắt buộc"
-            isValid = false
-        }
-
-        if (!companyData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(companyData.email)) {
-            newErrors.email = "Email không hợp lệ"
             isValid = false
         }
 
@@ -112,21 +133,21 @@ const CompanyProfileScreen = ({ navigation }) => {
 
     const handleSave = async () => {
         if (!validateForm()) {
-            return
+            return;
         }
-
         try {
-            const response = await axios.put('http://192.168.1.5:8000/company/profile/', companyData)
+            // Gửi cập nhật thông tin công ty qua API chuẩn trong apiConfig
+            const response = await axios.put(API_ENDPOINTS.COMPANIES_UPDATE(companyData.id), companyData);
             if (response.data) {
-                setEditing(false)
-                setSnackbarMessage("Cập nhật thông tin công ty thành công")
-                setSnackbarVisible(true)
-                fetchCompanyData() // Refresh data
+                setEditing(false);
+                setSnackbarMessage("Cập nhật thông tin công ty thành công");
+                setSnackbarVisible(true);
+                fetchCompanyData(); // Refresh data
             }
         } catch (error) {
-            console.error("Error updating company data:", error)
-            setSnackbarMessage("Cập nhật thông tin thất bại")
-            setSnackbarVisible(true)
+            console.error("Error updating company data:", error);
+            setSnackbarMessage("Cập nhật thông tin thất bại");
+            setSnackbarVisible(true);
         }
     }
 
@@ -136,55 +157,27 @@ const CompanyProfileScreen = ({ navigation }) => {
         setErrors({})
     }
 
-    // Danh sách ngành nghề
-    const industries = [
-        "Công nghệ thông tin",
-        "Tài chính - Ngân hàng",
-        "Giáo dục - Đào tạo",
-        "Bán lẻ",
-        "Sản xuất",
-        "Dịch vụ",
-        "Y tế",
-        "Xây dựng",
-        "Khác",
-    ]
-
-    // Danh sách quy mô công ty
-    const companySizes = [
-        "Dưới 10 nhân viên",
-        "10-50 nhân viên",
-        "50-200 nhân viên",
-        "200-500 nhân viên",
-        "500-1000 nhân viên",
-        "Trên 1000 nhân viên",
-    ]
-
     return (
         <ScrollView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Hồ sơ công ty</Text>
+                <View style={styles.verifiedContainer}>
+                    <Text style={companyData.is_verified ? styles.verifiedText : styles.unverifiedText}>
+                        {companyData.is_verified ? 'ĐÃ XÁC THỰC HÌNH ẢNH' : 'CHƯA XÁC THỰC HÌNH ẢNH'}
+                    </Text>
+                </View>
             </View>
-
-            <View style={styles.logoContainer}>
-                <Image source={{ uri: logo }} style={styles.logo} />
-                {editing && (
-                    <TouchableOpacity style={styles.editLogoButton} onPress={pickImage}>
-                        <MaterialCommunityIcons name="camera" size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
-                )}
-            </View>
-
+            {/* Thông tin công ty */}
             <Card style={styles.card}>
                 <Card.Content>
                     <View style={styles.cardHeader}>
-                        <Text style={styles.cardTitle}>Thông tin cơ bản</Text>
+                        <Text style={styles.cardTitle}>Thông tin công ty</Text>
                         {!editing && (
                             <Button mode="text" onPress={() => setEditing(true)}>
                                 Chỉnh sửa
                             </Button>
                         )}
                     </View>
-
                     {editing ? (
                         <View>
                             <TextInput
@@ -196,74 +189,20 @@ const CompanyProfileScreen = ({ navigation }) => {
                                 error={!!errors.name}
                             />
                             {errors.name && <HelperText type="error">{errors.name}</HelperText>}
-
-                            <Text style={styles.inputLabel}>Ngành nghề *</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsContainer}>
-                                {industries.map((industry, index) => (
-                                    <Chip
-                                        key={index}
-                                        selected={companyData.industry === industry}
-                                        onPress={() => updateCompanyData("industry", industry)}
-                                        style={styles.chip}
-                                        selectedColor="#1E88E5"
-                                    >
-                                        {industry}
-                                    </Chip>
-                                ))}
-                            </ScrollView>
-                            {errors.industry && <HelperText type="error">{errors.industry}</HelperText>}
-
-                            <Text style={styles.inputLabel}>Quy mô công ty</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsContainer}>
-                                {companySizes.map((size, index) => (
-                                    <Chip
-                                        key={index}
-                                        selected={companyData.size === size}
-                                        onPress={() => updateCompanyData("size", size)}
-                                        style={styles.chip}
-                                        selectedColor="#1E88E5"
-                                    >
-                                        {size}
-                                    </Chip>
-                                ))}
-                            </ScrollView>
-
                             <TextInput
-                                label="Website"
-                                value={companyData.website}
-                                onChangeText={(text) => updateCompanyData("website", text)}
+                                label="Mã số thuế"
+                                value={companyData.tax_code}
+                                onChangeText={(text) => updateCompanyData("tax_code", text)}
                                 mode="outlined"
                                 style={styles.input}
                             />
-
                             <TextInput
                                 label="Địa chỉ"
-                                value={companyData.address}
-                                onChangeText={(text) => updateCompanyData("address", text)}
+                                value={companyData.location}
+                                onChangeText={(text) => updateCompanyData("location", text)}
                                 mode="outlined"
                                 style={styles.input}
                             />
-
-                            <TextInput
-                                label="Số điện thoại"
-                                value={companyData.phone}
-                                onChangeText={(text) => updateCompanyData("phone", text)}
-                                mode="outlined"
-                                style={styles.input}
-                                keyboardType="phone-pad"
-                            />
-
-                            <TextInput
-                                label="Email liên hệ *"
-                                value={companyData.email}
-                                onChangeText={(text) => updateCompanyData("email", text)}
-                                mode="outlined"
-                                style={styles.input}
-                                keyboardType="email-address"
-                                error={!!errors.email}
-                            />
-                            {errors.email && <HelperText type="error">{errors.email}</HelperText>}
-
                             <TextInput
                                 label="Mô tả công ty *"
                                 value={companyData.description}
@@ -275,7 +214,6 @@ const CompanyProfileScreen = ({ navigation }) => {
                                 error={!!errors.description}
                             />
                             {errors.description && <HelperText type="error">{errors.description}</HelperText>}
-
                             <View style={styles.buttonContainer}>
                                 <Button mode="outlined" onPress={handleCancel} style={styles.cancelButton}>
                                     Hủy
@@ -291,98 +229,51 @@ const CompanyProfileScreen = ({ navigation }) => {
                                 <Text style={styles.infoLabel}>Tên công ty:</Text>
                                 <Text style={styles.infoValue}>{companyData.name}</Text>
                             </View>
-
                             <View style={styles.infoItem}>
-                                <Text style={styles.infoLabel}>Ngành nghề:</Text>
-                                <Text style={styles.infoValue}>{companyData.industry}</Text>
+                                <Text style={styles.infoLabel}>Mã số thuế:</Text>
+                                <Text style={styles.infoValue}>{companyData.tax_code}</Text>
                             </View>
-
-                            <View style={styles.infoItem}>
-                                <Text style={styles.infoLabel}>Quy mô:</Text>
-                                <Text style={styles.infoValue}>{companyData.size}</Text>
-                            </View>
-
-                            <View style={styles.infoItem}>
-                                <Text style={styles.infoLabel}>Website:</Text>
-                                <Text style={styles.infoValue}>{companyData.website}</Text>
-                            </View>
-
                             <View style={styles.infoItem}>
                                 <Text style={styles.infoLabel}>Địa chỉ:</Text>
-                                <Text style={styles.infoValue}>{companyData.address}</Text>
+                                <Text style={styles.infoValue}>{companyData.location}</Text>
                             </View>
-
                             <View style={styles.infoItem}>
-                                <Text style={styles.infoLabel}>Số điện thoại:</Text>
-                                <Text style={styles.infoValue}>{companyData.phone}</Text>
+                                <Text style={styles.infoLabel}>Mô tả công ty:</Text>
+                                <Text style={styles.infoValue}>{companyData.description}</Text>
                             </View>
-
-                            <View style={styles.infoItem}>
-                                <Text style={styles.infoLabel}>Email liên hệ:</Text>
-                                <Text style={styles.infoValue}>{companyData.email}</Text>
-                            </View>
-
-                            <Divider style={styles.divider} />
-
-                            <Text style={styles.infoLabel}>Mô tả công ty:</Text>
-                            <Text style={styles.description}>{companyData.description}</Text>
                         </View>
                     )}
                 </Card.Content>
             </Card>
-
-            <Card style={styles.card}>
-                <Card.Content>
-                    <Text style={styles.cardTitle}>Thống kê</Text>
-
-                    <View style={styles.statsContainer}>
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>12</Text>
-                            <Text style={styles.statLabel}>Tin đăng</Text>
-                        </View>
-
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>45</Text>
-                            <Text style={styles.statLabel}>Ứng viên</Text>
-                        </View>
-
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>8</Text>
-                            <Text style={styles.statLabel}>Đã tuyển</Text>
-                        </View>
-                    </View>
-                </Card.Content>
-            </Card>
-
-            <Card style={styles.card}>
-                <Card.Content>
-                    <Text style={styles.cardTitle}>Đánh giá</Text>
-
-                    <View style={styles.ratingContainer}>
-                        <Text style={styles.ratingValue}>4.5</Text>
-                        <View style={styles.starsContainer}>
-                            <MaterialCommunityIcons name="star" size={24} color="#FFC107" />
-                            <MaterialCommunityIcons name="star" size={24} color="#FFC107" />
-                            <MaterialCommunityIcons name="star" size={24} color="#FFC107" />
-                            <MaterialCommunityIcons name="star" size={24} color="#FFC107" />
-                            <MaterialCommunityIcons name="star-half" size={24} color="#FFC107" />
-                        </View>
-                        <Text style={styles.reviewCount}>(15 đánh giá)</Text>
-                    </View>
-
-                    <Button
-                        mode="outlined"
-                        icon="comment-multiple-outline"
-                        onPress={() => navigation.navigate("MyReviews")}
-                        style={styles.viewReviewsButton}
-                    >
-                        Xem đánh giá
-                    </Button>
-                </Card.Content>
-            </Card>
-
+            {/* Hiển thị danh sách ảnh công ty phía dưới thông tin */}
+            <View style={styles.imagesSection}>
+                <View style={styles.imagesHeaderRow}>
+                    <Text style={styles.imagesSectionTitle}>Hình ảnh công ty</Text>
+                    {!companyData.is_verified && (
+                        <Button mode="outlined" onPress={pickCompanyImages} style={styles.changeImagesButton}>
+                            Đổi/Thêm ảnh
+                        </Button>
+                    )}
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imagesRow}>
+                    {Array.from({ length: Math.max(3, companyData.images?.length || 0) }).map((_, idx) => {
+                        const img = companyData.images && companyData.images[idx];
+                        return img ? (
+                            <Image
+                                key={idx}
+                                source={typeof img === 'string' ? { uri: img } : { uri: img.image || img.uri }}
+                                style={styles.companyImage}
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <View key={idx} style={[styles.companyImage, styles.emptyImageBox]}>
+                                <Text style={styles.emptyImageText}>Chưa có ảnh</Text>
+                            </View>
+                        );
+                    })}
+                </ScrollView>
+            </View>
             <View style={styles.bottomSpace} />
-
             <Snackbar
                 visible={snackbarVisible}
                 onDismiss={() => setSnackbarVisible(false)}
@@ -407,36 +298,59 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingTop: 40,
         backgroundColor: "#1E88E5",
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     title: {
         fontSize: 24,
         fontWeight: "bold",
         color: "#FFFFFF",
     },
-    logoContainer: {
-        alignItems: "center",
-        marginTop: -40,
-        marginBottom: 20,
+    verifiedContainer: {
+        marginLeft: 12,
     },
-    logo: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        borderWidth: 3,
-        borderColor: "#FFFFFF",
+    verifiedText: {
+        color: '#4CAF50',
+        fontWeight: 'bold',
+        fontSize: 14,
+        backgroundColor: '#E8F5E9',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
     },
-    editLogoButton: {
-        position: "absolute",
-        bottom: 0,
-        right: "35%",
-        backgroundColor: "#1E88E5",
-        borderRadius: 20,
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-        borderWidth: 2,
-        borderColor: "#FFFFFF",
+    unverifiedText: {
+        color: '#FFA000',
+        fontWeight: 'bold',
+        fontSize: 14,
+        backgroundColor: '#FFF8E1',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    imagesRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    companyImage: {
+        width: 110,
+        height: 80,
+        borderRadius: 8,
+        backgroundColor: '#f0f0f0',
+        marginRight: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyImageBox: {
+        borderWidth: 1,
+        borderColor: '#BDBDBD',
+        backgroundColor: '#FAFAFA',
+    },
+    emptyImageText: {
+        color: '#BDBDBD',
+        fontSize: 13,
+        textAlign: 'center',
     },
     card: {
         margin: 16,
@@ -546,6 +460,29 @@ const styles = StyleSheet.create({
     },
     bottomSpace: {
         height: 24,
+    },
+    imagesSection: {
+        marginHorizontal: 16,
+        marginTop: 8,
+        marginBottom: 16,
+    },
+    imagesHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    imagesSectionTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#212121',
+    },
+    changeImagesButton: {
+        borderColor: '#1E88E5',
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 2,
     },
 })
 

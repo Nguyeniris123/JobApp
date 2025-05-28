@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../apiConfig';
 import { AuthContext } from './AuthContext';
 
@@ -33,7 +33,7 @@ export const ReviewProvider = ({ children }) => {
         try {
             setLoading(true);
             setError(null);
-            
+
             const id = recruiterId || (user && user.id);
             if (!id) {
                 setError('Không có ID nhà tuyển dụng');

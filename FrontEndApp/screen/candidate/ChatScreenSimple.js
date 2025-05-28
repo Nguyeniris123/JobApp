@@ -16,15 +16,15 @@ const ChatScreenSimple = ({ navigation, route }) => {
     const unsubscribeRef = useRef(null)
 
     // Lấy thông tin chat từ route params hoặc sử dụng giá trị mặc định
-    const { 
-        recruiterId, 
+    const {
+        recruiterId,
         recruiterName = "Nhà tuyển dụng",
         recruiterAvatar = "https://via.placeholder.com/150",
         jobId,
         jobTitle = "Vị trí công việc",
-        company = "Tên công ty" 
+        company = "Tên công ty"
     } = route.params || {}
-    
+
     // Thông tin chat để hiển thị
     const chatInfo = {
         jobTitle,
@@ -42,9 +42,9 @@ const ChatScreenSimple = ({ navigation, route }) => {
             try {
                 setError(null);
                 setLoading(true);
-                
+
                 console.log("Thiết lập chat cho ứng viên", user?.id, "với nhà tuyển dụng", recruiterId);
-                
+
                 if (!user || !user.id || !recruiterId) {
                     console.error("Thiếu ID người dùng hoặc ID nhà tuyển dụng");
                     setLoading(false);
@@ -62,21 +62,21 @@ const ChatScreenSimple = ({ navigation, route }) => {
                     setError("Không thể kết nối đến dịch vụ chat - Vui lòng thử lại sau");
                     throw err;
                 });
-                
+
                 console.log("Sử dụng ID chat room:", chatRoomId);
                 setRoomId(chatRoomId);
 
                 // Đăng ký nhận tin nhắn
                 unsubscribe = ChatServiceSimple.subscribeToMessages(
-                    chatRoomId, 
+                    chatRoomId,
                     (newMessages) => {
                         // Chuyển đổi timestamp thành đối tượng Date
                         const formattedMessages = newMessages.map(msg => ({
                             ...msg,
-                            timestamp: msg.timestamp ? 
-                              new Date(msg.timestamp) : new Date()
+                            timestamp: msg.timestamp ?
+                                new Date(msg.timestamp) : new Date()
                         }));
-                        
+
                         setMessages(formattedMessages);
                         setLoading(false);
                     },
@@ -86,9 +86,9 @@ const ChatScreenSimple = ({ navigation, route }) => {
                         setLoading(false);
                     }
                 );
-                
+
                 unsubscribeRef.current = unsubscribe;
-                
+
                 // Đánh dấu tất cả tin nhắn là đã đọc khi vào phòng chat
                 await ChatServiceSimple.markMessagesAsRead(chatRoomId, user.id);
             } catch (err) {
@@ -133,12 +133,20 @@ const ChatScreenSimple = ({ navigation, route }) => {
             setSending(true);
             setInputMessage(""); // Xóa input để UX mượt hơn
 
-            // Gửi tin nhắn
+            // Gửi tin nhắn kèm thông tin thật của user
             await ChatServiceSimple.sendMessage(
-                roomId, 
-                user.id, 
+                roomId,
+                user.id,
                 messageText,
-                'candidate'
+                'candidate',
+                {
+                    id: user.id,
+                    first_name: user.first_name,
+                    last_name: user.last_name,
+                    username: user.username,
+                    email: user.email,
+                    avatar: user.avatar
+                }
             );
 
             setSending(false);
@@ -147,23 +155,23 @@ const ChatScreenSimple = ({ navigation, route }) => {
             setError("Không thể gửi tin nhắn - Vui lòng thử lại sau");
             setSending(false);
             // Khôi phục tin nhắn vào ô nhập nếu gửi thất bại
-            setInputMessage(inputMessage); 
+            setInputMessage(inputMessage);
         }
     };
 
     // Format thời gian tin nhắn
     const formatTime = (date) => {
         if (!date) return "";
-        
+
         const hours = date.getHours().toString().padStart(2, "0");
         const minutes = date.getMinutes().toString().padStart(2, "0");
-        
+
         return `${hours}:${minutes}`;
     };
 
     // Render tin nhắn
     const renderMessage = ({ item }) => (
-        <ChatItem 
+        <ChatItem
             message={item}
             isCurrentUser={item.sender === 'candidate'}
             avatar={item.sender === 'recruiter' ? chatInfo.recruiterAvatar : null}

@@ -2,7 +2,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs"
 import { createStackNavigator } from "@react-navigation/stack"
+import { useContext } from "react"
 import { Text, View } from "react-native"
+import { ApplicationContext } from "../contexts/ApplicationContext"
 
 // Screens
 import ApplicationStatusScreen from "../screen/candidate/ApplicationStatusScreen"
@@ -15,7 +17,6 @@ import HomeScreen from "../screen/candidate/HomeScreen"
 import JobDetailScreen from "../screen/candidate/JobDetailScreen"
 import MyReviewsScreen from "../screen/candidate/MyReviewsScreen"
 import ProfileScreen from "../screen/candidate/ProfileScreen"
-import SettingsScreen from "../screen/candidate/SettingsScreen"
 import EditProfileScreen from "../screen/common/EditProfileScreen"
 
 const Tab = createBottomTabNavigator()
@@ -53,51 +54,42 @@ const TabBarLabel = ({ label, focused, color, icon }) => (
 
 // Tabs for Notification section (Favorite and Chat)
 const NotificationTabs = () => {
+    const { loading: loadingApplications } = useContext(ApplicationContext);
+    const isLoading = loadingApplications;
     return (
         <TopTab.Navigator
-            screenOptions={{
+            screenOptions={({ route }) => ({
                 tabBarActiveTintColor: "#1E88E5",
                 tabBarInactiveTintColor: "#757575",
                 tabBarIndicatorStyle: { backgroundColor: "#1E88E5" },
-                tabBarLabelStyle: {
-                    textTransform: "none",
-                    display: 'none' // Hide default labels since we use custom ones
-                },
+                // KHÔNG dùng tabBarShowLabel: false để label custom hoạt động
                 tabBarStyle: {
                     elevation: 0,
                     shadowOpacity: 0,
                     backgroundColor: "#FFFFFF"
                 },
+                tabBarLabel: (props) => {
+                    if (route.name === "ApplicationStatus") {
+                        return <TabBarLabel label="Trạng thái" icon="application" {...props} />;
+                    }
+                    if (route.name === "ChatList") {
+                        return <TabBarLabel label="Tin nhắn" icon="chat" {...props} />;
+                    }
+                    return null;
+                },
+                tabBarPressColor: isLoading ? "#E0E0E0" : undefined,
+                tabBarPressOpacity: isLoading ? 1 : undefined,
+            })}
+            screenListeners={{
+                tabPress: (e) => {
+                    if (isLoading) {
+                        e.preventDefault();
+                    }
+                }
             }}
         >
-            <TopTab.Screen
-                name="Favorite"
-                component={FollowingScreen}
-                options={{
-                    tabBarLabel: ({ focused, color }) => (
-                        <TabBarLabel
-                            label="Đã lưu"
-                            focused={focused}
-                            color={color}
-                            icon="heart"
-                        />
-                    )
-                }}
-            />
-            <TopTab.Screen
-                name="ChatList"
-                component={ChatListScreenSimple}
-                options={{
-                    tabBarLabel: ({ focused, color }) => (
-                        <TabBarLabel
-                            label="Tin nhắn"
-                            focused={focused}
-                            color={color}
-                            icon="chat"
-                        />
-                    )
-                }}
-            />
+            <TopTab.Screen name="ApplicationStatus" component={ApplicationStatusScreen} />
+            <TopTab.Screen name="ChatList" component={ChatListScreenSimple} />
         </TopTab.Navigator>
     )
 }
@@ -112,12 +104,13 @@ const HomeStack = () => {
         >
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="JobDetail" component={JobDetailScreen} />
-            <Stack.Screen name="Apply" component={ApplyScreen} />
+            <Stack.Screen name="ApplyScreen" component={ApplyScreen} />
             <Stack.Screen name="Chat" component={ChatScreenSimple} />
             <Stack.Screen name="CreateReview" component={CreateReviewScreen} />
         </Stack.Navigator>
     )
 }
+
 
 const FavoriteStack = () => {
     return (
@@ -125,8 +118,7 @@ const FavoriteStack = () => {
             screenOptions={{
                 headerShown: false,
             }}>
-            <Stack.Screen name="ApplicationStatus" component={ApplicationStatusScreen} />
-            <Stack.Screen name="Chat" component={ChatScreenSimple} />
+            <Stack.Screen name="Favorite" component={FollowingScreen} />
         </Stack.Navigator>
     )
 }
@@ -142,7 +134,7 @@ const NotificationStack = () => {
                 name="NotificationTabs"
                 component={NotificationTabs}
                 options={{
-                    title: "Thông báo & Tin nhắn",
+                    title: "Trạng thái & Tin nhắn",
                     headerStyle: { elevation: 0, shadowOpacity: 0 }
                 }} />
             <Stack.Screen
@@ -163,7 +155,6 @@ const ProfileStack = () => {
             }}
         >
             <Stack.Screen name="Profile" component={ProfileScreen} />
-            <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="MyReviews" component={MyReviewsScreen} />
         </Stack.Navigator>
@@ -183,7 +174,7 @@ const CandidateNavigator = () => {
                     } else if (route.name === "FavoriteTab") {
                         iconName = focused ? "heart" : "heart-outline"
                     } else if (route.name === "NotificationTab") {
-                        iconName = focused ? "bell" : "bell-outline"
+                        iconName = focused ? "chat" : "chat-outline"
                     } else if (route.name === "ProfileTab") {
                         iconName = focused ? "account" : "account-outline"
                     }
@@ -197,8 +188,8 @@ const CandidateNavigator = () => {
             }}
         >
             <Tab.Screen name="HomeTab" component={HomeStack} options={{ tabBarLabel: "Trang chủ" }} />
-            <Tab.Screen name="FavoriteTab" component={FavoriteStack} options={{ tabBarLabel: "Yêu thích" }} />
-            <Tab.Screen name="NotificationTab" component={NotificationStack} options={{ tabBarLabel: "Thông báo" }} />
+            <Tab.Screen name="FavoriteTab" component={FavoriteStack} options={{ tabBarLabel: "Đã lưu" }} />
+            <Tab.Screen name="NotificationTab" component={NotificationStack} options={{ tabBarLabel: "Tin nhắn", unmountOnBlur: true }} />
             <Tab.Screen name="ProfileTab" component={ProfileStack} options={{ tabBarLabel: "Hồ sơ" }} />
         </Tab.Navigator>
     )

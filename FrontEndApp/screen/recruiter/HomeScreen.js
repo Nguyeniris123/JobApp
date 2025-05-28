@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useContext, useEffect, useMemo, useState } from "react"
 import { Alert, ScrollView, TouchableOpacity, View } from "react-native"
-import { ActivityIndicator, Avatar, Button, Card, Chip, Dialog, FAB, Portal, Searchbar, Text } from "react-native-paper"
+import { ActivityIndicator, Avatar, Button, Card, Dialog, FAB, Portal, Searchbar, Text } from "react-native-paper"
 import { AuthContext } from "../../contexts/AuthContext"
 import { JobContext } from "../../contexts/JobContext"
 
@@ -13,9 +13,7 @@ const HomeScreen = ({ navigation }) => {
     const [searchQuery, setSearchQuery] = useState('')
     const [stats, setStats] = useState({
         totalJobs: 0,
-        activeJobs: 0,
         totalApplicants: 0,
-        newApplicants: 0,
     })
     const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
     const [selectedJob, setSelectedJob] = useState(null);
@@ -27,18 +25,13 @@ const HomeScreen = ({ navigation }) => {
             try {
                 const accessToken = await AsyncStorage.getItem('accessToken')
                 const jobsData = await fetchRecruiterJobs(accessToken)
-
                 setJobs(jobsData)
-
                 const totalJobs = jobsData.length
-                const activeJobs = jobsData.filter((job) => job.status === "active").length
-                const totalApplicants = jobsData.reduce((sum, job) => sum + job.applicants, 0)
-
+                // Dùng application_count nếu có, nếu không thì 0
+                const totalApplicants = jobsData.reduce((sum, job) => sum + (job.application_count || 0), 0)
                 setStats({
                     totalJobs,
-                    activeJobs,
                     totalApplicants,
-                    newApplicants: 3,
                 })
             } catch (error) {
                 console.error("Lỗi khi lấy dữ liệu:", error)
@@ -46,7 +39,6 @@ const HomeScreen = ({ navigation }) => {
                 setLoading(false)
             }
         }
-
         fetchData()
     }, [])
 
@@ -81,14 +73,10 @@ const HomeScreen = ({ navigation }) => {
 
     useEffect(() => {
         const totalJobs = filteredJobs.length;
-        const activeJobs = filteredJobs.filter((job) => job.status === "active").length;
-        const totalApplicants = filteredJobs.reduce((sum, job) => sum + job.applicants, 0);
-
+        const totalApplicants = filteredJobs.reduce((sum, job) => sum + (job.application_count || 0), 0);
         setStats({
             totalJobs,
-            activeJobs,
             totalApplicants,
-            newApplicants: stats.newApplicants,
         });
     }, [filteredJobs]);
 
@@ -155,18 +143,8 @@ const HomeScreen = ({ navigation }) => {
                             </View>
                             <View style={styles.statDivider} />
                             <View style={styles.statItem}>
-                                <Text style={styles.statValue}>{stats.activeJobs}</Text>
-                                <Text style={styles.statLabel}>Đang hoạt động</Text>
-                            </View>
-                            <View style={styles.statDivider} />
-                            <View style={styles.statItem}>
                                 <Text style={styles.statValue}>{stats.totalApplicants}</Text>
                                 <Text style={styles.statLabel}>Tổng ứng viên</Text>
-                            </View>
-                            <View style={styles.statDivider} />
-                            <View style={styles.statItem}>
-                                <Text style={styles.statValue}>{stats.newApplicants}</Text>
-                                <Text style={styles.statLabel}>Ứng viên mới</Text>
                             </View>
                         </Card.Content>
                     </Card>
@@ -199,17 +177,6 @@ const HomeScreen = ({ navigation }) => {
                                     <TouchableOpacity onPress={() => navigation.navigate("JobDetail", { jobId: job.id })}>
                                         <View style={styles.jobHeader}>
                                             <Text style={styles.jobTitle}>{job.title}</Text>
-                                            <Chip
-                                                style={[
-                                                    styles.statusChip,
-                                                    {
-                                                        backgroundColor: job.status === "active" ? "#4CAF50" : "#9E9E9E",
-                                                    },
-                                                ]}
-                                                textStyle={{ color: "#FFFFFF" }}
-                                            >
-                                                {job.status === "active" ? "Đang hiển thị" : "Hết hạn"}
-                                            </Chip>
                                         </View>
 
                                         <View style={styles.jobDetails}>
@@ -221,20 +188,11 @@ const HomeScreen = ({ navigation }) => {
                                                 <MaterialCommunityIcons name="currency-usd" size={16} color="#757575" />
                                                 <Text style={styles.jobDetailText}>{formatSalary(job.salary)}</Text>
                                             </View>
-                                            <View style={styles.jobDetail}>
-                                                <MaterialCommunityIcons name="calendar" size={16} color="#757575" />
-                                                <Text style={styles.jobDetailText}>Đăng {formatDate(job.postedDate)}</Text>
-                                            </View>
                                         </View>
-
                                         <View style={styles.jobStats}>
                                             <View style={styles.jobStat}>
                                                 <MaterialCommunityIcons name="account-outline" size={20} color="#1E88E5" />
-                                                <Text style={styles.jobStatText}>{job.applicants} ứng viên</Text>
-                                            </View>
-                                            <View style={styles.jobStat}>
-                                                <MaterialCommunityIcons name="eye-outline" size={20} color="#1E88E5" />
-                                                <Text style={styles.jobStatText}>{job.views} lượt xem</Text>
+                                                <Text style={styles.jobStatText}>{job.application_count || 0} ứng viên</Text>
                                             </View>
                                         </View>
                                     </TouchableOpacity>

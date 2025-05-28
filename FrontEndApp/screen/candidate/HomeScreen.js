@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Animated, FlatList, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from "react-native";
 // Remove the LinearGradient import temporarily
 import { Avatar, Chip, Searchbar, Text } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialIcons";
@@ -125,7 +125,7 @@ const HomeScreen = ({ navigation }) => {
                 mode="contained"
                 style={styles.applyButton}
                 icon="send"
-                onPress={() => navigation.navigate("JobDetail", { jobId: item.id })}
+                onPress={() => navigation.navigate("ApplyScreen", { jobId: item.id })}
               >
                 Ứng tuyển
               </AppButton>
@@ -180,7 +180,7 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
       </Animated.View>
 
-      <View style={styles.categoriesContainer}>
+      {/* <View style={styles.categoriesContainer}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -212,7 +212,7 @@ const HomeScreen = ({ navigation }) => {
             </Chip>
           ))}
         </ScrollView>
-      </View>
+      </View> */}
 
       {loading ? (
         <View style={styles.loadingContainer}>

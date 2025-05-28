@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react"
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native"
+import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from "react-native"
 import { ActivityIndicator, Avatar, Card, Text } from "react-native-paper"
 import { AuthContext } from "../../contexts/AuthContext"
 import ChatServiceSimple from "../../services/ChatServiceSimple"
@@ -36,15 +36,31 @@ const ChatListScreenSimple = ({ navigation }) => {
                         
                         // Xử lý thêm thông tin cho mỗi phòng chat
                         const enhancedRooms = await Promise.all(rooms.map(async (room) => {
-                            // Thêm thông tin nhà tuyển dụng từ API hoặc cache nếu cần
-                            // Đây chỉ là mẫu, bạn có thể tùy chỉnh theo nhu cầu
+                            // Lấy dữ liệu thật từ room nếu có
+                            let recruiterName = room.recruiterName;
+                            let recruiterAvatar = room.recruiterAvatar;
+                            let jobTitle = room.jobTitle;
+                            let company = room.company;
+                            // Nếu room có recruiterInfo, jobInfo, companyInfo thì lấy từ đó
+                            if (room.recruiterInfo) {
+                                recruiterName = room.recruiterInfo.first_name && room.recruiterInfo.last_name
+                                    ? `${room.recruiterInfo.first_name} ${room.recruiterInfo.last_name}`
+                                    : room.recruiterInfo.username || recruiterName;
+                                recruiterAvatar = room.recruiterInfo.avatar || recruiterAvatar;
+                            }
+                            if (room.jobInfo) {
+                                jobTitle = room.jobInfo.title || jobTitle;
+                            }
+                            if (room.companyInfo) {
+                                company = room.companyInfo.name || company;
+                            }
                             return {
                                 ...room,
-                                recruiterName: "Nhà tuyển dụng", // Thay thế bằng dữ liệu thực
-                                recruiterAvatar: "https://via.placeholder.com/150", // Thay thế bằng dữ liệu thực
-                                jobTitle: "Vị trí công việc", // Thay thế bằng dữ liệu thực nếu có jobId
-                                company: "Công ty", // Thay thế bằng dữ liệu thực
-                                unreadCount: 0, // Bạn có thể tính toán số tin nhắn chưa đọc nếu cần
+                                recruiterName: recruiterName || "Nhà tuyển dụng",
+                                recruiterAvatar: recruiterAvatar || "https://via.placeholder.com/150",
+                                jobTitle: jobTitle || "Vị trí công việc",
+                                company: company || "Công ty",
+                                unreadCount: room.unreadCount || 0,
                                 lastActive: room.lastMessageTimestamp ? new Date(room.lastMessageTimestamp) : new Date()
                             }
                         }))
@@ -78,13 +94,38 @@ const ChatListScreenSimple = ({ navigation }) => {
     const navigateToChat = (chatRoom) => {
         navigation.navigate("Chat", {
             recruiterId: chatRoom.recruiterId,
-            recruiterName: chatRoom.recruiterName || "Nhà tuyển dụng",
-            recruiterAvatar: chatRoom.recruiterAvatar || "https://via.placeholder.com/150",
+            recruiterName: chatRoom.recruiterName,
+            recruiterAvatar: chatRoom.recruiterAvatar,
             jobId: chatRoom.jobId,
-            jobTitle: chatRoom.jobTitle || "Vị trí công việc",
-            company: chatRoom.company || "Công ty",
+            jobTitle: chatRoom.jobTitle,
+            company: chatRoom.company,
             roomId: chatRoom.id
         })
+    }
+
+    const handleDeleteChat = async (roomId) => {
+        Alert.alert(
+            "Xóa đoạn chat",
+            "Bạn có chắc chắn muốn xóa toàn bộ đoạn chat này?",
+            [
+                { text: "Hủy", style: "cancel" },
+                {
+                    text: "Xóa",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            await ChatServiceSimple.deleteChatRoom(roomId);
+                            setChatRooms((prev) => prev.filter((room) => room.id !== roomId));
+                            setLoading(false);
+                        } catch (err) {
+                            setError("Không thể xóa đoạn chat. Vui lòng thử lại.");
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
     }
 
     // Format thời gian cho tin nhắn cuối
@@ -139,6 +180,10 @@ const ChatListScreenSimple = ({ navigation }) => {
                             <Text style={styles.unreadText}>{item.unreadCount}</Text>
                         </View>
                     )}
+                    {/* Nút xóa đoạn chat */}
+                    <TouchableOpacity onPress={() => handleDeleteChat(item.id)} style={{ marginLeft: 10 }}>
+                        <Avatar.Icon size={32} icon="delete" color="#D32F2F" style={{ backgroundColor: 'transparent' }} />
+                    </TouchableOpacity>
                 </Card.Content>
             </Card>
         </TouchableOpacity>

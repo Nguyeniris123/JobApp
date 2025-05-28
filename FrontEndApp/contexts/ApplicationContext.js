@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { createContext, useCallback, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../apiConfig';
+import { AuthContext } from './AuthContext';
 
 export const ApplicationContext = createContext({
     applications: [],
@@ -18,6 +19,7 @@ export const ApplicationProvider = ({ children }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [token, setToken] = useState(null);
+    const { role } = useContext(AuthContext);
 
     useEffect(() => {
         const loadToken = async () => {
@@ -45,7 +47,12 @@ export const ApplicationProvider = ({ children }) => {
                 return [];
             }
 
-            const response = await axios.get(API_ENDPOINTS.APPLICATIONS_LIST, {
+            // Chọn endpoint theo role
+            const endpoint = role === 'recruiter'
+                ? API_ENDPOINTS.APPLICATIONS_LIST_FOR_RECRUITER
+                : API_ENDPOINTS.APPLICATIONS_LIST;
+
+            const response = await axios.get(endpoint, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                 }
@@ -66,7 +73,6 @@ export const ApplicationProvider = ({ children }) => {
                     feedback: app.feedback,
                     job: app.job,
                     jobDetail: app.job_detail,
-                    // Lấy recruiterId trực tiếp từ job_detail.recruiter
                     recruiterId: app.job_detail?.recruiter
                 }
             });
@@ -81,7 +87,7 @@ export const ApplicationProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, [token]);
+    }, [token, role]);
 
     const submitApplication = async (jobId, applicationData) => {
         setLoading(true);
