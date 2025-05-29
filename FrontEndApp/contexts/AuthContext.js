@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import React, { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../apiConfig';
 
 export const AuthContext = createContext();
@@ -57,8 +57,11 @@ export const AuthProvider = ({ children }) => {
             console.log("Request làm mới token:", jsondata);
 
             const response = await axios.post(API_ENDPOINTS.LOGIN, jsondata);
-
-            const newAccessToken = response.data.access;
+            console.log('Refresh token response:', response.data); // Thêm log để debug
+            const newAccessToken = response.data.access || response.data.access_token;
+            if (!newAccessToken) {
+                throw new Error('Không nhận được access token mới từ server');
+            }
             await AsyncStorage.setItem('accessToken', newAccessToken);
             setAccessToken(newAccessToken);
             axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;

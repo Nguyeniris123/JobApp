@@ -1,40 +1,42 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useContext, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, Divider, Paragraph, Text, Title } from 'react-native-paper';
-import { AuthContext } from '../../contexts/AuthContext';
-import { useReview } from '../../hooks/useReview';
+import { ActivityIndicator, Button, Card, Divider, Paragraph, Text } from 'react-native-paper';
+import { deleteReview as deleteReviewApi, fetchCandidateReviews, fetchRecruiterReviews } from '../../services/reviewService';
 
 const MyReviewsScreen = ({ navigation }) => {
-  const { user } = useContext(AuthContext);
+  const [user, setUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('job'); // 'job' or 'application'
-  
-  // Sử dụng custom hook để truy cập review context
-  const { 
-    recruiterReviews,
-    candidateReviews, 
-    fetchRecruiterReviews, 
-    fetchCandidateReviews, 
-    deleteReview,
-    loading
-  } = useReview();
-  
+  const [candidateReviews, setCandidateReviews] = useState([]);
+  const [recruiterReviews, setRecruiterReviews] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) setUser(JSON.parse(userData));
+    };
+
+    getUser();
+  }, []);
+
   // Lấy các đánh giá mà người dùng đã viết (cho công việc)
   const jobReviews = recruiterReviews.filter(review => 
     review.job && review.reviewer_id === user?.id
   );
-  
+
   // Lấy các đánh giá mà người dùng đã viết (cho ứng viên)
   const applicationReviews = candidateReviews.filter(review => 
     review.application && review.reviewer_id === user?.id
   );
-  
+
   // Hàm format ngày tháng
   const formatDate = (dateString) => {
-    if (!dateString) return "Không xác định";
+    if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleDateString('vi-VN', { 
       year: 'numeric', 
@@ -42,33 +44,43 @@ const MyReviewsScreen = ({ navigation }) => {
       day: 'numeric' 
     });
   };
-  
+
   // Tải dữ liệu khi màn hình được focus
   useFocusEffect(
     useCallback(() => {
       loadReviews();
-    }, [])
+    }, [user])
   );
-  
+
   const loadReviews = async () => {
+    if (!user) return;
+    setLoading(true);
     setRefreshing(true);
-    await Promise.all([
-      fetchRecruiterReviews(),
-      fetchCandidateReviews()
-    ]);
-    setRefreshing(false);
+    try {
+      const [rReviews, cReviews] = await Promise.all([
+        fetchRecruiterReviews(user.id),
+        fetchCandidateReviews(user.id)
+      ]);
+      setRecruiterReviews(rReviews);
+      setCandidateReviews(cReviews);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   // Xử lý xóa đánh giá
-  const handleDeleteReview = async (reviewId) => {
+  const handleDeleteReview = async (reviewId, type) => {
+    setLoading(true);
     try {
-      const result = await deleteReview(reviewId);
-      if (result.success) {
-        // Tải lại đánh giá sau khi xóa
-        loadReviews();
-      }
-    } catch (error) {
-      console.error("Error deleting review:", error);
+      await deleteReviewApi(reviewId, type);
+      loadReviews();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,115 +104,36 @@ const MyReviewsScreen = ({ navigation }) => {
   // Render danh sách đánh giá dựa trên tab đang active
   const renderReviewsList = () => {
     const reviewsToShow = activeTab === 'job' ? jobReviews : applicationReviews;
-    
     if (loading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1E88E5" />
+          <ActivityIndicator size="large" color="#1976D2" />
         </View>
       );
     }
-
     if (reviewsToShow.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons name="comment-text-outline" size={64} color="#BDBDBD" />
-          <Text style={styles.emptyText}>
-            Bạn chưa có đánh giá nào cho {activeTab === 'job' ? 'công việc' : 'đơn ứng tuyển'}
-          </Text>
+          <Text style={styles.emptyText}>Chưa có đánh giá nào.</Text>
         </View>
       );
     }
-
     return (
-      <ScrollView
-        style={styles.reviewsList}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={loadReviews} />
-        }
-      >
-        {reviewsToShow.map((review) => (
-          <Card key={review.id} style={styles.reviewCard}>
+      <ScrollView style={styles.reviewsList} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadReviews} />}>
+        {reviewsToShow.map((item) => (
+          <Card key={item.id} style={styles.reviewCard}>
             <Card.Content>
               <View style={styles.reviewHeader}>
                 <View>
-                  <Title style={styles.reviewTitle}>
-                    {activeTab === 'job' 
-                      ? review.job_detail?.title || "Công việc không xác định"
-                      : review.application_detail?.job_title || "Đơn ứng tuyển không xác định"}
-                  </Title>
-                  <Text style={styles.reviewDate}>
-                    Đánh giá vào: {formatDate(review.created_at)}
-                  </Text>
+                  <Text style={styles.reviewTitle}>{item.reviewer_name}</Text>
+                  <Text style={styles.reviewDate}>{formatDate(item.created_date)}</Text>
                 </View>
-                <View style={styles.ratingContainer}>
-                  {renderStars(review.rating)}
-                </View>
+                <View style={styles.ratingContainer}>{renderStars(item.rating)}</View>
               </View>
-              
               <Divider style={styles.divider} />
-              
-              <Paragraph style={styles.commentText}>
-                {review.comment}
-              </Paragraph>
-
-              {/* Điểm mạnh */}
-              {review.strengths && review.strengths.length > 0 && (
-                <View style={styles.tagsSection}>
-                  <Text style={styles.tagSectionTitle}>Điểm mạnh:</Text>
-                  <View style={styles.chipsContainer}>
-                    {typeof review.strengths === 'string' 
-                      ? review.strengths.split(',').map((strength, index) => (
-                          <Chip key={index} style={styles.strengthChip}>
-                            {strength.trim()}
-                          </Chip>
-                        ))
-                      : review.strengths.map((strength, index) => (
-                          <Chip key={index} style={styles.strengthChip}>
-                            {strength}
-                          </Chip>
-                        ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Điểm yếu */}
-              {review.weaknesses && review.weaknesses.length > 0 && (
-                <View style={styles.tagsSection}>
-                  <Text style={styles.tagSectionTitle}>Điểm yếu:</Text>
-                  <View style={styles.chipsContainer}>
-                    {typeof review.weaknesses === 'string'
-                      ? review.weaknesses.split(',').map((weakness, index) => (
-                          <Chip key={index} style={styles.weaknessChip}>
-                            {weakness.trim()}
-                          </Chip>
-                        ))
-                      : review.weaknesses.map((weakness, index) => (
-                          <Chip key={index} style={styles.weaknessChip}>
-                            {weakness}
-                          </Chip>
-                        ))}
-                  </View>
-                </View>
-              )}
-
+              <Paragraph style={styles.commentText}>{item.comment}</Paragraph>
               <View style={styles.actionButtons}>
-                <Button 
-                  mode="outlined" 
-                  icon="pencil" 
-                  onPress={() => navigation.navigate('EditReview', { review })}
-                  style={styles.editButton}
-                >
-                  Chỉnh sửa
-                </Button>
-                <Button 
-                  mode="outlined" 
-                  icon="delete" 
-                  onPress={() => handleDeleteReview(review.id)}
-                  style={styles.deleteButton}
-                >
-                  Xóa
-                </Button>
+                <Button mode="outlined" style={styles.deleteButton} onPress={() => handleDeleteReview(item.id, activeTab === 'job' ? 'job' : 'candidate')}>Xóa</Button>
               </View>
             </Card.Content>
           </Card>
@@ -310,34 +243,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 12,
   },
-  tagsSection: {
-    marginBottom: 8,
-  },
-  tagSectionTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 6,
-  },
-  chipsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  strengthChip: {
-    margin: 2,
-    backgroundColor: '#E8F5E9',
-  },
-  weaknessChip: {
-    margin: 2,
-    backgroundColor: '#FFEBEE',
-  },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 16,
-  },
-  editButton: {
-    marginRight: 8,
-    borderColor: '#1976D2',
   },
   deleteButton: {
     borderColor: '#D32F2F',

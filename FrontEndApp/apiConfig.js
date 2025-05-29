@@ -2,7 +2,7 @@
 // export const API_URL = 'http://127.0.0.0:8000'
 // export const API_URL = 'http://192.168.88.130:8000';
 // export const API_URL = 'http://10.17.51.133:8000';
-export const API_URL = 'http://192.168.1.3:8000';
+export const API_URL = 'http://192.168.1.7:8000';
 
 
 export const API_ENDPOINTS = {
@@ -55,7 +55,7 @@ export const API_ENDPOINTS = {
 
   // Follow
   FOLLOW_LIST: `${API_URL}/follow/`,
-  FOLLOW_CREATE: `${API_URL}/follow/`,
+  FOLLOW_CREATE: `${API_URL}/follow/${id}`,
   FOLLOW_MY_FOLLOWERS: `${API_URL}/follow/recruiter-followers/`,
   FOLLOW_READ: (id) => `${API_URL}/follow/${id}/`,
   FOLLOW_DELETE: (id) => `${API_URL}/follow/${id}/`,

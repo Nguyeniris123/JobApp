@@ -1,20 +1,21 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useReview } from '../../contexts/ReviewContext';
+import { addReview } from '../../services/reviewService';
 
 const CreateReviewScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { jobId, jobTitle, companyId } = route.params;
-    const { createJobReview } = useReview();
 
     // Review state
     const [rating, setRating] = useState(0);
     const [reviewComment, setReviewComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [user, setUser] = useState(null);
 
     // Debug log when component mounts
     useEffect(() => {
@@ -22,6 +23,10 @@ const CreateReviewScreen = () => {
         console.log('CreateReviewScreen - companyId:', companyId);
         console.log('CreateReviewScreen - jobId:', jobId);
         console.log('CreateReviewScreen - jobTitle:', jobTitle);
+
+        AsyncStorage.getItem('user').then(data => {
+            if (data) setUser(JSON.parse(data));
+        });
     }, []);
 
     // Handle rating selection
@@ -33,7 +38,7 @@ const CreateReviewScreen = () => {
     const handleReviewSubmit = async () => {
         try {
             if (rating === 0) {
-                alert('Vui lòng chọn đánh giá sao');
+                alert('Vui lòng chọn số sao đánh giá!');
                 return;
             }
             
@@ -44,30 +49,24 @@ const CreateReviewScreen = () => {
             });
 
             setSubmitting(true);
-            // Sử dụng format API mới (như trong Postman)
-            const result = await createJobReview(
-                companyId,
+            await addReview({
+                reviewed_user: jobId,
+                job: jobId,
                 rating,
-                reviewComment
-            );
-            
-
-            if (result.success) {
-                alert('Đánh giá của bạn đã được gửi thành công!');
-                navigation.goBack();
-            } else {
-                alert(result.message || 'Không thể gửi đánh giá. Vui lòng thử lại sau.');
-            }
+                comment: reviewComment,
+            }, 'job');
+            alert('Đánh giá của bạn đã được gửi thành công!');
+            navigation.goBack();
         } catch (error) {
             console.error("Error submitting review:", error);
-            alert('Đã xảy ra lỗi khi gửi đánh giá.');
+            alert('Gửi đánh giá thất bại!');
         } finally {
             setSubmitting(false);
         }
     };
 
     // Star rating component
-    const StarRating = () => {
+    const StarRating = React.memo(() => {
         return (
             <View style={styles.starContainer}>
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -85,7 +84,7 @@ const CreateReviewScreen = () => {
                 ))}
             </View>
         );
-    };
+    });
 
     return (
         <ScrollView style={styles.container}>

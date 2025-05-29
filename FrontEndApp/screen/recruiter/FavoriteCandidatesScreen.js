@@ -1,87 +1,25 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { useEffect, useState } from "react"
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native"
-import { ActivityIndicator, Avatar, Card, Chip, Divider, Searchbar, Text } from "react-native-paper"
-
-// Dữ liệu mẫu cho ứng viên yêu thích
-const mockFavoriteCandidates = [
-    {
-        id: "1",
-        name: "Nguyễn Văn A",
-        avatar: "https://via.placeholder.com/150",
-        position: "Nhân viên bán hàng",
-        skills: ["Giao tiếp", "Tiếng Anh", "Bán hàng"],
-        experience: "1 năm kinh nghiệm",
-        education: "Đại học Kinh tế Quốc dân",
-        matchRate: 92,
-        savedDate: new Date(2023, 3, 15),
-    },
-    {
-        id: "2",
-        name: "Trần Thị B",
-        avatar: "https://via.placeholder.com/150",
-        position: "Nhân viên marketing",
-        skills: ["Tiếng Anh", "Content Marketing", "Social Media"],
-        experience: "2 năm kinh nghiệm",
-        education: "Đại học Ngoại thương",
-        matchRate: 88,
-        savedDate: new Date(2023, 3, 16),
-    },
-    {
-        id: "3",
-        name: "Lê Văn C",
-        avatar: "https://via.placeholder.com/150",
-        position: "Lập trình viên",
-        skills: ["JavaScript", "React Native", "Node.js"],
-        experience: "3 năm kinh nghiệm",
-        education: "Đại học Bách khoa Hà Nội",
-        matchRate: 95,
-        savedDate: new Date(2023, 3, 17),
-    },
-    {
-        id: "4",
-        name: "Phạm Thị D",
-        avatar: "https://via.placeholder.com/150",
-        position: "Kế toán",
-        skills: ["Excel", "Kế toán tổng hợp", "Tiếng Anh"],
-        experience: "2 năm kinh nghiệm",
-        education: "Đại học Kinh tế Quốc dân",
-        matchRate: 85,
-        savedDate: new Date(2023, 3, 18),
-    },
-]
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useContext, useEffect, useState } from "react";
+import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Avatar, Card, Chip, Divider, Searchbar, Text } from "react-native-paper";
+import { FavoriteCandidateContext } from '../../contexts/FavoriteCandidateContext';
 
 const FavoriteCandidatesScreen = ({ navigation }) => {
-    const [candidates, setCandidates] = useState([])
+    const { favoriteCandidates, unfollowCandidate, loading } = useContext(FavoriteCandidateContext);
     const [filteredCandidates, setFilteredCandidates] = useState([])
-    const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
 
     useEffect(() => {
-        // Giả lập API call
-        const fetchFavoriteCandidates = async () => {
-            try {
-                await new Promise((resolve) => setTimeout(resolve, 1000))
-                setCandidates(mockFavoriteCandidates)
-                setFilteredCandidates(mockFavoriteCandidates)
-            } catch (error) {
-                console.log("Error fetching favorite candidates:", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchFavoriteCandidates()
-
-    }, [])
+        setFilteredCandidates(favoriteCandidates)
+    }, [favoriteCandidates])
 
     const onChangeSearch = (query) => {
         setSearchQuery(query)
 
         if (query.trim() === "") {
-            setFilteredCandidates(candidates)
+            setFilteredCandidates(favoriteCandidates)
         } else {
-            const filtered = candidates.filter(
+            const filtered = favoriteCandidates.filter(
                 (candidate) =>
                     candidate.name.toLowerCase().includes(query.toLowerCase()) ||
                     candidate.position.toLowerCase().includes(query.toLowerCase()) ||
@@ -91,18 +29,8 @@ const FavoriteCandidatesScreen = ({ navigation }) => {
         }
     }
 
-    const handleRemoveFavorite = (candidateId) => {
-        // Giả lập API call
-        setTimeout(() => {
-            const updatedCandidates = candidates.filter((candidate) => candidate.id !== candidateId)
-            setCandidates(updatedCandidates)
-            setFilteredCandidates(filteredCandidates.filter((candidate) => candidate.id !== candidateId))
-
-            // Theo dõi sự kiện xóa ứng viên yêu thích
-            analyticsService.trackEvent("remove_favorite_candidate", {
-                candidate_id: candidateId,
-            })
-        }, 500)
+    const handleRemoveFavorite = async (candidateId) => {
+        await unfollowCandidate(candidateId);
     }
 
     const formatDate = (date) => {
@@ -222,7 +150,7 @@ const FavoriteCandidatesScreen = ({ navigation }) => {
                 </View>
             ) : (
                 <FlatList
-                    data={filteredCandidates}
+                    data={favoriteCandidates}
                     renderItem={renderCandidateItem}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.candidateList}

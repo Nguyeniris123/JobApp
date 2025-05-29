@@ -146,6 +146,50 @@ export const ApplicationProvider = ({ children }) => {
         setError(null);
     };
 
+    // Chấp nhận đơn ứng tuyển
+    const acceptApplication = async (applicationId) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const accessToken = token || await AsyncStorage.getItem('accessToken');
+            if (!accessToken) throw new Error('Không có token xác thực');
+            await axios.patch(
+                API_ENDPOINTS.APPLICATIONS_ACCEPT(applicationId),
+                {},
+                { headers: { 'Authorization': `Bearer ${accessToken}` } }
+            );
+            await fetchApplications();
+            return { success: true };
+        } catch (error) {
+            setError(error.response?.data?.detail || 'Lỗi khi chấp nhận đơn ứng tuyển');
+            return { success: false, message: error.message };
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Từ chối đơn ứng tuyển
+    const rejectApplication = async (applicationId) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const accessToken = token || await AsyncStorage.getItem('accessToken');
+            if (!accessToken) throw new Error('Không có token xác thực');
+            await axios.patch(
+                API_ENDPOINTS.APPLICATIONS_REJECT(applicationId),
+                {},
+                { headers: { 'Authorization': `Bearer ${accessToken}` } }
+            );
+            await fetchApplications();
+            return { success: true };
+        } catch (error) {
+            setError(error.response?.data?.detail || 'Lỗi khi từ chối đơn ứng tuyển');
+            return { success: false, message: error.message };
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (token) {
             fetchApplications();
@@ -161,7 +205,9 @@ export const ApplicationProvider = ({ children }) => {
                 fetchApplications, 
                 submitApplication, 
                 getApplicationDetails,
-                clearApplicationError
+                clearApplicationError,
+                acceptApplication,
+                rejectApplication
             }}
         >
             {children}

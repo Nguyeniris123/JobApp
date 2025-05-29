@@ -1,36 +1,34 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { LinearGradient } from 'expo-linear-gradient'
-import { useContext, useEffect, useState } from "react"
-import { FlatList, ScrollView, StyleSheet, View } from "react-native"
+import React, { useEffect, useState } from "react"
+import { FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native"
 import { ActivityIndicator, Avatar, Button, Card, Chip, Divider, Menu, Searchbar, Text } from "react-native-paper"
 import { ReviewCard } from "../../components/ui/ReviewCard"
 import { ReviewForm } from "../../components/ui/ReviewForm"
-import { ApplicationContext } from "../../contexts/ApplicationContext"
-import { useReview } from "../../hooks/useReview"
+import { fetchCandidateReviews } from '../../services/reviewService'
 
 const ApplicationListScreen = ({ route, navigation }) => {
-    const { jobId } = route.params || {}
-    // Remove unused fetchApplications from context
-    const { applications, loading: contextLoading } = useContext(ApplicationContext)
+    const { jobId } = route.params || {};
+    const [applications, setApplications] = useState([]);
     const [filteredCandidates, setFilteredCandidates] = useState([])
     const [searchQuery, setSearchQuery] = useState("")
     const [statusFilter, setStatusFilter] = useState("all")
     const [menuVisible, setMenuVisible] = useState(false)
-    const [selectedCandidate, setSelectedCandidate] = useState(null)
     const [showReviewForm, setShowReviewForm] = useState(false)
     const [expandedCardId, setExpandedCardId] = useState(null)
-    
-    // Remove unused reviewsLoading from useReview
-    const { 
-        candidateReviews, 
-        createApplicationReview, 
-        fetchCandidateReviews 
-    } = useReview();
+    const [candidateReviews, setCandidateReviews] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [user, setUser] = useState(null);
+
+    React.useEffect(() => {
+        AsyncStorage.getItem('user').then(data => {
+            if (data) setUser(JSON.parse(data));
+        });
+    }, []);
 
     // Lấy đánh giá cho ứng viên cụ thể
     const getReviewsForCandidate = (applicationId) => {
-        return candidateReviews.filter(review => review.application === applicationId);
+        return candidateReviews.filter(r => r.application === applicationId);
     };
 
     // Xem đánh giá và toggle hiển thị
@@ -60,6 +58,31 @@ const ApplicationListScreen = ({ route, navigation }) => {
             fetchCandidateReviews();
         }
     }, [applications, jobId])
+
+    // Fetch applications from API (for recruiter)
+    useEffect(() => {
+        const fetchApplications = async () => {
+            setLoading(true);
+            try {
+                const token = await AsyncStorage.getItem('accessToken');
+                if (!token) throw new Error('No access token');
+                // Sử dụng endpoint cho recruiter
+                const response = await fetch('http://192.168.1.7:8000/applications/recruiter/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                // Nếu có .results thì lấy, không thì lấy luôn data
+                const apps = data.results || data;
+                setApplications(apps);
+                setFilteredCandidates(apps);
+            } catch (error) {
+                console.error('Error fetching applications:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchApplications();
+    }, []);
 
     // Hàm submitting đánh giá mới
     const handleReviewSubmit = async (applicationId, reviewData) => {
@@ -202,45 +225,53 @@ const ApplicationListScreen = ({ route, navigation }) => {
     const renderCandidateItem = ({ item }) => (
         <Card style={styles.candidateCard} mode="elevated">
             <Card.Content>
-                <View style={styles.candidateHeader}>
-                    <View style={styles.candidateInfo}>
-                        <Avatar.Image 
-                            source={{ uri: item.applicant_detail.avatar }} 
-                            size={70} 
-                            style={styles.avatar}
-                        />
-                        <View style={styles.candidateDetails}>
-                            <Text style={styles.candidateName}>{item.applicant_detail.lastname}</Text>
-                            <Text style={styles.candidateJob} numberOfLines={2}>
-                                {item.job_detail.title}
-                            </Text>
-                            <Chip
-                                style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + "15" }]}
-                                textStyle={[styles.statusText, { color: getStatusColor(item.status) }]}
-                            >
-                                {item.status}
-                            </Chip>
+                <TouchableOpacity onPress={() => navigation.navigate('ApplicationDetail', { application: item })}>
+                    <View style={styles.candidateHeader}>
+                        <View style={styles.candidateInfo}>
+                            <Avatar.Image 
+                                source={{ uri: item.applicant_detail?.avatar || 'https://via.placeholder.com/150' }} 
+                                size={70} 
+                                style={styles.avatar}
+                            />
+                            <View style={styles.candidateDetails}>
+                                <Text style={styles.candidateName}>{item.applicant_detail?.first_name} {item.applicant_detail?.last_name}</Text>
+                                <Text style={styles.candidateJob} numberOfLines={2}>
+                                    {item.job_detail?.title}
+                                </Text>
+                                <Chip
+                                    style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + "15" }]}
+                                    textStyle={[styles.statusText, { color: getStatusColor(item.status) }]}
+                                >
+                                    {item.status}
+                                </Chip>
+                            </View>
                         </View>
                     </View>
-                </View>
+                </TouchableOpacity>
 
                 <Divider style={styles.divider} />
 
                 <View style={styles.candidateContent}>
                     <View style={styles.infoRow}>
-                        <MaterialCommunityIcons name="briefcase" size={20} color="#666" />
-                        <Text style={styles.infoText}>{item.job_detail.specialized}</Text>
+                        <MaterialCommunityIcons name="account" size={20} color="#666" />
+                        <Text style={styles.infoText}>Username: {item.applicant_detail?.username}</Text>
                     </View>
-
+                    <View style={styles.infoRow}>
+                        <MaterialCommunityIcons name="email" size={20} color="#666" />
+                        <Text style={styles.infoText}>Email: {item.applicant_detail?.email}</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                        <MaterialCommunityIcons name="briefcase" size={20} color="#666" />
+                        <Text style={styles.infoText}>{item.job_detail?.specialized}</Text>
+                    </View>
                     <View style={styles.infoRow}>
                         <MaterialCommunityIcons name="map-marker" size={20} color="#666" />
-                        <Text style={styles.infoText}>{item.job_detail.location}</Text>
+                        <Text style={styles.infoText}>{item.job_detail?.location}</Text>
                     </View>
-
                     <View style={styles.infoRow}>
                         <MaterialCommunityIcons name="currency-usd" size={20} color="#666" />
                         <Text style={styles.infoText}>
-                            {parseFloat(item.job_detail.salary).toLocaleString('vi-VN')} VNĐ
+                            {item.job_detail?.salary ? parseFloat(item.job_detail.salary).toLocaleString('vi-VN') + ' VNĐ' : ''}
                         </Text>
                     </View>
                 </View>
@@ -336,7 +367,7 @@ const ApplicationListScreen = ({ route, navigation }) => {
         </Card>
     )
 
-    if (contextLoading) {
+    if (loading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#1E88E5" />
@@ -346,16 +377,6 @@ const ApplicationListScreen = ({ route, navigation }) => {
 
     return (
         <View style={styles.container}>
-            <LinearGradient
-                colors={['#1976D2', '#1E88E5', '#2196F3']}
-                style={styles.header}
-            >
-                <Text style={styles.title}>Danh sách ứng viên</Text>
-                <Text style={styles.subtitle}>
-                    {jobId ? "Vị trí: Nhân viên bán hàng bán thời gian" : "Tất cả ứng viên"}
-                </Text>
-            </LinearGradient>
-
             <View style={styles.searchContainer}>
                 <Searchbar
                     placeholder="Tìm kiếm ứng viên..."
