@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { createContext, useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { API_ENDPOINTS } from '../apiConfig';
+import { AuthContext } from './AuthContext';
 
 export const CompanyContext = createContext({
     loading: false,
@@ -18,22 +19,21 @@ export const CompanyProvider = ({ children }) => {
     const [loading, setLoading] = useState(false);
     const [followedCompanies, setFollowedCompanies] = useState([]);
     const [error, setError] = useState(null);
-    const [token, setToken] = useState(null);
     const [isTokenLoaded, setIsTokenLoaded] = useState(false);
+    const { accessToken } = useContext(AuthContext);
 
     // Sử dụng ref để theo dõi xem đã fetched data chưa để tránh vòng lặp
     const hasFetchedInitialData = useRef(false);
     // Ref để theo dõi request đang xử lý
     const fetchInProgress = useRef(false);
 
-    // Load token từ AsyncStorage khi component mount
+    // Load token từ AuthContext, không cần state token riêng
     useEffect(() => {
         const loadToken = async () => {
             try {
-                const storedAccessToken = await AsyncStorage.getItem('accessToken');
-                if (storedAccessToken) {
-                    setToken(storedAccessToken);
-                    console.log('Token loaded in CompanyContext:', storedAccessToken ? 'Yes (Hidden)' : 'No');
+                // Không cần lấy từ AsyncStorage nữa, chỉ cần đảm bảo accessToken được cung cấp
+                if (accessToken) {
+                    console.log('Token loaded in CompanyContext:', accessToken ? 'Yes (Hidden)' : 'No');
                 }
             } catch (error) {
                 console.error('Error loading token in CompanyContext:', error);
@@ -43,16 +43,16 @@ export const CompanyProvider = ({ children }) => {
         };
 
         loadToken();
-    }, []);
+    }, [accessToken]);
 
     // Tải danh sách công ty theo dõi khi có token, chỉ chạy 1 lần khi token được load
     useEffect(() => {
-        if (isTokenLoaded && token && !hasFetchedInitialData.current) {
+        if (isTokenLoaded && accessToken && !hasFetchedInitialData.current) {
             console.log('Token is loaded, fetching followed companies (initial load)...');
             hasFetchedInitialData.current = true; // Đánh dấu đã fetch data
             fetchFollowedCompanies();
         }
-    }, [isTokenLoaded, token]);
+    }, [isTokenLoaded, accessToken]);
 
     const fetchFollowedCompanies = useCallback(async () => {
         // Nếu đang có một request đang xử lý, không thực hiện request mới
@@ -68,16 +68,9 @@ export const CompanyProvider = ({ children }) => {
             setLoading(true);
             setError(null);
 
-            // Sử dụng token từ state thay vì gọi AsyncStorage mỗi lần
-            // Lưu ý: Chỉ lấy từ AsyncStorage nếu không có trong state để tránh vòng lặp
-            let currentToken = token;
-            if (!currentToken) {
-                currentToken = await AsyncStorage.getItem('accessToken');
-            }
-
-            if (!currentToken) {
-                console.log('No token found, cannot fetch followed companies');
+            if (!accessToken) {
                 setFollowedCompanies([]);
+                setError('Không có token xác thực. Vui lòng đăng nhập lại.');
                 return [];
             }
 
@@ -85,7 +78,7 @@ export const CompanyProvider = ({ children }) => {
 
             const response = await axios.get(API_ENDPOINTS.FOLLOW_LIST, {
                 headers: {
-                    'Authorization': `Bearer ${currentToken}`,
+                    'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
                 }
             });
@@ -133,18 +126,14 @@ export const CompanyProvider = ({ children }) => {
             setLoading(false);
             fetchInProgress.current = false; // Đánh dấu kết thúc request
         }
-    }, [token]);
+    }, [accessToken]);
 
     // Hàm test để kiểm tra API trực tiếp và hiển thị kết quả
     const testFetchFollowedCompanies = async () => {
         try {
             console.log('TEST: Starting direct API test for followed companies...');
 
-            // Sử dụng token từ state
-            const currentToken = token || await AsyncStorage.getItem('accessToken');
-            console.log('TEST: Token available:', currentToken ? 'Yes' : 'No');
-
-            if (!currentToken) {
+            if (!accessToken) {
                 Alert.alert('Test Failed', 'No access token found. Please login first.');
                 return;
             }
@@ -156,7 +145,7 @@ export const CompanyProvider = ({ children }) => {
             console.log('TEST: Sending direct API request...');
 
             const headers = {
-                'Authorization': `Bearer ${currentToken}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
             };
 
@@ -217,19 +206,7 @@ export const CompanyProvider = ({ children }) => {
         try {
             console.log('Attempting to unfollow with ID:', companyIdOrFollowId);
             
-            // Sử dụng token từ state
-            let currentToken = token;
-            if (!currentToken) {
-                currentToken = await AsyncStorage.getItem('accessToken');
-                if (currentToken) {
-                    setToken(currentToken); // Cập nhật token trong state nếu không đồng bộ
-                }
-            }
-            
-            if (!currentToken) {
-                console.error('No authentication token found');
-                throw new Error('No token found');
-            }
+            if (!accessToken) throw new Error('No token found');
 
             // Xác định ID của bản ghi follow
             let followId = companyIdOrFollowId;
@@ -254,7 +231,7 @@ export const CompanyProvider = ({ children }) => {
             try {
                 const response = await axios.delete(API_ENDPOINTS.FOLLOW_DELETE(followId), {
                     headers: {
-                        'Authorization': `Bearer ${currentToken}`
+                        'Authorization': `Bearer ${accessToken}`
                     }
                 });
 
@@ -337,19 +314,7 @@ export const CompanyProvider = ({ children }) => {
         try {
             console.log('Attempting to follow company with ID:', companyId);
 
-            // Sử dụng token từ state
-            let currentToken = token;
-            if (!currentToken) {
-                currentToken = await AsyncStorage.getItem('accessToken');
-                if (currentToken) {
-                    setToken(currentToken); // Cập nhật token trong state nếu không đồng bộ
-                }
-            }
-
-            if (!currentToken) {
-                console.error('No authentication token found');
-                throw new Error('No token found');
-            }
+            if (!accessToken) throw new Error('No token found');
 
             // Cập nhật theo yêu cầu mới - Chỉ gửi company_id
             const requestBody = {
@@ -361,7 +326,7 @@ export const CompanyProvider = ({ children }) => {
 
             const response = await axios.post(API_ENDPOINTS.FOLLOW_CREATE, requestBody, {
                 headers: {
-                    'Authorization': `Bearer ${currentToken}`,
+                    'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
                 }
             });
@@ -422,19 +387,9 @@ export const CompanyProvider = ({ children }) => {
                 if (loading) return;
 
                 const newToken = await AsyncStorage.getItem('accessToken');
-                if (newToken !== token) {
+                if (newToken !== accessToken) {
                     console.log('Token has changed, updating...');
-                    setToken(newToken);
-
-                    // Nếu token thay đổi từ null -> có giá trị thì fetch dữ liệu mới
-                    if (!token && newToken) {
-                        setTimeout(() => fetchFollowedCompanies(), 500);
-                    }
-
-                    // Nếu token thay đổi từ có giá trị -> null (logout) thì xóa dữ liệu
-                    if (token && !newToken) {
-                        setFollowedCompanies([]);
-                    }
+                    // Không cần cập nhật state nữa, mọi thứ đã được quản lý bởi AuthContext
                 }
             } catch (error) {
                 console.error('Error checking token changes:', error);
@@ -444,7 +399,7 @@ export const CompanyProvider = ({ children }) => {
         // Kiểm tra token định kỳ với interval lớn hơn (30 giây thay vì 10 giây)
         const interval = setInterval(checkTokenChanges, 30000);
         return () => clearInterval(interval);
-    }, [token, loading, fetchFollowedCompanies]);
+    }, [accessToken, loading]);
 
     return (
         <CompanyContext.Provider value={{

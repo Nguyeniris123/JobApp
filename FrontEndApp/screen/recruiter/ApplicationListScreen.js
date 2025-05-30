@@ -1,14 +1,15 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import React, { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native"
 import { ActivityIndicator, Avatar, Button, Card, Chip, Divider, Menu, Searchbar, Text } from "react-native-paper"
 import { ReviewCard } from "../../components/ui/ReviewCard"
 import { ReviewForm } from "../../components/ui/ReviewForm"
+import { AuthContext } from "../../contexts/AuthContext"
 import { fetchCandidateReviews } from '../../services/reviewService'
 
 const ApplicationListScreen = ({ route, navigation }) => {
     const { jobId } = route.params || {};
+    const { user, accessToken } = useContext(AuthContext);
     const [applications, setApplications] = useState([]);
     const [filteredCandidates, setFilteredCandidates] = useState([])
     const [searchQuery, setSearchQuery] = useState("")
@@ -18,13 +19,6 @@ const ApplicationListScreen = ({ route, navigation }) => {
     const [expandedCardId, setExpandedCardId] = useState(null)
     const [candidateReviews, setCandidateReviews] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [user, setUser] = useState(null);
-
-    React.useEffect(() => {
-        AsyncStorage.getItem('user').then(data => {
-            if (data) setUser(JSON.parse(data));
-        });
-    }, []);
 
     // Lấy đánh giá cho ứng viên cụ thể
     const getReviewsForCandidate = (applicationId) => {
@@ -36,39 +30,15 @@ const ApplicationListScreen = ({ route, navigation }) => {
         setExpandedCardId(expandedCardId === candidateId ? null : candidateId);
     };
 
-    const getAccessToken = async () => {
-        try {
-            const token = await AsyncStorage.getItem('accessToken')
-            return token
-        } catch (error) {
-            console.error('Error getting access token:', error)
-            return null
-        }
-    }
-
-    useEffect(() => {
-        // Lọc ứng viên từ ApplicationContext
-        let filtered = applications
-        if (jobId) {
-            filtered = filtered.filter(app => String(app.jobDetail?.id || app.job) === String(jobId))
-        }
-        setFilteredCandidates(filtered)
-        // Tải đánh giá khi có ứng viên
-        if (filtered.length > 0) {
-            fetchCandidateReviews();
-        }
-    }, [applications, jobId])
-
     // Fetch applications from API (for recruiter)
     useEffect(() => {
         const fetchApplications = async () => {
             setLoading(true);
             try {
-                const token = await AsyncStorage.getItem('accessToken');
-                if (!token) throw new Error('No access token');
+                if (!accessToken) throw new Error('No access token');
                 // Sử dụng endpoint cho recruiter
                 const response = await fetch('http://192.168.1.7:8000/applications/recruiter/', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
                 const data = await response.json();
                 // Nếu có .results thì lấy, không thì lấy luôn data
@@ -82,7 +52,21 @@ const ApplicationListScreen = ({ route, navigation }) => {
             }
         };
         fetchApplications();
-    }, []);
+    }, [accessToken]);
+
+    // Chỉ fetch ứng viên khi context chưa có dữ liệu
+    useEffect(() => {
+        if (!applications || applications.length === 0) {
+            fetchApplications();
+        }
+    }, [applications, fetchApplications]);
+
+    // Reload khi scroll lên đầu danh sách
+    const handleScroll = (event) => {
+        if (event.nativeEvent.contentOffset.y <= 0 && !loading) {
+            fetchApplications();
+        }
+    };
 
     // Hàm submitting đánh giá mới
     const handleReviewSubmit = async (applicationId, reviewData) => {
@@ -159,8 +143,7 @@ const ApplicationListScreen = ({ route, navigation }) => {
 
     const handleAcceptCandidate = async (candidate) => {
         try {
-            const token = await getAccessToken()
-            if (!token) {
+            if (!accessToken) {
                 throw new Error('No access token found')
             }
             console.log(`Accepting candidate: http://192.168.1.5:8000/applications/${candidate.job_detail.id}/accept/`)
@@ -168,7 +151,7 @@ const ApplicationListScreen = ({ route, navigation }) => {
             const response = await fetch(`http://192.168.1.5:8000/applications/${candidate.job_detail.id}/accept/`, {
                 method: 'PATCH',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${accessToken}`
                 }
             })
 
@@ -192,15 +175,14 @@ const ApplicationListScreen = ({ route, navigation }) => {
 
     const handleRejectCandidate = async (candidate) => {
         try {
-            const token = await getAccessToken()
-            if (!token) {
+            if (!accessToken) {
                 throw new Error('No access token found')
             }
 
             const response = await fetch(`http://192.168.1.5:8000/applications/${candidate.job_detail.id}/reject/`, {
                 method: 'PATCH',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${accessToken}`
                 }
             })
 
@@ -276,8 +258,8 @@ const ApplicationListScreen = ({ route, navigation }) => {
                     </View>
                 </View>
 
-                {/* Hiển thị đánh giá nếu card được mở rộng */}
-                {expandedCardId === item.id && (
+                {/* Hiển thị đánh giá nếu card được mở rộng và chỉ khi đã phỏng vấn */}
+                {expandedCardId === item.id && item.status === "Đã phỏng vấn" && (
                     <View style={styles.reviewsSection}>
                         <Text style={styles.reviewsSectionTitle}>Đánh giá của bạn</Text>
                         
@@ -347,19 +329,21 @@ const ApplicationListScreen = ({ route, navigation }) => {
                             >
                                 Nhắn tin
                             </Button>
-                            
-                            <Button
-                                mode={expandedCardId === item.id ? "contained" : "outlined"}
-                                icon={expandedCardId === item.id ? "comment-minus" : "comment-text-multiple"}
-                                onPress={() => toggleCardExpand(item.id)}
-                                style={[
-                                    styles.reviewButton,
-                                    expandedCardId === item.id ? styles.reviewButtonActive : null
-                                ]}
-                                contentStyle={styles.buttonContent}
-                            >
-                                {expandedCardId === item.id ? "Thu gọn" : "Đánh giá"}
-                            </Button>
+                            {/* Chỉ cho phép đánh giá khi đã phỏng vấn */}
+                            {item.status === "Đã phỏng vấn" && (
+                                <Button
+                                    mode={expandedCardId === item.id ? "contained" : "outlined"}
+                                    icon={expandedCardId === item.id ? "comment-minus" : "comment-text-multiple"}
+                                    onPress={() => toggleCardExpand(item.id)}
+                                    style={[
+                                        styles.reviewButton,
+                                        expandedCardId === item.id ? styles.reviewButtonActive : null
+                                    ]}
+                                    contentStyle={styles.buttonContent}
+                                >
+                                    {expandedCardId === item.id ? "Thu gọn" : "Đánh giá"}
+                                </Button>
+                            )}
                         </>
                     )}
                 </View>
@@ -426,6 +410,8 @@ const ApplicationListScreen = ({ route, navigation }) => {
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.candidateList}
                     showsVerticalScrollIndicator={false}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
                 />
             )}
 

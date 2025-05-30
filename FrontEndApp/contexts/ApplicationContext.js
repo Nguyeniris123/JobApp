@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../apiConfig';
@@ -8,39 +7,22 @@ export const ApplicationContext = createContext({
     applications: [],
     loading: false,
     error: null,
-    fetchApplications: () => {},
-    submitApplication: () => {},
-    getApplicationDetails: () => {},
-    clearApplicationError: () => {}
+    fetchApplications: () => { },
+    submitApplication: () => { },
+    getApplicationDetails: () => { },
+    clearApplicationError: () => { }
 });
 
 export const ApplicationProvider = ({ children }) => {
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [token, setToken] = useState(null);
-    const { role } = useContext(AuthContext);
-
-    useEffect(() => {
-        const loadToken = async () => {
-            try {
-                const accessToken = await AsyncStorage.getItem('accessToken');
-                setToken(accessToken);
-            } catch (error) {
-                console.error('Error loading token in ApplicationContext:', error);
-            }
-        };
-
-        loadToken();
-    }, []);
+    const { role, accessToken } = useContext(AuthContext);
 
     const fetchApplications = useCallback(async () => {
         setLoading(true);
         setError(null);
-
         try {
-            const accessToken = token || await AsyncStorage.getItem('accessToken');
-            
             if (!accessToken) {
                 setError('Không có token xác thực. Vui lòng đăng nhập lại.');
                 setLoading(false);
@@ -61,7 +43,7 @@ export const ApplicationProvider = ({ children }) => {
             const formattedApplications = (response.data.results || response.data).map(app => {
                 // Log để kiểm tra cấu trúc dữ liệu
                 console.log('Application data structure:', JSON.stringify(app, null, 2));
-                
+
                 return {
                     id: app.id,
                     jobTitle: app.job_detail?.title || 'Không có tiêu đề',
@@ -87,46 +69,52 @@ export const ApplicationProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, [token, role]);
+    }, [accessToken, role]);
 
-    const submitApplication = async (jobId, applicationData) => {
+    const submitApplication = async (jobId, resumeFile) => {
         setLoading(true);
         setError(null);
-        
         try {
-            const accessToken = token || await AsyncStorage.getItem('accessToken');
-            
             if (!accessToken) {
                 setError('Không có token xác thực. Vui lòng đăng nhập lại.');
                 setLoading(false);
                 return { success: false, message: 'Không có token xác thực' };
             }
-
-            const response = await axios.post(
-                API_ENDPOINTS.APPLICATIONS_CREATE, 
-                {
-                    applicant: {
-                        first_name: applicationData.fullName.split(' ').slice(-1).join(' '),
-                        last_name: applicationData.fullName.split(' ').slice(0, -1).join(' '),
-                        email: applicationData.email,
-                        phone: applicationData.phone
-                    },
-                    job: jobId,
-                    cv: applicationData.cv,
-                    cover_letter: applicationData.coverLetter || '',
-                    job_detail: applicationData.jobDetail
+            // Xác định type đúng chuẩn MIME nếu thiếu hoặc sai
+            let fileType = resumeFile.type;
+            if (!fileType || !fileType.includes('/')) {
+                if (resumeFile.name && resumeFile.name.toLowerCase().endsWith('.png')) {
+                    fileType = 'image/png';
+                } else {
+                    fileType = 'image/jpeg';
+                }
+            }
+            const formData = new FormData();
+            formData.append('job', String(jobId));
+            formData.append('cv', {
+                uri: resumeFile.uri,
+                name: resumeFile.name,
+                type: fileType,
+            });
+            console.log('Submitting application with data:', {
+                job: String(jobId),
+                cv: {
+                    uri: resumeFile.uri,
+                    name: resumeFile.name,
+                    type: fileType,
                 },
+            });
+            const response = await axios.post(
+                API_ENDPOINTS.APPLICATIONS_CREATE,
+                formData,
                 {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json'
-                    }
+                        'Content-Type': 'multipart/form-data',
+                    },
                 }
             );
-            
-            // Tải lại danh sách đơn ứng tuyển sau khi submit thành công
             fetchApplications();
-            
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error submitting application:', error);
@@ -151,7 +139,6 @@ export const ApplicationProvider = ({ children }) => {
         setLoading(true);
         setError(null);
         try {
-            const accessToken = token || await AsyncStorage.getItem('accessToken');
             if (!accessToken) throw new Error('Không có token xác thực');
             await axios.patch(
                 API_ENDPOINTS.APPLICATIONS_ACCEPT(applicationId),
@@ -173,7 +160,6 @@ export const ApplicationProvider = ({ children }) => {
         setLoading(true);
         setError(null);
         try {
-            const accessToken = token || await AsyncStorage.getItem('accessToken');
             if (!accessToken) throw new Error('Không có token xác thực');
             await axios.patch(
                 API_ENDPOINTS.APPLICATIONS_REJECT(applicationId),
@@ -191,19 +177,19 @@ export const ApplicationProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        if (token) {
+        if (accessToken) {
             fetchApplications();
         }
-    }, [token, fetchApplications]);
+    }, [accessToken, fetchApplications]);
 
     return (
-        <ApplicationContext.Provider 
-            value={{ 
-                applications, 
-                loading, 
-                error, 
-                fetchApplications, 
-                submitApplication, 
+        <ApplicationContext.Provider
+            value={{
+                applications,
+                loading,
+                error,
+                fetchApplications,
+                submitApplication,
                 getApplicationDetails,
                 clearApplicationError,
                 acceptApplication,

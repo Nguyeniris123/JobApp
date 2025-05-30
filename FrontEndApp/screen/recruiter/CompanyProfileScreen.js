@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
 import * as ImagePicker from "expo-image-picker"
 import { useContext, useEffect, useState } from "react"
@@ -81,10 +80,8 @@ const CompanyProfileScreen = ({ navigation }) => {
             if (!result.canceled) {
                 // Lấy danh sách uri ảnh mới
                 const newImages = result.assets.map(asset => asset.uri);
-                // Lấy accessToken mới nhất từ AsyncStorage
-                const token = await AsyncStorage.getItem('accessToken');
                 // Gửi PATCH lên API cập nhật images cho company
-                if (companyData.id && token) {
+                if (companyData.id) {
                     const formData = new FormData();
                     newImages.forEach((uri, idx) => {
                         formData.append('images', {
@@ -96,14 +93,11 @@ const CompanyProfileScreen = ({ navigation }) => {
                     await axios.patch(API_ENDPOINTS.COMPANIES_PARTIAL_UPDATE(companyData.id), formData, {
                         headers: {
                             'Content-Type': 'multipart/form-data',
-                            Authorization: `Bearer ${token}`,
+                            Authorization: `Bearer ${accessToken}`,
                         },
                     });
                     // Reload lại dữ liệu công ty
                     setCompanyData({ ...companyData, images: [...(companyData.images || []), ...newImages] });
-                } else if (!token) {
-                    setSnackbarMessage('Không tìm thấy accessToken, vui lòng đăng nhập lại!');
-                    setSnackbarVisible(true);
                 }
             }
         } catch (error) {

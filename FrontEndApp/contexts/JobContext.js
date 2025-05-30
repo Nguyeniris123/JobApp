@@ -1,6 +1,7 @@
 import axios from 'axios';
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../apiConfig';
+import { AuthContext } from './AuthContext';
 
 export const JobContext = createContext();
 
@@ -18,6 +19,7 @@ export const JobProvider = ({ children }) => {
         search: '',
         ordering: '-created_date'
     });
+    const { accessToken } = useContext(AuthContext);
 
     // Hàm xây dựng query string từ filters
     const buildQueryString = (filters) => {
@@ -92,7 +94,7 @@ export const JobProvider = ({ children }) => {
     };
 
     // Thêm công việc mới (chỉ dành cho recruiter)
-    const createJob = async (jobData, token) => {
+    const createJob = async (jobData) => {
         try {
             setLoading(true);
             // Định dạng dữ liệu theo schema yêu cầu
@@ -118,10 +120,11 @@ export const JobProvider = ({ children }) => {
             
             const response = await axios.post(API_ENDPOINTS.JOBPOSTS_CREATE, formattedJobData, {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${accessToken}`
                 }
             });
             setJobs(prevJobs => [...prevJobs, response.data]);
+            fetchRecruiterJobs(); // Cập nhật danh sách công việc của nhà tuyển dụng
             return response.data;
         } catch (error) {
             console.error('Lỗi khi tạo công việc:', error);
@@ -147,7 +150,7 @@ export const JobProvider = ({ children }) => {
     };
 
     // Cập nhật công việc (chỉ dành cho recruiter)
-    const updateJob = async (jobId, jobData, token) => {
+    const updateJob = async (jobId, jobData) => {
         try {
             setLoading(true);
             
@@ -163,7 +166,7 @@ export const JobProvider = ({ children }) => {
             
             const response = await axios.put(API_ENDPOINTS.JOBPOSTS_UPDATE(jobId), formattedJobData, {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${accessToken}`
                 }
             });
             
@@ -180,14 +183,14 @@ export const JobProvider = ({ children }) => {
     };
 
     // Lấy danh sách công việc của nhà tuyển dụng
-    const fetchRecruiterJobs = async (token) => {
+    const fetchRecruiterJobs = async () => {
         try {
             console.log("Bắt đầu fetch recruiter jobs...");
             setLoading(true);
             
             const response = await axios.get(API_ENDPOINTS.JOBPOSTS_RECRUITER_JOB_POST, {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${accessToken}`
                 }
             });
             
@@ -209,29 +212,6 @@ export const JobProvider = ({ children }) => {
         }
     };
 
-    // Add this new function for applying to jobs
-    const applyForJob = async (jobId, applicationData) => {
-        try {
-            const response = await axios.post(API_ENDPOINTS.APPLICATIONS_CREATE, {
-                applicant: {
-                    first_name: applicationData.fullName.split(' ').slice(-1).join(' '),
-                    last_name: applicationData.fullName.split(' ').slice(0, -1).join(' '),
-                    email: applicationData.email,
-                },
-                job: jobId,
-                cv: applicationData.cv,
-                job_detail: applicationData.jobDetail
-            });
-            return { success: true, data: response.data };
-        } catch (error) {
-            console.error('Error applying for job:', error);
-            return { 
-                success: false, 
-                message: error.response?.data?.detail || 'Failed to submit application' 
-            };
-        }
-    };
-
     // Tải danh sách công việc ngay khi component được mount
     useEffect(() => {
         fetchJobs();
@@ -249,8 +229,7 @@ export const JobProvider = ({ children }) => {
             deleteJob,
             updateJob,
             fetchRecruiterJobs,
-            updateFilters,
-            applyForJob
+            updateFilters
         }}>
             {children}
         </JobContext.Provider>

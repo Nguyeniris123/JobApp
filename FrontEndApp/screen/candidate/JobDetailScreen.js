@@ -1,7 +1,6 @@
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { ReviewCard } from '../../components/ui/ReviewCard';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -277,15 +276,6 @@ const JobDetailScreen = () => {
                             </Text>
                         </TouchableOpacity>
                     </View>
-                    
-                    <Button 
-                        mode="outlined"
-                        icon="star-outline"
-                        onPress={navigateToCreateReview}
-                        style={styles.addReviewButton}
-                    >
-                        Thêm đánh giá của bạn
-                    </Button>
                     
                     {showReviews ? (
                         <View style={styles.reviewsContainer}>

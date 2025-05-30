@@ -55,7 +55,7 @@ export const API_ENDPOINTS = {
 
   // Follow
   FOLLOW_LIST: `${API_URL}/follow/`,
-  FOLLOW_CREATE: `${API_URL}/follow/${id}`,
+  FOLLOW_CREATE: `${API_URL}/follow/`,
   FOLLOW_MY_FOLLOWERS: `${API_URL}/follow/recruiter-followers/`,
   FOLLOW_READ: (id) => `${API_URL}/follow/${id}/`,
   FOLLOW_DELETE: (id) => `${API_URL}/follow/${id}/`,
@@ -68,7 +68,5 @@ export const API_ENDPOINTS = {
   REVIEWS_RECRUITER_CREATE: `${API_URL}/review_recruiters/`,
   REVIEWS_LIST_FOR_RECRUITER: (id) => `${API_URL}/review_recruiters/company/${id}/candidate-reviews/`,
   REVIEWS_DELETE_FOR_RECRUITER: (id) => `${API_URL}/review_recruiters/${id}/`,
-  
-  // Firebase Authentication
-  FIREBASE_TOKEN: `${API_URL}/firebase-token/`,
+
 };

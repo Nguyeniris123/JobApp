@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useContext, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -21,21 +20,10 @@ const FollowingScreen = ({ navigation }) => {
             console.log('Loading already in progress, skipping...');
             return;
         }
-        
         loadingInProgressRef.current = true;
         console.log('Loading followed companies data in FollowingScreen...');
-        
         try {
-            // Kiểm tra token trước khi tải dữ liệu
-            const token = await AsyncStorage.getItem('accessToken');
-            console.log('Token available in FollowingScreen:', token ? 'Yes' : 'No');
-
-            if (!token) {
-                Alert.alert('Lỗi xác thực', 'Bạn cần đăng nhập để xem công ty đã theo dõi');
-                navigation.navigate('Login');
-                return;
-            }
-
+            // Không cần kiểm tra token ở đây nữa, context đã xử lý
             const result = await fetchFollowedCompanies();
             console.log('Followed companies data loaded in FollowingScreen, count:', result?.length || 0);
         } catch (error) {

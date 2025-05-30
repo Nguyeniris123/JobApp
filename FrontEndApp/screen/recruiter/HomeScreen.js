@@ -1,7 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useContext, useEffect, useMemo, useState } from "react"
-import { Alert, ScrollView, TouchableOpacity, View } from "react-native"
+import { Alert, RefreshControl, ScrollView, TouchableOpacity, View } from "react-native"
 import { ActivityIndicator, Avatar, Button, Card, Dialog, FAB, Portal, Searchbar, Text } from "react-native-paper"
 import { AuthContext } from "../../contexts/AuthContext"
 import { JobContext } from "../../contexts/JobContext"
@@ -23,8 +22,8 @@ const HomeScreen = ({ navigation }) => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const accessToken = await AsyncStorage.getItem('accessToken')
-                const jobsData = await fetchRecruiterJobs(accessToken)
+                // Đảm bảo chỉ dùng context, không lấy accessToken từ AsyncStorage
+                const jobsData = await fetchRecruiterJobs()
                 setJobs(jobsData)
                 const totalJobs = jobsData.length
                 // Dùng application_count nếu có, nếu không thì 0
@@ -83,10 +82,9 @@ const HomeScreen = ({ navigation }) => {
     const handleDeleteJob = async () => {
         if (selectedJob) {
             try {
-                const accessToken = await AsyncStorage.getItem('accessToken')
-                const success = await deleteJob(selectedJob.id, accessToken);
+                const success = await deleteJob(selectedJob.id);
                 if (success) {
-                    const updatedJobs = await fetchRecruiterJobs(accessToken);
+                    const updatedJobs = await fetchRecruiterJobs();
                     setJobs(updatedJobs);
                 }
             } catch (error) {
@@ -100,6 +98,25 @@ const HomeScreen = ({ navigation }) => {
     const showDeleteDialog = (job) => {
         setSelectedJob(job);
         setDeleteDialogVisible(true);
+    };
+
+    // Thêm hàm reload khi scroll lên đầu
+    const handleScroll = async (event) => {
+        const y = event.nativeEvent.contentOffset.y;
+        if (y <= 0) {
+            setLoading(true);
+            try {
+                const jobsData = await fetchRecruiterJobs();
+                setJobs(jobsData);
+                const totalJobs = jobsData.length;
+                const totalApplicants = jobsData.reduce((sum, job) => sum + (job.application_count || 0), 0);
+                setStats({ totalJobs, totalApplicants });
+            } catch (error) {
+                console.error("Lỗi khi reload dữ liệu:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
     };
 
     if (loading) {
@@ -133,7 +150,31 @@ const HomeScreen = ({ navigation }) => {
                 />
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading}
+                        onRefresh={async () => {
+                            setLoading(true);
+                            try {
+                                const jobsData = await fetchRecruiterJobs();
+                                setJobs(jobsData);
+                                const totalJobs = jobsData.length;
+                                const totalApplicants = jobsData.reduce((sum, job) => sum + (job.application_count || 0), 0);
+                                setStats({ totalJobs, totalApplicants });
+                            } catch (error) {
+                                console.error("Lỗi khi reload dữ liệu:", error);
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                        colors={["#1E88E5"]}
+                    />
+                }
+            >
                 <View style={styles.statsContainer}>
                     <Card style={styles.statsCard}>
                         <Card.Content style={styles.statsContent}>

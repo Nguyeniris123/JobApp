@@ -3,18 +3,15 @@ import { useContext, useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from "react-native";
 import { Avatar, Button, Card, Chip, Divider, Snackbar, Text, Title } from "react-native-paper";
 import { ApplicationContext } from '../../contexts/ApplicationContext';
-import { FavoriteCandidateContext } from '../../contexts/FavoriteCandidateContext';
 
 const ApplicationDetailScreen = ({ route }) => {
     const { application } = route.params;
     const { acceptApplication, rejectApplication, loading } = useContext(ApplicationContext);
-    const { followCandidate, unfollowCandidate, isFavorite, loading: followLoading } = useContext(FavoriteCandidateContext);
     const navigation = useNavigation();
     const [snackbarVisible, setSnackbarVisible] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState("");
     const [error, setError] = useState(null);
     const [localLoading, setLocalLoading] = useState(false);
-    const [isFollowing, setIsFollowing] = useState(false);
 
     if (!application) return <Text>Không tìm thấy dữ liệu ứng viên</Text>;
     const { applicant_detail, job_detail, status, cv } = application;
@@ -31,12 +28,6 @@ const ApplicationDetailScreen = ({ route }) => {
             setSnackbarVisible(true);
         }
     }, [status]);
-
-    useEffect(() => {
-        if (applicant_detail?.id) {
-            setIsFollowing(isFavorite(applicant_detail.id));
-        }
-    }, [isFavorite, applicant_detail?.id]);
 
     // Xử lý accept/reject
     const handleAccept = async () => {
@@ -68,21 +59,6 @@ const ApplicationDetailScreen = ({ route }) => {
         }
     };
 
-    const handleToggleFollow = async () => {
-        try {
-            if (isFollowing) {
-                await unfollowCandidate(applicant_detail.id);
-                setIsFollowing(false);
-            } else {
-                await followCandidate(applicant_detail.id);
-                setIsFollowing(true);
-            }
-        } catch (e) {
-            setSnackbarMessage("Có lỗi khi thao tác theo dõi!");
-            setSnackbarVisible(true);
-        }
-    };
-
     return (
         <ScrollView style={styles.container}>
             <View style={styles.avatarContainer}>
@@ -92,17 +68,6 @@ const ApplicationDetailScreen = ({ route }) => {
                 <Card.Content>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Title style={styles.sectionTitle}>Thông tin ứng viên</Title>
-                        <Button
-                            mode={isFollowing ? "contained" : "outlined"}
-                            icon={isFollowing ? "heart" : "heart-outline"}
-                            onPress={handleToggleFollow}
-                            loading={followLoading}
-                            style={[styles.followButton, isFollowing && styles.followButtonActive]}
-                            labelStyle={{ color: isFollowing ? "#fff" : "#F44336" }}
-                            contentStyle={{ flexDirection: 'row-reverse' }}
-                        >
-                            {isFollowing ? "Bỏ theo dõi" : "Theo dõi"}
-                        </Button>
                     </View>
                     <Text style={styles.infoText}>Họ tên: <Text style={styles.infoValue}>{applicant_detail.first_name} {applicant_detail.last_name}</Text></Text>
                     <Text style={styles.infoText}>Email: <Text style={styles.infoValue}>{applicant_detail.email}</Text></Text>
@@ -260,20 +225,6 @@ const styles = StyleSheet.create({
     avatarImage: {
         backgroundColor: '#fff',
         elevation: 4,
-    },
-    followButton: {
-        borderColor: '#F44336',
-        borderWidth: 1.5,
-        borderRadius: 8,
-        marginLeft: 8,
-        backgroundColor: '#fff',
-        elevation: 0,
-        minWidth: 110,
-        minHeight: 36,
-    },
-    followButtonActive: {
-        backgroundColor: '#F44336',
-        borderColor: '#F44336',
     },
 });
 

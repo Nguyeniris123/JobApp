@@ -12,11 +12,13 @@ const ApplicationStatusScreen = ({ navigation }) => {
     const [loadingChat, setLoadingChat] = useState(false)
 
     // Sử dụng useFocusEffect để tải lại dữ liệu khi màn hình được focus
+    // Chỉ fetchApplications khi context chưa có dữ liệu
     useFocusEffect(
         useCallback(() => {
-            console.log("ApplicationStatusScreen focused, loading data...")
-            fetchApplications()
-        }, [fetchApplications])
+            if (!applications || applications.length === 0) {
+                fetchApplications();
+            }
+        }, [applications, fetchApplications])
     )
 
     const getStatusColor = (status) => {
@@ -87,6 +89,7 @@ const ApplicationStatusScreen = ({ navigation }) => {
     const renderApplicationItem = ({ item }) => {
         const recruiter = item.jobDetail?.recruiter;
         const company = recruiter?.company;
+        const isAccepted = item.status === "accepted";
         return (
             <Card style={styles.card} onPress={() => handleNavigateToChat(item)}>
                 <Card.Content>
@@ -133,21 +136,41 @@ const ApplicationStatusScreen = ({ navigation }) => {
                         </Text>
                     </View>
                     <View style={styles.actionContainer}>
-                        <Chip 
-                            icon={loadingChat ? "loading" : "chat"}
-                            mode="outlined" 
-                            style={styles.chatChip}
-                            textStyle={styles.chatChipText}
-                            disabled={loadingChat}
-                            onPress={() => handleNavigateToChat(item)}
-                        >
-                            {loadingChat ? "Đang kết nối..." : "Trò chuyện với nhà tuyển dụng"}
-                        </Chip>
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+                            <Chip 
+                                icon={loadingChat ? "loading" : "chat"}
+                                mode="outlined" 
+                                style={styles.chatChip}
+                                textStyle={styles.chatChipText}
+                                disabled={loadingChat}
+                                onPress={() => handleNavigateToChat(item)}
+                            >
+                                {loadingChat ? "Đang kết nối..." : "Trò chuyện với nhà tuyển dụng"}
+                            </Chip>
+                            {isAccepted && (
+                                <Chip
+                                    icon="star-outline"
+                                    mode="outlined"
+                                    style={[styles.chatChip, { marginLeft: 12, borderColor: '#FFD600', backgroundColor: '#FFFDE7' }]}
+                                    textStyle={[styles.chatChipText, { color: '#FFD600' }]}
+                                    onPress={() => navigation.navigate('CreateReview', { applicationId: item.id, jobId: item.jobDetail?.id })}
+                                >
+                                    Đánh giá
+                                </Chip>
+                            )}
+                        </View>
                     </View>
                 </Card.Content>
             </Card>
         );
     }
+
+    // Reload khi scroll lên đầu danh sách
+    const handleScroll = (event) => {
+        if (event.nativeEvent.contentOffset.y <= 0 && !loading) {
+            fetchApplications();
+        }
+    };
 
     if (loading) {
         return (
@@ -207,6 +230,8 @@ const ApplicationStatusScreen = ({ navigation }) => {
                     showsVerticalScrollIndicator={false}
                     refreshing={loading}
                     onRefresh={fetchApplications}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
                 />
             )}
         </View>

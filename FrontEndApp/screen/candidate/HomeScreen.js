@@ -43,9 +43,21 @@ const HomeScreen = ({ navigation }) => {
     { id: 'education', label: 'Giáo dục', icon: 'school' },
   ];
 
+  // Chỉ fetchJobs khi context chưa có dữ liệu
   useEffect(() => {
-    fetchJobs();
+    if (!jobs || jobs.length === 0) {
+      fetchJobs();
+    }
+    // eslint-disable-next-line
   }, []);
+
+  // Reload khi scroll lên đầu danh sách
+  const handleScroll = (event) => {
+    if (event.nativeEvent.contentOffset.y <= 0 && !refreshing) {
+      setRefreshing(true);
+      fetchJobs().finally(() => setRefreshing(false));
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -238,10 +250,7 @@ const HomeScreen = ({ navigation }) => {
               colors={['#1E88E5']}
             />
           }
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
-          )}
+          onScroll={handleScroll}
           scrollEventThrottle={16}
         />
       )}

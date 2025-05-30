@@ -106,7 +106,6 @@ const HomeStack = () => {
             <Stack.Screen name="JobDetail" component={JobDetailScreen} />
             <Stack.Screen name="ApplyScreen" component={ApplyScreen} />
             <Stack.Screen name="Chat" component={ChatScreenSimple} />
-            <Stack.Screen name="CreateReview" component={CreateReviewScreen} />
         </Stack.Navigator>
     )
 }
@@ -116,7 +115,7 @@ const FavoriteStack = () => {
     return (
         <Stack.Navigator
             screenOptions={{
-                headerShown: false,
+                headerShown: true,
             }}>
             <Stack.Screen name="Favorite" component={FollowingScreen} />
         </Stack.Navigator>
@@ -143,6 +142,7 @@ const NotificationStack = () => {
                 options={{
                     headerShown: false
                 }} />
+            <Stack.Screen name="CreateReview" component={CreateReviewScreen} />
         </Stack.Navigator>
     )
 }

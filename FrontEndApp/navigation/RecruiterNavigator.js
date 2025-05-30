@@ -10,7 +10,6 @@ import ApplicationListScreen from "../screen/recruiter/ApplicationListScreen";
 import ChatListScreenSimple from "../screen/recruiter/ChatListScreenSimple";
 import ChatScreenSimple from "../screen/recruiter/ChatScreenSimple";
 import CompanyProfileScreen from "../screen/recruiter/CompanyProfileScreen";
-import FavoriteCandidatesScreen from "../screen/recruiter/FavoriteCandidatesScreen";
 import HomeScreen from "../screen/recruiter/HomeScreen";
 import JobDetailScreen from "../screen/recruiter/JobDetailScreen";
 import MyReviewsScreen from "../screen/recruiter/MyReviewsScreen"; // Thêm import này
@@ -177,8 +176,6 @@ const RecruiterNavigator = () => {
                         iconName = focused ? "briefcase" : "briefcase-outline"
                     } else if (route.name === "CandidateTab") {
                         iconName = focused ? "account-group" : "account-group-outline"
-                    } else if (route.name === "NotificationTab") {
-                        iconName = focused ? "bell" : "bell-outline"
                     } else if (route.name === "ProfileTab") {
                         iconName = focused ? "domain" : "domain"
                     }
@@ -193,7 +190,6 @@ const RecruiterNavigator = () => {
         >
             <Tab.Screen name="HomeTab" component={HomeStack} options={{ tabBarLabel: "Tin tuyển dụng" }} />
             <Tab.Screen name="CandidateTab" component={CandidateStack} options={{ tabBarLabel: "Ứng viên" }} />
-            <Tab.Screen name="NotificationTab" component={FavoriteCandidatesScreen} options={{ tabBarLabel: "Thông báo" }} />
             <Tab.Screen name="ProfileTab" component={ProfileStack} options={{ tabBarLabel: "Công ty" }} />
         </Tab.Navigator>
     )
