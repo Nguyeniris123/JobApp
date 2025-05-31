@@ -126,12 +126,6 @@ const CandidateStack = () => {
                 }}
             />
             <Stack.Screen 
-                name="FavoriteCandidates" 
-                component={FavoriteCandidatesScreen}                options={{
-                    headerShown: false
-                }}
-            />
-            <Stack.Screen 
                 name="Chat" 
                 component={ChatScreenSimple} 
                 options={{
@@ -176,6 +170,8 @@ const RecruiterNavigator = () => {
                         iconName = focused ? "briefcase" : "briefcase-outline"
                     } else if (route.name === "CandidateTab") {
                         iconName = focused ? "account-group" : "account-group-outline"
+                    } else if (route.name === "ChatTab") {
+                        iconName = focused ? "chat" : "chat-outline"
                     } else if (route.name === "ProfileTab") {
                         iconName = focused ? "domain" : "domain"
                     }
@@ -190,6 +186,7 @@ const RecruiterNavigator = () => {
         >
             <Tab.Screen name="HomeTab" component={HomeStack} options={{ tabBarLabel: "Tin tuyển dụng" }} />
             <Tab.Screen name="CandidateTab" component={CandidateStack} options={{ tabBarLabel: "Ứng viên" }} />
+            <Tab.Screen name="ChatTab" component={ChatListScreenSimple} options={{ tabBarLabel: "Chat" }} />
             <Tab.Screen name="ProfileTab" component={ProfileStack} options={{ tabBarLabel: "Công ty" }} />
         </Tab.Navigator>
     )

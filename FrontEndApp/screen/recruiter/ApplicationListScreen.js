@@ -1,16 +1,16 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useContext, useEffect, useState } from "react"
-import { FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native"
+import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native"
 import { ActivityIndicator, Avatar, Button, Card, Chip, Divider, Menu, Searchbar, Text } from "react-native-paper"
 import { ReviewCard } from "../../components/ui/ReviewCard"
 import { ReviewForm } from "../../components/ui/ReviewForm"
+import { ApplicationContext } from "../../contexts/ApplicationContext"
 import { AuthContext } from "../../contexts/AuthContext"
-import { fetchCandidateReviews } from '../../services/reviewService'
 
 const ApplicationListScreen = ({ route, navigation }) => {
     const { jobId } = route.params || {};
     const { user, accessToken } = useContext(AuthContext);
-    const [applications, setApplications] = useState([]);
+    const { applications, fetchApplications, loading, acceptApplication, rejectApplication } = useContext(ApplicationContext);
     const [filteredCandidates, setFilteredCandidates] = useState([])
     const [searchQuery, setSearchQuery] = useState("")
     const [statusFilter, setStatusFilter] = useState("all")
@@ -18,7 +18,6 @@ const ApplicationListScreen = ({ route, navigation }) => {
     const [showReviewForm, setShowReviewForm] = useState(false)
     const [expandedCardId, setExpandedCardId] = useState(null)
     const [candidateReviews, setCandidateReviews] = useState([]);
-    const [loading, setLoading] = useState(false);
 
     // Lấy đánh giá cho ứng viên cụ thể
     const getReviewsForCandidate = (applicationId) => {
@@ -32,34 +31,13 @@ const ApplicationListScreen = ({ route, navigation }) => {
 
     // Fetch applications from API (for recruiter)
     useEffect(() => {
-        const fetchApplications = async () => {
-            setLoading(true);
-            try {
-                if (!accessToken) throw new Error('No access token');
-                // Sử dụng endpoint cho recruiter
-                const response = await fetch('http://192.168.1.7:8000/applications/recruiter/', {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-                const data = await response.json();
-                // Nếu có .results thì lấy, không thì lấy luôn data
-                const apps = data.results || data;
-                setApplications(apps);
-                setFilteredCandidates(apps);
-            } catch (error) {
-                console.error('Error fetching applications:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchApplications();
-    }, [accessToken]);
+    }, [fetchApplications]);
 
-    // Chỉ fetch ứng viên khi context chưa có dữ liệu
+    // Filter lại mỗi khi applications thay đổi
     useEffect(() => {
-        if (!applications || applications.length === 0) {
-            fetchApplications();
-        }
-    }, [applications, fetchApplications]);
+        filterCandidates(searchQuery, statusFilter);
+    }, [applications, searchQuery, statusFilter, jobId]);
 
     // Reload khi scroll lên đầu danh sách
     const handleScroll = (event) => {
@@ -94,20 +72,50 @@ const ApplicationListScreen = ({ route, navigation }) => {
         filterCandidates(query, statusFilter)
     }
 
+    // Map API status to Vietnamese
+    const mapStatusToVN = (status) => {
+        switch (status) {
+            case "pending":
+                return "Đang xem xét";
+            case "accepted":
+                return "Đã phỏng vấn";
+            case "rejected":
+                return "Từ chối";
+            default:
+                return status;
+        }
+    };
+
+    // Map Vietnamese status to API status
+    const mapVNToStatus = (statusVN) => {
+        switch (statusVN) {
+            case "Đang xem xét":
+                return "pending";
+            case "Đã phỏng vấn":
+                return "accepted";
+            case "Từ chối":
+                return "rejected";
+            default:
+                return null;
+        }
+    };
+
+    // Sửa lại filterCandidates để dùng status API value
     const filterCandidates = (query, status) => {
-        let filtered = applications
+        let filtered = applications;
         if (jobId) {
-            filtered = filtered.filter(app => String(app.jobDetail?.id || app.job) === String(jobId))
+            filtered = filtered.filter(app => String(app.job_detail?.id || app.job) === String(jobId));
         }
         if (query) {
-            filtered = filtered.filter((candidate) => candidate.applicant_detail?.username?.toLowerCase().includes(query.toLowerCase()))
+            filtered = filtered.filter((candidate) => candidate.applicant_detail?.username?.toLowerCase().includes(query.toLowerCase()));
         }
         if (status !== "all") {
-            filtered = filtered.filter((candidate) => candidate.status === status)
+            filtered = filtered.filter((candidate) => candidate.status === status);
         }
-        setFilteredCandidates(filtered)
+        setFilteredCandidates(filtered);
     }
 
+    // Sửa lại handleStatusFilter để truyền status API value
     const handleStatusFilter = (status) => {
         setStatusFilter(status)
         filterCandidates(searchQuery, status)
@@ -115,11 +123,11 @@ const ApplicationListScreen = ({ route, navigation }) => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case "Đang xem xét":
+            case "pending":
                 return "#2196F3"
-            case "Đã phỏng vấn":
+            case "accepted":
                 return "#4CAF50"
-            case "Từ chối":
+            case "rejected":
                 return "#F44336"
             default:
                 return "#9E9E9E"
@@ -143,64 +151,19 @@ const ApplicationListScreen = ({ route, navigation }) => {
 
     const handleAcceptCandidate = async (candidate) => {
         try {
-            if (!accessToken) {
-                throw new Error('No access token found')
-            }
-            console.log(`Accepting candidate: http://192.168.1.5:8000/applications/${candidate.job_detail.id}/accept/`)
-
-            const response = await fetch(`http://192.168.1.5:8000/applications/${candidate.job_detail.id}/accept/`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            })
-
-            if (!response.ok) {
-                throw new Error('Failed to accept candidate')
-            }
-
-            const updatedCandidates = applications.map((c) => {
-                if (c.id === candidate.id) {
-                    return { ...c, status: "Đã phỏng vấn" }
-                }
-                return c
-            })
-            setCandidates(updatedCandidates)
-            filterCandidates(searchQuery, statusFilter)
-            setMenuVisible(false)
+            await acceptApplication(candidate.id);
+            setMenuVisible(false);
         } catch (error) {
-            console.error('Error accepting candidate:', error)
+            console.error('Error accepting candidate:', error);
         }
-    }
+    };
 
     const handleRejectCandidate = async (candidate) => {
         try {
-            if (!accessToken) {
-                throw new Error('No access token found')
-            }
-
-            const response = await fetch(`http://192.168.1.5:8000/applications/${candidate.job_detail.id}/reject/`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            })
-
-            if (!response.ok) {
-                throw new Error('Failed to reject candidate')
-            }
-
-            const updatedCandidates = applications.map((c) => {
-                if (c.id === candidate.id) {
-                    return { ...c, status: "Từ chối" }
-                }
-                return c
-            })
-            setCandidates(updatedCandidates)
-            filterCandidates(searchQuery, statusFilter)
-            setMenuVisible(false)
+            await rejectApplication(candidate.id);
+            setMenuVisible(false);
         } catch (error) {
-            console.error('Error rejecting candidate:', error)
+            console.error('Error rejecting candidate:', error);
         }
     }
 
@@ -224,7 +187,7 @@ const ApplicationListScreen = ({ route, navigation }) => {
                                     style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + "15" }]}
                                     textStyle={[styles.statusText, { color: getStatusColor(item.status) }]}
                                 >
-                                    {item.status}
+                                    {mapStatusToVN(item.status)}
                                 </Chip>
                             </View>
                         </View>
@@ -370,33 +333,36 @@ const ApplicationListScreen = ({ route, navigation }) => {
                 />
             </View>
 
-            <View style={styles.filterContainer}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <Chip selected={statusFilter === "all"} onPress={() => handleStatusFilter("all")} style={styles.filterChip}>
-                        Tất cả
-                    </Chip>
-                    <Chip
-                        selected={statusFilter === "Đang xem xét"}
-                        onPress={() => handleStatusFilter("Đang xem xét")}
-                        style={styles.filterChip}
-                    >
-                        Đang xem xét
-                    </Chip>
-                    <Chip
-                        selected={statusFilter === "Đã phỏng vấn"}
-                        onPress={() => handleStatusFilter("Đã phỏng vấn")}
-                        style={styles.filterChip}
-                    >
-                        Đã phỏng vấn
-                    </Chip>
-                    <Chip
-                        selected={statusFilter === "Từ chối"}
-                        onPress={() => handleStatusFilter("Từ chối")}
-                        style={styles.filterChip}
-                    >
-                        Từ chối
-                    </Chip>
-                </ScrollView>
+            {/* Thêm list filter status dưới search */}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 12 }}>
+                <Button
+                    mode={statusFilter === 'pending' ? 'contained' : 'outlined'}
+                    onPress={() => handleStatusFilter('pending')}
+                    style={{ marginHorizontal: 4 }}
+                >
+                    Đang xem xét
+                </Button>
+                <Button
+                    mode={statusFilter === 'accepted' ? 'contained' : 'outlined'}
+                    onPress={() => handleStatusFilter('accepted')}
+                    style={{ marginHorizontal: 4 }}
+                >
+                    Đã phỏng vấn
+                </Button>
+                <Button
+                    mode={statusFilter === 'rejected' ? 'contained' : 'outlined'}
+                    onPress={() => handleStatusFilter('rejected')}
+                    style={{ marginHorizontal: 4 }}
+                >
+                    Từ chối
+                </Button>
+                <Button
+                    mode={statusFilter === 'all' ? 'contained' : 'outlined'}
+                    onPress={() => handleStatusFilter('all')}
+                    style={{ marginHorizontal: 4 }}
+                >
+                    Tất cả
+                </Button>
             </View>
 
             {filteredCandidates.length === 0 ? (

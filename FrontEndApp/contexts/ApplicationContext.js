@@ -18,17 +18,16 @@ export const ApplicationProvider = ({ children }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const { role, accessToken } = useContext(AuthContext);
+    const { isAuthenticated, loading: authLoading } = useContext(AuthContext);
 
     const fetchApplications = useCallback(async () => {
+        if (authLoading || !isAuthenticated || !accessToken) {
+            // Không fetch khi chưa xác thực xong hoặc chưa có token
+            return [];
+        }
         setLoading(true);
         setError(null);
         try {
-            if (!accessToken) {
-                setError('Không có token xác thực. Vui lòng đăng nhập lại.');
-                setLoading(false);
-                return [];
-            }
-
             // Chọn endpoint theo role
             const endpoint = role === 'recruiter'
                 ? API_ENDPOINTS.APPLICATIONS_LIST_FOR_RECRUITER
@@ -46,16 +45,15 @@ export const ApplicationProvider = ({ children }) => {
 
                 return {
                     id: app.id,
-                    jobTitle: app.job_detail?.title || 'Không có tiêu đề',
-                    company: app.job_detail?.company?.name || 'Không có thông tin công ty',
-                    companyLogo: app.job_detail?.company?.images?.[0]?.image || 'https://via.placeholder.com/150',
                     status: app.status || 'pending',
                     appliedDate: new Date(app.created_date),
                     lastUpdated: new Date(app.updated_date || app.created_date),
                     feedback: app.feedback,
                     job: app.job,
-                    jobDetail: app.job_detail,
-                    recruiterId: app.job_detail?.recruiter
+                    // Thêm đầy đủ các trường detail để màn hình recruiter dùng trực tiếp
+                    applicant_detail: app.applicant_detail,
+                    job_detail: app.job_detail,
+                    cv: app.cv,
                 }
             });
 
@@ -69,7 +67,7 @@ export const ApplicationProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, [accessToken, role]);
+    }, [accessToken, role, authLoading, isAuthenticated]);
 
     const submitApplication = async (jobId, resumeFile) => {
         setLoading(true);
@@ -176,6 +174,52 @@ export const ApplicationProvider = ({ children }) => {
         }
     };
 
+    // Cập nhật lại CV cho ứng viên (chỉ PATCH cv)
+    const updateApplication = async (applicationId, newCVFile) => {
+        setLoading(true);
+        setError(null);
+        try {
+            if (!accessToken) {
+                setError('Không có token xác thực. Vui lòng đăng nhập lại.');
+                setLoading(false);
+                return { success: false, message: 'Không có token xác thực' };
+            }
+            let fileType = newCVFile.type;
+            if (!fileType || !fileType.includes('/')) {
+                if (newCVFile.name && newCVFile.name.toLowerCase().endsWith('.png')) {
+                    fileType = 'image/png';
+                } else {
+                    fileType = 'image/jpeg';
+                }
+            }
+            const formData = new FormData();
+            formData.append('cv', {
+                uri: newCVFile.uri,
+                name: newCVFile.name,
+                type: fileType,
+            });
+            const response = await axios.patch(
+                API_ENDPOINTS.APPLICATIONS_UPDATE(applicationId),
+                formData,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'multipart/form-data',
+                    },
+                }
+            );
+            await fetchApplications();
+            return { success: true, data: response.data };
+        } catch (error) {
+            console.error('Error updating application CV:', error);
+            const errorMsg = error.response?.data?.detail || 'Lỗi khi cập nhật CV';
+            setError(errorMsg);
+            return { success: false, message: errorMsg };
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (accessToken) {
             fetchApplications();
@@ -193,7 +237,8 @@ export const ApplicationProvider = ({ children }) => {
                 getApplicationDetails,
                 clearApplicationError,
                 acceptApplication,
-                rejectApplication
+                rejectApplication,
+                updateApplication // expose mới
             }}
         >
             {children}

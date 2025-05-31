@@ -54,7 +54,25 @@ const ChatScreenSimple = ({ navigation, route }) => {
                 const chatRoomId = await ChatServiceSimple.createOrGetChatRoom(
                     user.id, // Recruiter ID
                     candidateId, // Candidate ID
-                    jobId
+                    jobId,
+                    // recruiterInfo
+                    {
+                        id: user.id,
+                        first_name: user.first_name,
+                        last_name: user.last_name,
+                        username: user.username,
+                        email: user.email,
+                        avatar: user.avatar
+                    },
+                    // candidateInfo
+                    {
+                        id: candidateId,
+                        first_name: route.params?.candidateFirstName || null,
+                        last_name: route.params?.candidateLastName || null,
+                        username: route.params?.candidateUsername || null,
+                        email: route.params?.candidateEmail || null,
+                        avatar: candidateAvatar
+                    }
                 ).catch(err => {
                     console.error("Lỗi khi tạo chat room:", err);
                     setError("Không thể kết nối đến dịch vụ chat - Vui lòng thử lại sau");

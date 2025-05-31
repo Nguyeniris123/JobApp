@@ -16,22 +16,19 @@ export const CompanyContext = createContext({
 });
 
 export const CompanyProvider = ({ children }) => {
+    const { role, accessToken, isAuthenticated, loading: authLoading } = useContext(AuthContext);
     const [loading, setLoading] = useState(false);
     const [followedCompanies, setFollowedCompanies] = useState([]);
     const [error, setError] = useState(null);
     const [isTokenLoaded, setIsTokenLoaded] = useState(false);
-    const { accessToken } = useContext(AuthContext);
-
-    // Sử dụng ref để theo dõi xem đã fetched data chưa để tránh vòng lặp
     const hasFetchedInitialData = useRef(false);
-    // Ref để theo dõi request đang xử lý
     const fetchInProgress = useRef(false);
 
-    // Load token từ AuthContext, không cần state token riêng
+    // Only run effect logic if not recruiter
     useEffect(() => {
+        if (role === 'recruiter') return;
         const loadToken = async () => {
             try {
-                // Không cần lấy từ AsyncStorage nữa, chỉ cần đảm bảo accessToken được cung cấp
                 if (accessToken) {
                     console.log('Token loaded in CompanyContext:', accessToken ? 'Yes (Hidden)' : 'No');
                 }
@@ -41,20 +38,22 @@ export const CompanyProvider = ({ children }) => {
                 setIsTokenLoaded(true);
             }
         };
-
         loadToken();
-    }, [accessToken]);
+    }, [accessToken, role]);
 
-    // Tải danh sách công ty theo dõi khi có token, chỉ chạy 1 lần khi token được load
     useEffect(() => {
-        if (isTokenLoaded && accessToken && !hasFetchedInitialData.current) {
+        if (role === 'recruiter') return;
+        if (isTokenLoaded && accessToken && isAuthenticated && !authLoading && !hasFetchedInitialData.current) {
             console.log('Token is loaded, fetching followed companies (initial load)...');
-            hasFetchedInitialData.current = true; // Đánh dấu đã fetch data
+            hasFetchedInitialData.current = true;
             fetchFollowedCompanies();
         }
-    }, [isTokenLoaded, accessToken]);
+    }, [isTokenLoaded, accessToken, isAuthenticated, authLoading, role]);
 
     const fetchFollowedCompanies = useCallback(async () => {
+        if (authLoading || !isAuthenticated || !accessToken) {
+            return [];
+        }
         // Nếu đang có một request đang xử lý, không thực hiện request mới
         if (fetchInProgress.current) {
             console.log('A fetch request is already in progress, skipping...');
@@ -126,7 +125,7 @@ export const CompanyProvider = ({ children }) => {
             setLoading(false);
             fetchInProgress.current = false; // Đánh dấu kết thúc request
         }
-    }, [accessToken]);
+    }, [accessToken, isAuthenticated, authLoading]);
 
     // Hàm test để kiểm tra API trực tiếp và hiển thị kết quả
     const testFetchFollowedCompanies = async () => {
@@ -400,6 +399,24 @@ export const CompanyProvider = ({ children }) => {
         const interval = setInterval(checkTokenChanges, 30000);
         return () => clearInterval(interval);
     }, [accessToken, loading]);
+
+    // Always render the Provider, but for recruiter, provide minimal context
+    if (role === 'recruiter') {
+        return (
+            <CompanyContext.Provider value={{
+                loading: false,
+                followedCompanies: [],
+                error: null,
+                fetchFollowedCompanies: () => {},
+                testFetchFollowedCompanies: () => {},
+                unfollowCompany: () => {},
+                followCompany: () => {},
+                getFollowedCompanyById: () => null
+            }}>
+                {children}
+            </CompanyContext.Provider>
+        );
+    }
 
     return (
         <CompanyContext.Provider value={{

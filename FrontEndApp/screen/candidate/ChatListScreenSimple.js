@@ -33,20 +33,34 @@ const ChatListScreenSimple = ({ navigation }) => {
                     "candidate",
                     async (rooms) => {
                         console.log("Nhận được", rooms.length, "phòng chat")
-                        
+                        rooms.forEach((room, idx) => {
+                            console.log(`Room[${idx}] raw:`, JSON.stringify(room));
+                        });
                         // Xử lý thêm thông tin cho mỗi phòng chat
-                        const enhancedRooms = await Promise.all(rooms.map(async (room) => {
-                            // Lấy dữ liệu thật từ room nếu có
+                        const enhancedRooms = await Promise.all(rooms.map(async (room, idx) => {
                             let recruiterName = room.recruiterName;
                             let recruiterAvatar = room.recruiterAvatar;
                             let jobTitle = room.jobTitle;
                             let company = room.company;
-                            // Nếu room có recruiterInfo, jobInfo, companyInfo thì lấy từ đó
+                            // Ưu tiên recruiterInfo
                             if (room.recruiterInfo) {
-                                recruiterName = room.recruiterInfo.first_name && room.recruiterInfo.last_name
-                                    ? `${room.recruiterInfo.first_name} ${room.recruiterInfo.last_name}`
-                                    : room.recruiterInfo.username || recruiterName;
+                                if (room.recruiterInfo.first_name || room.recruiterInfo.last_name) {
+                                    recruiterName = `${room.recruiterInfo.first_name || ''} ${room.recruiterInfo.last_name || ''}`.trim();
+                                } else if (room.recruiterInfo.username) {
+                                    recruiterName = room.recruiterInfo.username;
+                                } else if (room.recruiterInfo.email) {
+                                    recruiterName = room.recruiterInfo.email;
+                                } else if (room.recruiterInfo.id) {
+                                    recruiterName = `ID: ${room.recruiterInfo.id}`;
+                                }
                                 recruiterAvatar = room.recruiterInfo.avatar || recruiterAvatar;
+                            }
+                            // Nếu recruiterAvatar là placeholder hoặc rỗng, thử lấy từ lastMessage.senderInfo.avatar
+                            if (
+                                (!recruiterAvatar || recruiterAvatar.includes('placeholder.com') || recruiterAvatar === '') &&
+                                room.lastMessage && room.lastMessage.senderInfo && room.lastMessage.senderInfo.avatar
+                            ) {
+                                recruiterAvatar = room.lastMessage.senderInfo.avatar;
                             }
                             if (room.jobInfo) {
                                 jobTitle = room.jobInfo.title || jobTitle;
@@ -56,7 +70,7 @@ const ChatListScreenSimple = ({ navigation }) => {
                             }
                             return {
                                 ...room,
-                                recruiterName: recruiterName || "Nhà tuyển dụng",
+                                recruiterName: recruiterName && recruiterName !== "" ? recruiterName : (room.recruiterName || "Nhà tuyển dụng"),
                                 recruiterAvatar: recruiterAvatar || "https://via.placeholder.com/150",
                                 jobTitle: jobTitle || "Vị trí công việc",
                                 company: company || "Công ty",
@@ -99,7 +113,8 @@ const ChatListScreenSimple = ({ navigation }) => {
             jobId: chatRoom.jobId,
             jobTitle: chatRoom.jobTitle,
             company: chatRoom.company,
-            roomId: chatRoom.id
+            roomId: chatRoom.id,
+            recruiterInfo: chatRoom.recruiterInfo || null // truyền recruiterInfo nếu có
         })
     }
 

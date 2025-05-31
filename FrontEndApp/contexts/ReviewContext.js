@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../apiConfig';
@@ -26,23 +25,21 @@ export const ReviewProvider = ({ children }) => {
     const [candidateReviews, setCandidateReviews] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const { user, role } = useContext(AuthContext);
+    const { user, role, accessToken } = useContext(AuthContext);
+    const { isAuthenticated, loading: authLoading } = useContext(AuthContext);
 
     // Lấy danh sách đánh giá dành cho nhà tuyển dụng
     const fetchRecruiterReviews = async (recruiterId) => {
+        if (authLoading || !isAuthenticated || !accessToken) {
+            return [];
+        }
         try {
             setLoading(true);
             setError(null);
 
-            const id = recruiterId || (user && user.id);
+            const id = recruiterId || user?.id;
             if (!id) {
                 setError('Không có ID nhà tuyển dụng');
-                return [];
-            }
-
-            const accessToken = await AsyncStorage.getItem('accessToken');
-            if (!accessToken) {
-                setError('Không có token xác thực. Vui lòng đăng nhập lại.');
                 return [];
             }
 
@@ -69,19 +66,17 @@ export const ReviewProvider = ({ children }) => {
 
     // Lấy danh sách đánh giá dành cho ứng viên
     const fetchCandidateReviews = async (candidateId) => {
+        if (authLoading || !isAuthenticated || !accessToken) {
+            return [];
+        }
         try {
             setLoading(true);
             setError(null);
+            console.log(accessToken)
             
-            const id = candidateId || (user && user.id);
+            const id = candidateId || user?.id;
             if (!id) {
                 setError('Không có ID ứng viên');
-                return [];
-            }
-
-            const accessToken = await AsyncStorage.getItem('accessToken');
-            if (!accessToken) {
-                setError('Không có token xác thực. Vui lòng đăng nhập lại.');
                 return [];
             }
 
@@ -112,7 +107,6 @@ export const ReviewProvider = ({ children }) => {
             setLoading(true);
             setError(null);
 
-            const accessToken = await AsyncStorage.getItem('accessToken');
             if (!accessToken) {
                 setError('Không có token xác thực. Vui lòng đăng nhập lại.');
                 return { success: false, message: 'Không có token xác thực' };
@@ -126,11 +120,12 @@ export const ReviewProvider = ({ children }) => {
                 endpoint = API_ENDPOINTS.REVIEWS_RECRUITER_CREATE;
             }
 
-            
             const apiRequestData = {
                 company_id: reviewData.company_id,
                 rating: reviewData.rating,
-                comment: reviewData.comment
+                comment: reviewData.comment,
+                reviewed_user: reviewData.reviewed_user,
+                application: reviewData.application
             };
 
             console.log('Đang gửi dữ liệu đánh giá:', apiRequestData);
@@ -180,7 +175,6 @@ export const ReviewProvider = ({ children }) => {
             setLoading(true);
             setError(null);
 
-            const accessToken = await AsyncStorage.getItem('accessToken');
             if (!accessToken) {
                 setError('Không có token xác thực. Vui lòng đăng nhập lại.');
                 return { success: false, message: 'Không có token xác thực' };
@@ -236,7 +230,7 @@ export const ReviewProvider = ({ children }) => {
 
     // Tải đánh giá ban đầu dựa trên vai trò người dùng
     useEffect(() => {
-        if (user && user.id) {
+        if (user?.id) {
             if (role === 'recruiter') {
                 fetchRecruiterReviews();
             } else if (role === 'candidate') {
@@ -310,15 +304,6 @@ export const ReviewProvider = ({ children }) => {
         };
     };
 
-    // Export useReview function from the context
-    const useReview = () => {
-        const context = useContext(ReviewContext);
-        if (context === undefined) {
-            throw new Error('useReview phải được sử dụng trong ReviewProvider');
-        }
-        return context;
-    };
-
     return (
         <ReviewContext.Provider
             value={{
@@ -335,20 +320,10 @@ export const ReviewProvider = ({ children }) => {
                 createJobReview,
                 createApplicationReview,
                 updateReview,
-                formatReviewData,
-                useReview
+                formatReviewData
             }}
         >
             {children}
         </ReviewContext.Provider>
     );
-};
-
-// Export useReview hook directly from ReviewContext
-export const useReview = () => {
-    const context = useContext(ReviewContext);
-    if (context === undefined) {
-        throw new Error('useReview phải được sử dụng trong ReviewProvider');
-    }
-    return context;
 };

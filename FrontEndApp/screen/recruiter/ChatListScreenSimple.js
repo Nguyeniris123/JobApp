@@ -36,14 +36,29 @@ const ChatListScreenSimple = ({ navigation }) => {
                         
                         // Xử lý thêm thông tin cho mỗi phòng chat
                         const enhancedRooms = await Promise.all(rooms.map(async (room) => {
-                            // Thêm thông tin ứng viên từ API hoặc cache nếu cần
-                            // Đây chỉ là mẫu, bạn có thể tùy chỉnh theo nhu cầu
+                            let candidateName = room.candidateName;
+                            let candidateAvatar = room.candidateAvatar;
+                            let jobTitle = room.jobTitle;
+                            // Ưu tiên candidateInfo
+                            if (room.candidateInfo) {
+                                candidateName = room.candidateInfo.first_name && room.candidateInfo.last_name
+                                    ? `${room.candidateInfo.first_name} ${room.candidateInfo.last_name}`
+                                    : room.candidateInfo.username || candidateName;
+                                candidateAvatar = room.candidateInfo.avatar || candidateAvatar;
+                            }
+                            // Nếu candidateInfo không có avatar, thử lấy từ lastMessage.senderInfo
+                            if ((!candidateAvatar || candidateAvatar === "https://via.placeholder.com/150") && room.lastMessage && room.lastMessage.senderInfo && room.lastMessage.senderInfo.avatar) {
+                                candidateAvatar = room.lastMessage.senderInfo.avatar;
+                            }
+                            if (room.jobInfo) {
+                                jobTitle = room.jobInfo.title || jobTitle;
+                            }
                             return {
                                 ...room,
-                                candidateName: "Ứng viên", // Thay thế bằng dữ liệu thực
-                                candidateAvatar: "https://via.placeholder.com/150", // Thay thế bằng dữ liệu thực
-                                jobTitle: "Vị trí tuyển dụng", // Thay thế bằng dữ liệu thực nếu có jobId
-                                unreadCount: 0, // Bạn có thể tính toán số tin nhắn chưa đọc nếu cần
+                                candidateName: candidateName || "Ứng viên",
+                                candidateAvatar: candidateAvatar || "https://via.placeholder.com/150",
+                                jobTitle: jobTitle || "Vị trí tuyển dụng",
+                                unreadCount: room.unreadCount || 0,
                                 lastActive: room.lastMessageTimestamp ? new Date(room.lastMessageTimestamp) : new Date()
                             }
                         }))

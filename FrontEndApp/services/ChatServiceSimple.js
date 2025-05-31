@@ -21,24 +21,23 @@ class ChatServiceSimple {
    * @param {string} recruiterId - ID of the recruiter
    * @param {string} candidateId - ID of the candidate
    * @param {string} jobId - ID of the job (optional)
+   * @param {object} recruiterInfo - Thông tin thật của recruiter (optional)
+   * @param {object} candidateInfo - Thông tin thật của candidate (optional)
+   * @param {object} jobInfo - Thông tin công việc (id, title, ...) (optional)
    * @returns {Promise<string>} - Chat room ID
    */
-  async createOrGetChatRoom(recruiterId, candidateId, jobId = null) {
+  async createOrGetChatRoom(recruiterId, candidateId, jobId = null, recruiterInfo = null, candidateInfo = null, jobInfo = null) {
     try {
       // Validate inputs
       if (!recruiterId || !candidateId) {
         throw new Error('Both recruiterId and candidateId are required');
       }
-      
       // Create a unique ID for the chat room based on the participants
       const roomId = this.generateChatRoomId(recruiterId, candidateId, jobId);
-      
       // Reference to the chat room
       const roomRef = ref(database, `chatRooms/${roomId}`);
-      
       // Check if the room exists by getting a snapshot
       const snapshot = await get(roomRef);
-      
       if (!snapshot.exists()) {
         // Room doesn't exist, create a new one
         const room = {
@@ -49,6 +48,9 @@ class ChatServiceSimple {
           createdAt: serverTimestamp(),
           lastMessage: null,
           lastMessageTimestamp: null,
+          recruiterInfo: recruiterInfo || null,
+          candidateInfo: candidateInfo || null,
+          jobInfo: jobInfo || null, // Lưu thông tin job (id, title, ...)
           participants: {
             [recruiterId]: {
               id: recruiterId,
@@ -62,14 +64,27 @@ class ChatServiceSimple {
             }
           }
         };
-        
         // Save the new room
         await set(roomRef, room);
         console.log('Created new chat room:', roomId);
       } else {
+        // Nếu phòng chat đã có nhưng thiếu info thì cập nhật
+        const updates = {};
+        const roomData = snapshot.val();
+        if (!roomData.recruiterInfo && recruiterInfo) {
+          updates.recruiterInfo = recruiterInfo;
+        }
+        if (!roomData.candidateInfo && candidateInfo) {
+          updates.candidateInfo = candidateInfo;
+        }
+        if (!roomData.jobInfo && jobInfo) {
+          updates.jobInfo = jobInfo;
+        }
+        if (Object.keys(updates).length > 0) {
+          await update(roomRef, updates);
+        }
         console.log('Chat room already exists:', roomId);
       }
-      
       return roomId;
     } catch (error) {
       console.error('Error creating/getting chat room:', error);

@@ -247,6 +247,7 @@ export const AuthProvider = ({ children }) => {
                 // register,
                 logout,
                 changeAvatar,
+                accessToken, // <-- expose accessToken here
             }}
         >
             {children}

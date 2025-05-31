@@ -5,6 +5,7 @@ import { FlatList, StyleSheet, View } from "react-native"
 import { ActivityIndicator, Card, Chip, Divider, Text } from "react-native-paper"
 import { ApplicationContext } from "../../contexts/ApplicationContext"
 import { JobContext } from "../../contexts/JobContext"
+import ChatServiceSimple from "../../services/ChatServiceSimple"
 
 const ApplicationStatusScreen = ({ navigation }) => {
     const { applications, loading, error, fetchApplications } = useContext(ApplicationContext)
@@ -66,19 +67,59 @@ const ApplicationStatusScreen = ({ navigation }) => {
         setLoadingChat(true);
         try {
             // Lấy thông tin recruiter từ job_detail
-            const recruiter = item.jobDetail?.recruiter;
-            const company = recruiter?.company;
-            const chatParams = {
+            const recruiter = item.job_detail?.recruiter;
+            // Lấy thông tin ứng viên
+            const candidate = item.applicant_detail;
+            // Lấy thông tin job
+            const job = item.job_detail;
+
+            // Gọi ChatServiceSimple để tạo hoặc lấy phòng chat, KHÔNG truyền companyInfo nữa
+            const chatRoomId = await ChatServiceSimple.createOrGetChatRoom(
+                recruiter?.id,
+                candidate?.id,
+                job?.id,
+                recruiter ? {
+                    id: recruiter.id,
+                    first_name: recruiter.first_name,
+                    last_name: recruiter.last_name,
+                    username: recruiter.username,
+                    email: recruiter.email,
+                    avatar: recruiter.avatar
+                } : null,
+                candidate ? {
+                    id: candidate.id,
+                    first_name: candidate.first_name,
+                    last_name: candidate.last_name,
+                    username: candidate.username,
+                    email: candidate.email,
+                    avatar: candidate.avatar
+                } : null,
+                job ? {
+                    id: job.id,
+                    title: job.title,
+                    specialized: job.specialized,
+                    description: job.description,
+                    salary: job.salary,
+                    working_hours: job.working_hours,
+                    location: job.location
+                } : null
+            );
+
+            // Điều hướng sang màn hình chat, truyền đủ params để hiển thị
+            navigation.navigate("Chat", {
                 recruiterId: recruiter?.id,
-                recruiterName: recruiter ? `${recruiter.first_name} ${recruiter.last_name}` : 'Nhà tuyển dụng',
+                recruiterName: recruiter ? `${recruiter.last_name} ${recruiter.first_name}` : 'Nhà tuyển dụng',
                 recruiterAvatar: recruiter?.avatar,
-                jobId: item.jobDetail?.id,
-                jobTitle: item.jobDetail?.title,
-                company: company?.name,
-                companyLogo: company?.images?.[0] || '',
+                jobId: job?.id,
+                jobTitle: job?.title,
+                company: recruiter?.company?.name,
+                companyLogo: recruiter?.company?.images?.[0] || '',
                 applicationId: item.id,
-            };
-            navigation.navigate("Chat", chatParams);
+                recruiterInfo: recruiter,
+                candidateInfo: candidate,
+                jobInfo: job,
+                roomId: chatRoomId
+            });
         } catch (error) {
             alert("Không thể kết nối đến nhà tuyển dụng. Vui lòng thử lại sau.");
         } finally {
@@ -86,12 +127,20 @@ const ApplicationStatusScreen = ({ navigation }) => {
         }
     };
 
+    const handleCardPress = (item) => {
+        navigation.navigate('ApplicationDetail', {
+            applicationId: item.id,
+            jobId: item.job_detail?.id,
+            cv: item.cv,
+        });
+    };
+
     const renderApplicationItem = ({ item }) => {
-        const recruiter = item.jobDetail?.recruiter;
+        const recruiter = item.job_detail?.recruiter;
         const company = recruiter?.company;
         const isAccepted = item.status === "accepted";
         return (
-            <Card style={styles.card} onPress={() => handleNavigateToChat(item)}>
+            <Card style={styles.card} onPress={() => handleCardPress(item)}>
                 <Card.Content>
                     <View style={styles.cardHeader}>
                         <View style={styles.companyInfo}>
@@ -99,7 +148,7 @@ const ApplicationStatusScreen = ({ navigation }) => {
                                 <Card.Cover source={{ uri: company?.images?.[0] || 'https://via.placeholder.com/150' }} style={styles.logo} />
                             </View>
                             <View style={styles.jobInfo}>
-                                <Text style={styles.jobTitle}>{item.jobDetail?.title}</Text>
+                                <Text style={styles.jobTitle}>{item.job_detail?.title}</Text>
                                 <Text style={styles.company}>{company?.name}</Text>
                             </View>
                         </View>
@@ -153,7 +202,7 @@ const ApplicationStatusScreen = ({ navigation }) => {
                                     mode="outlined"
                                     style={[styles.chatChip, { marginLeft: 12, borderColor: '#FFD600', backgroundColor: '#FFFDE7' }]}
                                     textStyle={[styles.chatChipText, { color: '#FFD600' }]}
-                                    onPress={() => navigation.navigate('CreateReview', { applicationId: item.id, jobId: item.jobDetail?.id })}
+                                    onPress={() => navigation.navigate('CreateReview', { applicationId: item.id, jobId: item.job_detail?.id })}
                                 >
                                     Đánh giá
                                 </Chip>

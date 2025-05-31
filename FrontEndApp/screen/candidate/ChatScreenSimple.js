@@ -52,11 +52,32 @@ const ChatScreenSimple = ({ navigation, route }) => {
                     return;
                 }
 
+                // Lấy recruiterInfo từ params nếu có
+                const recruiterInfoFromParams = route.params?.recruiterInfo || null;
+
                 // Tạo hoặc lấy chat room
                 const chatRoomId = await ChatServiceSimple.createOrGetChatRoom(
                     recruiterId,
                     user.id,
-                    jobId
+                    jobId,
+                    // recruiterInfo
+                    recruiterInfoFromParams || {
+                        id: recruiterId,
+                        first_name: route.params?.recruiterFirstName || null,
+                        last_name: route.params?.recruiterLastName || null,
+                        username: route.params?.recruiterUsername || null,
+                        email: route.params?.recruiterEmail || null,
+                        avatar: recruiterAvatar
+                    },
+                    // candidateInfo
+                    {
+                        id: user.id,
+                        first_name: user.first_name,
+                        last_name: user.last_name,
+                        username: user.username,
+                        email: user.email,
+                        avatar: user.avatar
+                    }
                 ).catch(err => {
                     console.error("Lỗi khi tạo chat room:", err);
                     setError("Không thể kết nối đến dịch vụ chat - Vui lòng thử lại sau");

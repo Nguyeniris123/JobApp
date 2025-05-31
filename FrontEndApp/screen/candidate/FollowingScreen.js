@@ -3,10 +3,12 @@ import { useCallback, useContext, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { AuthContext } from '../../contexts/AuthContext';
 import { CompanyContext } from '../../contexts/CompanyContext';
 
 const FollowingScreen = ({ navigation }) => {
     const { loading, followedCompanies, fetchFollowedCompanies, unfollowCompany, error } = useContext(CompanyContext);
+    const { accessToken } = useContext(AuthContext); // Add this line
     const [refreshing, setRefreshing] = useState(false);
     const [unfollowingId, setUnfollowingId] = useState(null);
     
@@ -22,6 +24,7 @@ const FollowingScreen = ({ navigation }) => {
         }
         loadingInProgressRef.current = true;
         console.log('Loading followed companies data in FollowingScreen...');
+        console.log(accessToken ? 'Access token is available.' : 'No access token found, will not fetch data.');
         try {
             // Không cần kiểm tra token ở đây nữa, context đã xử lý
             const result = await fetchFollowedCompanies();

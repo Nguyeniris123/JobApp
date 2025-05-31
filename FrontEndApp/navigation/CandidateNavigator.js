@@ -7,6 +7,7 @@ import { Text, View } from "react-native"
 import { ApplicationContext } from "../contexts/ApplicationContext"
 
 // Screens
+import ApplicationDetailScreen from "../screen/candidate/ApplicationDetailScreen"
 import ApplicationStatusScreen from "../screen/candidate/ApplicationStatusScreen"
 import ApplyScreen from "../screen/candidate/ApplyScreen"
 import ChatListScreenSimple from "../screen/candidate/ChatListScreenSimple"
@@ -143,6 +144,7 @@ const NotificationStack = () => {
                     headerShown: false
                 }} />
             <Stack.Screen name="CreateReview" component={CreateReviewScreen} />
+            <Stack.Screen name="ApplicationDetail" component={ApplicationDetailScreen} />
         </Stack.Navigator>
     )
 }

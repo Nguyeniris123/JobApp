@@ -20,6 +20,7 @@ export const JobProvider = ({ children }) => {
         ordering: '-created_date'
     });
     const { accessToken } = useContext(AuthContext);
+    const { isAuthenticated, loading: authLoading } = useContext(AuthContext);
 
     // Hàm xây dựng query string từ filters
     const buildQueryString = (filters) => {
@@ -39,6 +40,9 @@ export const JobProvider = ({ children }) => {
 
     // Lấy danh sách công việc từ API với filters
     const fetchJobs = async (customFilters = null) => {
+        if (authLoading || !isAuthenticated || !accessToken) {
+            return null;
+        }
         try {
             setLoading(true);
             const queryString = buildQueryString(customFilters || filters);
@@ -71,6 +75,9 @@ export const JobProvider = ({ children }) => {
 
     // Lấy thông tin chi tiết công việc
     const fetchJobById = async (jobId) => {
+        if (authLoading || !isAuthenticated || !accessToken) {
+            return null;
+        }
         try {
             console.log("Bắt đầu fetch job detail với ID:", jobId);
             setLoading(true);
