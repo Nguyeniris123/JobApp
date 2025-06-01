@@ -1,22 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useContext, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Divider, Paragraph, Text } from 'react-native-paper';
 import { AuthContext } from '../../contexts/AuthContext';
-import { deleteReview as deleteReviewApi, fetchCandidateReviews } from '../../services/reviewService';
+import { ReviewContext } from '../../contexts/ReviewContext';
 
 const MyReviewsScreen = ({ navigation }) => {
   const { user } = useContext(AuthContext);
+  const { candidateReviews, fetchCandidateReviews, deleteReview, loading } = useContext(ReviewContext);
   const [refreshing, setRefreshing] = useState(false);
-  const [candidateReviews, setCandidateReviews] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  // Lấy các đánh giá mà người dùng đã viết (cho công việc)
-  const myReviews = candidateReviews.filter(review => 
-    review.company_id && review.reviewer_id === user?.id
-  );
 
   // Hàm format ngày tháng
   const formatDate = (dateString) => {
@@ -38,31 +32,15 @@ const MyReviewsScreen = ({ navigation }) => {
 
   const loadReviews = async () => {
     if (!user) return;
-    setLoading(true);
     setRefreshing(true);
-    try {
-      const reviews = await fetchCandidateReviews(user.id);
-      console.log('Fetched reviews:', reviews);
-      setCandidateReviews(reviews);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+    await fetchCandidateReviews(user.id);
+    setRefreshing(false);
   };
 
   // Xử lý xóa đánh giá
   const handleDeleteReview = async (reviewId) => {
-    setLoading(true);
-    try {
-      await deleteReviewApi(reviewId, 'job');
-      loadReviews();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    await deleteReview(reviewId);
+    loadReviews();
   };
 
   // Render sao đánh giá
@@ -91,7 +69,7 @@ const MyReviewsScreen = ({ navigation }) => {
         </View>
       );
     }
-    if (myReviews.length === 0) {
+    if (candidateReviews.length === 0) {
       return (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Chưa có đánh giá nào.</Text>
@@ -100,27 +78,29 @@ const MyReviewsScreen = ({ navigation }) => {
     }
     return (
       <ScrollView style={styles.reviewsList} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadReviews} />}>
-        {myReviews.map((item) => (
+        {candidateReviews.map((item) => (
           <Card key={item.id} style={styles.reviewCard}>
             <Card.Content>
               <View style={styles.reviewHeader}>
                 <View>
-                  <Text style={styles.reviewTitle}>{item.reviewer_name}</Text>
+                  <Text style={styles.reviewTitle}>{item.reviewer?.username || 'Ẩn danh'}</Text>
                   <Text style={styles.reviewDate}>{formatDate(item.created_date)}</Text>
                 </View>
                 <View style={styles.ratingContainer}>{renderStars(item.rating)}</View>
               </View>
               <Divider style={styles.divider} />
               <Paragraph style={styles.commentText}>{item.comment}</Paragraph>
-              <View style={styles.actionButtons}>
-                <Button mode="outlined" style={styles.deleteButton} onPress={() => handleDeleteReview(item.id)}>Xóa</Button>
-              </View>
             </Card.Content>
           </Card>
         ))}
       </ScrollView>
     );
   };
+
+  // Debug: log candidateReviews mỗi khi thay đổi
+  useEffect(() => {
+    console.log('candidateReviews:', candidateReviews);
+  }, [candidateReviews]);
 
   return (
     <View style={styles.container}>

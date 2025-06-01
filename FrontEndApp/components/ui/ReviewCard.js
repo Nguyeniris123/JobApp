@@ -1,5 +1,4 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Avatar, Card, Chip, Text } from 'react-native-paper';
 
@@ -41,10 +40,14 @@ export const ReviewCard = ({ review, style }) => {
     const strengths = parseStrengthsWeaknesses(review.strengths);
     const weaknesses = parseStrengthsWeaknesses(review.weaknesses);
 
-    // Lấy tên người đánh giá từ API mới
-    const reviewerName = review.reviewer_name || 
-                        (review.reviewer_details ? review.reviewer_details.username : null) || 
-                        'Người dùng ẩn danh';
+    // Lấy tên người đánh giá từ dữ liệu mới
+    const reviewerName = (review.reviewer && review.reviewer.first_name + ' ' + review.reviewer.last_name).trim()
+        || review.reviewer_name
+        || (review.reviewer_details ? review.reviewer_details.username : null)
+        || 'Người dùng ẩn danh';
+
+    // Lấy avatar nếu có
+    const reviewerAvatar = (review.reviewer && review.reviewer.avatar) || null;
 
     // Lấy ngày tạo đánh giá
     const creationDate = review.created_date || review.created_at || review.date;
@@ -54,7 +57,7 @@ export const ReviewCard = ({ review, style }) => {
             <Card.Content>
                 <View style={styles.header}>
                     <View style={styles.userInfo}>
-                        <Avatar.Icon size={36} icon="account" />
+                        <Avatar.Image size={36} source={reviewerAvatar ? { uri: reviewerAvatar } : undefined} />
                         <View style={styles.nameContainer}>
                             <Text style={styles.userName}>{reviewerName}</Text>
                             <Text style={styles.date}>{formatDate(creationDate)}</Text>

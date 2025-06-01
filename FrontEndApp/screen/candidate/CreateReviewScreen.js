@@ -1,15 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { addReview } from '../../services/reviewService';
+import { ReviewContext } from '../../contexts/ReviewContext';
 
 const CreateReviewScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { jobId, jobTitle, companyId } = route.params;
+    const { addReview } = useContext(ReviewContext);
 
     // Review state
     const [rating, setRating] = useState(0);
@@ -41,24 +42,16 @@ const CreateReviewScreen = () => {
                 alert('Vui lòng chọn số sao đánh giá!');
                 return;
             }
-            
-            console.log('Submitting review:', {
-                company_id: companyId,
-                rating,
-                comment: reviewComment,
-            });
-
             setSubmitting(true);
-
             await addReview({
                 company_id: companyId,
                 rating,
                 comment: reviewComment,
-            }, 'recruiter');
+            });
             alert('Đánh giá của bạn đã được gửi thành công!');
             navigation.goBack();
         } catch (error) {
-            console.error("Error submitting review:", error);
+            console.error('Error submitting review:', error);
             alert('Gửi đánh giá thất bại!');
         } finally {
             setSubmitting(false);

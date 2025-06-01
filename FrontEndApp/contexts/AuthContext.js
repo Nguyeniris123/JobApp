@@ -1,10 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { createContext, useEffect, useState } from 'react';
-import { API_ENDPOINTS } from '../apiConfig';
+import {
+    changeAvatar as changeAvatarApi,
+    fetchCandidateProfile,
+    fetchRecruiterProfile,
+    refreshAccessToken as refreshAccessTokenApi,
+    updateCompanyProfile as updateCompanyProfileApi,
+    updateUserProfile as updateUserProfileApi
+} from '../services/authService';
 
 export const AuthContext = createContext();
 
+// eslint-disable-next-line react/prop-types
 export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
@@ -48,28 +56,19 @@ export const AuthProvider = ({ children }) => {
                 await logout();
                 return null;
             }
-            const jsondata = {
-                client_id: "OidP3ERxQtbZvrMN31JhxjjTWm325MLA3OMTCH5h",
-                client_secret: "UI7wNEiXd6H22GYDOyJU8YcaKNDnhpsBB1Z0Ziq89iGtD1qYzybcLS7AUuNKHV02dlABUVccNxKPLNsOYdAYJLspRffloiTaHG0qVh67JP32zynznskB1fYrmP7jGwon",
-                refresh_token: refreshToken,
-                grant_type: "refresh_token"
-            };
-            console.log("Request làm mới token:", jsondata);
-
-            const response = await axios.post(API_ENDPOINTS.LOGIN, jsondata);
-            console.log('Refresh token response:', response.data); // Thêm log để debug
-            const newAccessToken = response.data.access || response.data.access_token;
+            const data = await refreshAccessTokenApi(refreshToken);
+            const newAccessToken = data.access || data.access_token;
             if (!newAccessToken) {
                 throw new Error('Không nhận được access token mới từ server');
             }
             await AsyncStorage.setItem('accessToken', newAccessToken);
             setAccessToken(newAccessToken);
             axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
-
             await fetchUserProfile();
             return newAccessToken;
         } catch (error) {
-            console.error('Làm mới token thất bại:', error);
+            // Log and rethrow error for refreshAccessToken
+            console.error('Error refreshing access token:', error);
             await logout();
             return null;
         }
@@ -107,32 +106,20 @@ export const AuthProvider = ({ children }) => {
         try {
             const token = await AsyncStorage.getItem('accessToken');
             try {
-                console.log("Token:", token)
-                const recruiterResponse = await axios.get(API_ENDPOINTS.RECRUITERS_GET_CURRENT_USER, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-                if (recruiterResponse.data) {
-                    setUser(recruiterResponse.data);
-                    setRole('recruiter');
-                    console.log("User:", recruiterResponse.data)
-                }
+                const recruiterData = await fetchRecruiterProfile(token);
+                setUser(recruiterData);
+                setRole('recruiter');
             } catch (error) {
                 if (error.response?.data?.detail === "Bạn không có quyền truy cập.") {
-                    const candidateResponse = await axios.get(API_ENDPOINTS.CANDIDATES_GET_CURRENT_USER, {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
-                    });
-                    setUser(candidateResponse.data);
+                    const candidateData = await fetchCandidateProfile(token);
+                    setUser(candidateData);
                     setRole('candidate');
-                    console.log("User:", candidateResponse.data)
                 } else {
                     throw error;
                 }
             }
         } catch (error) {
+            // Log error in fetchUserProfile
             console.error('Lỗi khi lấy thông tin người dùng:', error);
         }
     };
@@ -167,34 +154,15 @@ export const AuthProvider = ({ children }) => {
         try {
             setLoading(true);
             setError(null);
-
-            const formData = new FormData();
-            formData.append('avatar', {
-                uri: avatar,
-                type: 'image/jpeg',
-                name: 'avatar.jpg',
-            });
-
-            // Lấy user ID từ current user
             const userId = user?.id;
             if (!userId) {
                 throw new Error('Không thể xác định ID người dùng');
             }
-
-            // Sử dụng endpoint đã sửa
-            const response = await axios.patch(API_ENDPOINTS.AVATAR_PATCH(userId), formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    Authorization: `Bearer ${accessToken}`,
-                },
-            });
-
-            // Cập nhật thông tin user sau khi thay đổi avatar
-            const updatedUser = {...user, avatar: response.data.avatar};
+            const data = await changeAvatarApi(userId, avatar, accessToken);
+            const updatedUser = { ...user, avatar: data.avatar };
             setUser(updatedUser);
             return updatedUser.avatar;
         } catch (error) {
-            console.error('Lỗi khi đổi avatar:', error);
             setError(error.response?.data?.detail || 'Đổi avatar thất bại!');
             throw error;
         } finally {
@@ -207,21 +175,11 @@ export const AuthProvider = ({ children }) => {
         if (!user || !role) return;
         try {
             setLoading(true);
-            const endpoint = role === "recruiter"
-                ? API_ENDPOINTS.RECRUITERS_UPDATE(user.id)
-                : API_ENDPOINTS.CANDIDATES_UPDATE(user.id);
-            const response = await axios.patch(endpoint, updatedData, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${accessToken}`,
-                },
-            });
-            if (response.status === 200) {
-                setUser({ ...user, ...updatedData });
-                return true;
-            }
-            return false;
+            await updateUserProfileApi(user.id, updatedData, role, accessToken);
+            setUser({ ...user, ...updatedData });
+            return true;
         } catch (error) {
+            // Log error in updateUserProfile
             console.error('Lỗi khi cập nhật thông tin user:', error);
             throw error;
         } finally {
@@ -232,36 +190,17 @@ export const AuthProvider = ({ children }) => {
     // Cập nhật thông tin công ty
     const updateCompanyProfile = async (companyData) => {
         try {
-            const response = await axios.patch(API_ENDPOINTS.COMPANIES_UPDATE(companyData.id), companyData);
-            if (response.data) {
-                // Sau khi cập nhật, gọi lại fetchUserProfile để đồng bộ user.company
-                if (typeof fetchUserProfile === 'function') {
-                    await fetchUserProfile();
-                }
-                return response.data;
+            await updateCompanyProfileApi(companyData, accessToken);
+            if (typeof fetchUserProfile === 'function') {
+                await fetchUserProfile();
             }
-            return null;
+            return true;
         } catch (error) {
+            // Log error in updateCompanyProfile
             console.error('Lỗi khi cập nhật thông tin công ty:', error);
             throw error;
         }
     };
-
-    // Đăng ký
-    // const register = async (userData) => {
-    //     try {
-    //         setLoading(true);
-    //         setError(null);
-
-    //         await axios.post(`${API_URL}/api/users/`, userData);
-    //         return await login(userData.username, userData.password);
-    //     } catch (error) {
-    //         setError(error.response?.data?.detail || 'Đăng ký thất bại!');
-    //         return false;
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
 
     // Đăng xuất
     const logout = async () => {

@@ -5,14 +5,13 @@ import { useCallback, useContext, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Avatar, Card, Paragraph, Text } from 'react-native-paper';
 import { AuthContext } from '../../contexts/AuthContext';
-import { fetchRecruiterReviews } from '../../services/reviewService';
+import { ReviewContext } from '../../contexts/ReviewContext';
 
 const MyReviewsScreen = ({ navigation }) => {
     const { user } = useContext(AuthContext);
+    const { recruiterReviews, fetchRecruiterReviews, loading } = useContext(ReviewContext);
     const [refreshing, setRefreshing] = useState(false);
     const [expandedReview, setExpandedReview] = useState(null);
-    const [recruiterReviews, setRecruiterReviews] = useState([]);
-    const [loading, setLoading] = useState(false);
 
     // Format ngày tháng
     const formatDate = (dateString) => {
@@ -32,22 +31,12 @@ const MyReviewsScreen = ({ navigation }) => {
         }, [user])
     );
 
-    // Tải đánh giá từ API
+    // Tải đánh giá từ context
     const loadReviews = async () => {
         if (!user) return;
-        setLoading(true);
-        try {
-            const [rReviews] = await Promise.all([
-                fetchRecruiterReviews(user?.company?.id)
-            ]);
-            console.log('Fetched recruiter reviews:', rReviews);
-            setRecruiterReviews(rReviews);
-        } catch (e) {
-            // handle error
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
+        setRefreshing(true);
+        await fetchRecruiterReviews(user?.company?.id);
+        setRefreshing(false);
     };
 
     // Mở rộng/thu gọn review

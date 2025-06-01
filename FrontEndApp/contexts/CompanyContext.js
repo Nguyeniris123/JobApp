@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { API_ENDPOINTS } from '../apiConfig';
+import * as companyService from '../services/companyService';
 import { AuthContext } from './AuthContext';
 
 export const CompanyContext = createContext({
@@ -52,82 +53,32 @@ export const CompanyProvider = ({ children }) => {
         }
     }, [isTokenLoaded, accessToken, isAuthenticated, authLoading, role]);
 
-    const fetchFollowedCompanies = useCallback(async () => {
+    // Fetch followed companies
+    const fetchFollowedCompanies = async () => {
         if (authLoading || !isAuthenticated || !accessToken) {
+            setFollowedCompanies([]);
+            setError('Không có token xác thực. Vui lòng đăng nhập lại.');
             return [];
         }
-        // Nếu đang có một request đang xử lý, không thực hiện request mới
         if (fetchInProgress.current) {
-            console.log('A fetch request is already in progress, skipping...');
             return [];
         }
-
-        fetchInProgress.current = true; // Đánh dấu bắt đầu request
-
+        fetchInProgress.current = true;
         try {
-            console.log('Starting to fetch followed companies...');
             setLoading(true);
             setError(null);
-
-            if (!accessToken) {
-                setFollowedCompanies([]);
-                setError('Không có token xác thực. Vui lòng đăng nhập lại.');
-                return [];
-            }
-
-            console.log('Sending request to API endpoint:', API_ENDPOINTS.FOLLOW_LIST);
-
-            const response = await axios.get(API_ENDPOINTS.FOLLOW_LIST, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            console.log('Followed companies API response status:', response.status);
-
-            // Kiểm tra cấu trúc dữ liệu
-            if (response.data === null || response.data === undefined) {
-                console.log('API returned null or undefined data');
-                setFollowedCompanies([]);
-                return [];
-            }
-
-            // Xử lý các định dạng response khác nhau
-            let companiesData = [];
-
-            if (Array.isArray(response.data)) {
-                companiesData = response.data;
-                console.log('Data is already an array with length:', companiesData.length);
-            } else if (response.data.results && Array.isArray(response.data.results)) {
-                companiesData = response.data.results;
-                console.log('Data is in results property with length:', companiesData.length);
-            } else {
-                console.log('Unexpected data format, trying to convert to array');
-                // Nếu là object đơn, thử chuyển thành mảng
-                companiesData = response.data ? [response.data] : [];
-            }
-
-            console.log('Processed companies data length:', companiesData.length);
-
-            // Cập nhật state với dữ liệu đã xử lý
+            const companiesData = await companyService.fetchFollowedCompanies(accessToken);
             setFollowedCompanies(companiesData);
-
-            // Trả về dữ liệu rõ ràng để các component khác có thể sử dụng
             return companiesData;
         } catch (error) {
-            console.error('Error fetching followed companies:');
-            console.error('Status:', error.response?.status);
-            console.error('Error data:', error.response?.data);
-            console.error('Error message:', error.message);
             setError(error.message || "Không thể tải danh sách công ty theo dõi");
             setFollowedCompanies([]);
             return [];
         } finally {
             setLoading(false);
-            fetchInProgress.current = false; // Đánh dấu kết thúc request
+            fetchInProgress.current = false;
         }
-    }, [accessToken, isAuthenticated, authLoading]);
+    };
 
     // Hàm test để kiểm tra API trực tiếp và hiển thị kết quả
     const testFetchFollowedCompanies = async () => {

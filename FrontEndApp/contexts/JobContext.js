@@ -1,6 +1,5 @@
-import axios from 'axios';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { API_ENDPOINTS } from '../apiConfig';
+import * as jobService from '../services/jobService';
 import { AuthContext } from './AuthContext';
 
 export const JobContext = createContext();
@@ -42,18 +41,16 @@ export const JobProvider = ({ children }) => {
     const fetchJobs = async (customFilters = null) => {
         try {
             setLoading(true);
-            const queryString = buildQueryString(customFilters || filters);
-            const url = `${API_ENDPOINTS.JOBPOSTS_LIST}${queryString ? `?${queryString}` : ''}`;
-            const response = await axios.get(url);
+            const data = await jobService.fetchJobs(customFilters || filters);
             // Map lại dữ liệu để đảm bảo mỗi job có trường company
-            const jobsWithCompany = (response.data.results || []).map(job => {
+            const jobsWithCompany = (data.results || []).map(job => {
                 if (job.recruiter && job.recruiter.company) {
                     return { ...job, company: job.recruiter.company };
                 }
                 return job;
             });
             setJobs(jobsWithCompany);
-            return { ...response.data, results: jobsWithCompany };
+            return { ...data, results: jobsWithCompany };
         } catch (error) {
             setError(error.response?.data?.detail || 'Lỗi khi lấy danh sách công việc!');
             return null;
@@ -62,37 +59,23 @@ export const JobProvider = ({ children }) => {
         }
     };
 
-    // Cập nhật filters và tải lại danh sách
-    const updateFilters = async (newFilters) => {
-        const updatedFilters = { ...filters, ...newFilters };
-        setFilters(updatedFilters);
-        return await fetchJobs(updatedFilters);
-    };
-
     // Lấy thông tin chi tiết công việc
     const fetchJobById = async (jobId) => {
         if (authLoading || !isAuthenticated || !accessToken) {
             return null;
         }
         try {
-            console.log("Bắt đầu fetch job detail với ID:", jobId);
             setLoading(true);
-            const response = await axios.get(API_ENDPOINTS.JOBPOSTS_READ(jobId));
-            let job = response.data;
-            // Map lại dữ liệu để đảm bảo job có trường company
+            const job = await jobService.fetchJobById(jobId);
             if (job.recruiter && job.recruiter.company) {
-                job = { ...job, company: job.recruiter.company };
+                job.company = job.recruiter.company;
             }
-            console.log("Job detail data:", job);
             return job;
         } catch (error) {
-            console.error("Lỗi khi fetch job detail:", error);
-            console.error("Error message:", error.message);
             setError(error.response?.data?.detail || 'Lỗi khi lấy thông tin công việc!');
             return null;
         } finally {
             setLoading(false);
-            console.log("Kết thúc fetch job detail");
         }
     };
 
@@ -100,37 +83,12 @@ export const JobProvider = ({ children }) => {
     const createJob = async (jobData) => {
         try {
             setLoading(true);
-            // Định dạng dữ liệu theo schema yêu cầu
-            const formattedJobData = {
-                title: jobData.title, // string, bắt buộc, maxLength: 255, minLength: 1
-                specialized: jobData.specialized || "General", // string, maxLength: 100, minLength: 1
-                description: jobData.description, // string, bắt buộc, minLength: 1
-                salary: jobData.salary, // decimal, bắt buộc
-                working_hours: jobData.working_hours, // string, bắt buộc, maxLength: 50, minLength: 1
-                location: jobData.location, // string, bắt buộc, maxLength: 255, minLength: 1
-                requirements: jobData.requirements || [],
-                benefits: jobData.benefits || [],
-                deadline: jobData.deadline,
-                urgent: jobData.urgent || false,
-                company: {
-                    name: jobData.company?.name || "",
-                    tax_code: jobData.company?.tax_code || "",
-                    description: jobData.company?.description || "",
-                    location: jobData.company?.location || "",
-                    is_verified: jobData.company?.is_verified || false
-                }
-            };
-            
-            const response = await axios.post(API_ENDPOINTS.JOBPOSTS_CREATE, formattedJobData, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            });
-            setJobs(prevJobs => [...prevJobs, response.data]);
-            fetchRecruiterJobs(); // Cập nhật danh sách công việc của nhà tuyển dụng
-            return response.data;
+            const response = await jobService.createJob(jobData, accessToken);
+            setJobs(prevJobs => [...prevJobs, response]);
+            fetchRecruiterJobs();
+            return response;
         } catch (error) {
-            console.error('Lỗi khi tạo công việc:', error);
+            setError(error.response?.data?.detail || 'Lỗi khi tạo công việc!');
             throw error;
         } finally {
             setLoading(false);
@@ -141,11 +99,11 @@ export const JobProvider = ({ children }) => {
     const deleteJob = async (jobId) => {
         try {
             setLoading(true);
-            await axios.delete(API_ENDPOINTS.JOBPOSTS_DELETE(jobId));
+            await jobService.deleteJob(jobId, accessToken);
             setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
             return true;
         } catch (error) {
-            console.error('Lỗi khi xóa công việc:', error);
+            setError(error.response?.data?.detail || 'Lỗi khi xóa công việc!');
             throw error;
         } finally {
             setLoading(false);
@@ -156,29 +114,11 @@ export const JobProvider = ({ children }) => {
     const updateJob = async (jobId, jobData) => {
         try {
             setLoading(true);
-            
-            // Định dạng dữ liệu trước khi gửi đi
-            const formattedJobData = {
-                title: jobData.title,
-                specialized: jobData.specialized,
-                description: jobData.description,
-                location: jobData.location,
-                salary: jobData.salary,
-                working_hours: jobData.working_hours
-            };
-            
-            const response = await axios.put(API_ENDPOINTS.JOBPOSTS_UPDATE(jobId), formattedJobData, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            });
-            
-            setJobs(prevJobs => 
-                prevJobs.map(job => job.id === jobId ? response.data : job)
-            );
-            return response.data;
+            const response = await jobService.updateJob(jobId, jobData, accessToken);
+            setJobs(prevJobs => prevJobs.map(job => job.id === jobId ? response : job));
+            return response;
         } catch (error) {
-            console.error('Lỗi khi cập nhật công việc:', error);
+            setError(error.response?.data?.detail || 'Lỗi khi cập nhật công việc!');
             throw error;
         } finally {
             setLoading(false);
@@ -188,26 +128,12 @@ export const JobProvider = ({ children }) => {
     // Lấy danh sách công việc của nhà tuyển dụng
     const fetchRecruiterJobs = async () => {
         try {
-            console.log("Bắt đầu fetch recruiter jobs...");
             setLoading(true);
-            
-            const response = await axios.get(API_ENDPOINTS.JOBPOSTS_RECRUITER_JOB_POST, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            });
-            
-            if (!response.data) {
-                console.log("Không có dữ liệu trả về");
-                setJobs([]);
-                return [];
-            }
-            
-            const jobsData = response.data.results || response.data;
+            const data = await jobService.fetchRecruiterJobs(accessToken);
+            const jobsData = data.results || data;
             setJobs(jobsData);
             return jobsData;
         } catch (error) {
-            console.error("Lỗi khi fetch recruiter jobs:", error);
             setError(error.response?.data?.detail || 'Lỗi khi lấy danh sách công việc!');
             return [];
         } finally {
@@ -218,31 +144,26 @@ export const JobProvider = ({ children }) => {
     // Lấy danh sách công việc theo trang (phân trang, public)
     const fetchJobsByPage = async ({ page = 1, page_size = 10, customFilters = null } = {}) => {
         try {
-            const queryFilters = customFilters || filters;
-            const params = new URLSearchParams();
-            if (queryFilters.specialized) params.append('specialized__icontains', queryFilters.specialized);
-            if (queryFilters.salary_min) params.append('salary__gte', queryFilters.salary_min);
-            if (queryFilters.salary_max) params.append('salary__lte', queryFilters.salary_max);
-            if (queryFilters.working_hours_min) params.append('working_hours__gte', queryFilters.working_hours_min);
-            if (queryFilters.working_hours_max) params.append('working_hours__lte', queryFilters.working_hours_max);
-            if (queryFilters.location) params.append('location__icontains', queryFilters.location);
-            if (queryFilters.search) params.append('search', queryFilters.search);
-            if (queryFilters.ordering) params.append('ordering', queryFilters.ordering);
-            params.append('page', page);
-            params.append('page_size', page_size);
-            const url = `${API_ENDPOINTS.JOBPOSTS_LIST}?${params.toString()}`;
-            const response = await axios.get(url);
-            // Map lại dữ liệu để đảm bảo mỗi job có trường company
-            const jobsWithCompany = (response.data.results || []).map(job => {
+            setLoading(true);
+            const data = await jobService.fetchJobsByPage({ page, page_size, filters: customFilters || filters });
+            const jobsWithCompany = (data.results || []).map(job => {
                 if (job.recruiter && job.recruiter.company) {
                     return { ...job, company: job.recruiter.company };
                 }
                 return job;
             });
-            return { ...response.data, results: jobsWithCompany };
+            return { ...data, results: jobsWithCompany };
         } catch (error) {
+            setError(error.response?.data?.detail || 'Lỗi khi lấy danh sách công việc!');
             return { results: [], next: null, previous: null, count: 0, error: error.response?.data?.detail || 'Lỗi khi lấy danh sách công việc!' };
+        } finally {
+            setLoading(false);
         }
+    };
+
+    // Hàm cập nhật filters
+    const updateFilters = (newFilters) => {
+        setFilters(prev => ({ ...prev, ...newFilters }));
     };
 
     // Tải danh sách công việc ngay khi component được mount
@@ -262,8 +183,8 @@ export const JobProvider = ({ children }) => {
             deleteJob,
             updateJob,
             fetchRecruiterJobs,
-            updateFilters,
-            fetchJobsByPage // <-- thêm hàm mới vào context
+            updateFilters, // expose updateFilters
+            fetchJobsByPage // thêm hàm mới vào context
         }}>
             {children}
         </JobContext.Provider>

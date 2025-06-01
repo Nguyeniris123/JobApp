@@ -1,12 +1,13 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { addReview } from '../../services/reviewService';
+import { ReviewContext } from '../../contexts/ReviewContext';
 
 const CreateReviewScreen = ({ route }) => {
     const navigation = useNavigation();
+    const { addReview } = useContext(ReviewContext);
     const { jobId, jobTitle, candidateId } = route.params || {};
 
     // Review state
@@ -35,7 +36,7 @@ const CreateReviewScreen = ({ route }) => {
                 candidate_id: candidateId,
                 rating,
                 comment: reviewComment,
-            }, 'candidate');
+            });
             alert('Đánh giá của bạn đã được gửi thành công!');
             navigation.goBack();
         } catch (error) {

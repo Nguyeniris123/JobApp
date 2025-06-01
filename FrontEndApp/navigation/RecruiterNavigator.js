@@ -15,7 +15,6 @@ import HomeScreen from "../screen/recruiter/HomeScreen";
 import JobDetailScreen from "../screen/recruiter/JobDetailScreen";
 import MyReviewsScreen from "../screen/recruiter/MyReviewsScreen";
 import PostJobScreen from "../screen/recruiter/PostJobScreen";
-import ReviewScreen from "../screen/recruiter/ReviewScreen";
 import SettingsScreen from "../screen/recruiter/SettingsScreen";
 
 const Tab = createBottomTabNavigator()
@@ -56,7 +55,6 @@ const HomeStack = () => {
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="PostJob" component={PostJobScreen} />
             <Stack.Screen name="JobDetail" component={JobDetailScreen} />
-            <Stack.Screen name="Review" component={ReviewScreen} />
         </Stack.Navigator>
     )
 }

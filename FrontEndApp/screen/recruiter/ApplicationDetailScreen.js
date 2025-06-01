@@ -2,16 +2,20 @@ import { useNavigation } from '@react-navigation/native';
 import { useContext, useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from "react-native";
 import { Avatar, Button, Card, Chip, Divider, Snackbar, Text, Title } from "react-native-paper";
+import { ReviewCard } from '../../components/ui/ReviewCard';
 import { ApplicationContext } from '../../contexts/ApplicationContext';
+import { ReviewContext } from '../../contexts/ReviewContext';
 
 const ApplicationDetailScreen = ({ route }) => {
     const { application } = route.params;
     const { acceptApplication, rejectApplication, loading } = useContext(ApplicationContext);
+    const { getReviewsForApplication, loading: reviewsLoading, candidateReviews } = useContext(ReviewContext);
     const navigation = useNavigation();
     const [snackbarVisible, setSnackbarVisible] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState("");
     const [error, setError] = useState(null);
     const [localLoading, setLocalLoading] = useState(false);
+    const [appReviews, setAppReviews] = useState([]);
 
     if (!application) return <Text>Không tìm thấy dữ liệu ứng viên</Text>;
     const { applicant_detail, job_detail, status, cv } = application;
@@ -28,6 +32,17 @@ const ApplicationDetailScreen = ({ route }) => {
             setSnackbarVisible(true);
         }
     }, [status]);
+
+    useEffect(() => {
+        const fetchReviews = async () => {
+            if (application && application.applicant_detail && application.applicant_detail.id) {
+                await getReviewsForApplication(application.applicant_detail.id);
+                setAppReviews(candidateReviews);
+            }
+        };
+        fetchReviews();
+        // Chỉ phụ thuộc vào applicant_detail.id, KHÔNG phụ thuộc candidateReviews để tránh lặp vô hạn
+    }, [application?.applicant_detail?.id]);
 
     // Xử lý accept/reject
     const handleAccept = async () => {
@@ -139,6 +154,22 @@ const ApplicationDetailScreen = ({ route }) => {
                     </View>)}
                 </Card.Content>
             </Card>
+            <Card style={styles.card}>
+                <Card.Content>
+                    <Title style={styles.sectionTitle}>Đánh giá & Nhận xét</Title>
+                    {reviewsLoading ? (
+                        <Text>Đang tải đánh giá...</Text>
+                    ) : appReviews.length > 0 ? (
+                        appReviews.map((review) => (
+                            <ReviewCard key={review.id} review={review} />
+                        ))
+                    ) : (
+                        <Text style={styles.noReviewsText}>
+                            Chưa có đánh giá nào cho đơn ứng tuyển này.
+                        </Text>
+                    )}
+                </Card.Content>
+            </Card>
             <Snackbar
                 visible={snackbarVisible}
                 onDismiss={() => setSnackbarVisible(false)}
@@ -226,6 +257,11 @@ const styles = StyleSheet.create({
     avatarImage: {
         backgroundColor: '#fff',
         elevation: 4,
+    },
+    noReviewsText: {
+        fontStyle: 'italic',
+        color: '#6B7280',
+        marginTop: 8,
     },
 });
 

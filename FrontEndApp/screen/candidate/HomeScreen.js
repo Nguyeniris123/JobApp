@@ -167,7 +167,7 @@ const HomeScreen = ({ navigation }) => {
                 mode="outlined"
                 style={styles.viewButton}
                 labelStyle={styles.viewButtonText}
-                onPress={() => navigation.navigate("JobDetail", { jobId: item.id })}>
+                onPress={() => navigation.navigate("JobDetail", { jobId: item.id, companyId: item.company?.id })}>
                 Chi tiết
               </AppButton>
               <AppButton

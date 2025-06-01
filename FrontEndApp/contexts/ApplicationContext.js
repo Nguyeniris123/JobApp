@@ -1,6 +1,11 @@
-import axios from 'axios';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { API_ENDPOINTS } from '../apiConfig';
+import {
+    acceptApplication as acceptApplicationApi,
+    fetchApplications as fetchApplicationsApi,
+    rejectApplication as rejectApplicationApi,
+    submitApplication as submitApplicationApi,
+    updateApplication as updateApplicationApi
+} from '../services/applicationService';
 import { AuthContext } from './AuthContext';
 
 export const ApplicationContext = createContext({
@@ -13,6 +18,7 @@ export const ApplicationContext = createContext({
     clearApplicationError: () => { }
 });
 
+// eslint-disable-next-line react/prop-types
 export const ApplicationProvider = ({ children }) => {
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -29,17 +35,8 @@ export const ApplicationProvider = ({ children }) => {
         setError(null);
         try {
             // Chọn endpoint theo role
-            const endpoint = role === 'recruiter'
-                ? API_ENDPOINTS.APPLICATIONS_LIST_FOR_RECRUITER
-                : API_ENDPOINTS.APPLICATIONS_LIST;
-
-            const response = await axios.get(endpoint, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                }
-            });
-
-            const formattedApplications = (response.data.results || response.data).map(app => {
+            const data = await fetchApplicationsApi(role, accessToken);
+            const formattedApplications = (data.results || data).map(app => {
                 // Log để kiểm tra cấu trúc dữ liệu
                 console.log('Application data structure:', JSON.stringify(app, null, 2));
 
@@ -78,44 +75,10 @@ export const ApplicationProvider = ({ children }) => {
                 setLoading(false);
                 return { success: false, message: 'Không có token xác thực' };
             }
-            // Xác định type đúng chuẩn MIME nếu thiếu hoặc sai
-            let fileType = resumeFile.type;
-            if (!fileType || !fileType.includes('/')) {
-                if (resumeFile.name && resumeFile.name.toLowerCase().endsWith('.png')) {
-                    fileType = 'image/png';
-                } else {
-                    fileType = 'image/jpeg';
-                }
-            }
-            const formData = new FormData();
-            formData.append('job', String(jobId));
-            formData.append('cv', {
-                uri: resumeFile.uri,
-                name: resumeFile.name,
-                type: fileType,
-            });
-            console.log('Submitting application with data:', {
-                job: String(jobId),
-                cv: {
-                    uri: resumeFile.uri,
-                    name: resumeFile.name,
-                    type: fileType,
-                },
-            });
-            const response = await axios.post(
-                API_ENDPOINTS.APPLICATIONS_CREATE,
-                formData,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'multipart/form-data',
-                    },
-                }
-            );
+            await submitApplicationApi(jobId, resumeFile, accessToken);
             fetchApplications();
-            return { success: true, data: response.data };
+            return { success: true };
         } catch (error) {
-            console.error('Error submitting application:', error);
             const errorMsg = error.response?.data?.detail || 'Lỗi khi gửi đơn ứng tuyển';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -138,11 +101,7 @@ export const ApplicationProvider = ({ children }) => {
         setError(null);
         try {
             if (!accessToken) throw new Error('Không có token xác thực');
-            await axios.patch(
-                API_ENDPOINTS.APPLICATIONS_ACCEPT(applicationId),
-                {},
-                { headers: { 'Authorization': `Bearer ${accessToken}` } }
-            );
+            await acceptApplicationApi(applicationId, accessToken);
             await fetchApplications();
             return { success: true };
         } catch (error) {
@@ -159,11 +118,7 @@ export const ApplicationProvider = ({ children }) => {
         setError(null);
         try {
             if (!accessToken) throw new Error('Không có token xác thực');
-            await axios.patch(
-                API_ENDPOINTS.APPLICATIONS_REJECT(applicationId),
-                {},
-                { headers: { 'Authorization': `Bearer ${accessToken}` } }
-            );
+            await rejectApplicationApi(applicationId, accessToken);
             await fetchApplications();
             return { success: true };
         } catch (error) {
@@ -184,34 +139,10 @@ export const ApplicationProvider = ({ children }) => {
                 setLoading(false);
                 return { success: false, message: 'Không có token xác thực' };
             }
-            let fileType = newCVFile.type;
-            if (!fileType || !fileType.includes('/')) {
-                if (newCVFile.name && newCVFile.name.toLowerCase().endsWith('.png')) {
-                    fileType = 'image/png';
-                } else {
-                    fileType = 'image/jpeg';
-                }
-            }
-            const formData = new FormData();
-            formData.append('cv', {
-                uri: newCVFile.uri,
-                name: newCVFile.name,
-                type: fileType,
-            });
-            const response = await axios.patch(
-                API_ENDPOINTS.APPLICATIONS_UPDATE(applicationId),
-                formData,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'multipart/form-data',
-                    },
-                }
-            );
+            await updateApplicationApi(applicationId, newCVFile, accessToken);
             await fetchApplications();
-            return { success: true, data: response.data };
+            return { success: true };
         } catch (error) {
-            console.error('Error updating application CV:', error);
             const errorMsg = error.response?.data?.detail || 'Lỗi khi cập nhật CV';
             setError(errorMsg);
             return { success: false, message: errorMsg };

@@ -6,6 +6,7 @@ import { ApplicationProvider } from "./contexts/ApplicationContext"
 import { AuthProvider } from "./contexts/AuthContext"
 import { CompanyProvider } from "./contexts/CompanyContext"
 import { JobProvider } from "./contexts/JobContext"
+import { ReviewProvider } from "./contexts/ReviewContext"
 import AppNavigator from "./navigation/AppNavigator"
 import { theme } from "./theme"
 
@@ -19,10 +20,12 @@ const App = () => {
                     <JobProvider>
                         <CompanyProvider>
                             <ApplicationProvider>
-                                <NavigationContainer>
-                                    <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
-                                    <AppNavigator />
-                                </NavigationContainer>
+                                <ReviewProvider>
+                                    <NavigationContainer>
+                                        <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
+                                        <AppNavigator />
+                                    </NavigationContainer>
+                                </ReviewProvider>
                             </ApplicationProvider>
                         </CompanyProvider>
                     </JobProvider>

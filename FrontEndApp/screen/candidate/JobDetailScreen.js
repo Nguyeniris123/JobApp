@@ -13,22 +13,17 @@ const JobDetailScreen = () => {
     const route = useRoute();
     const { jobId } = route.params;
     const { followCompany, unfollowCompany, followedCompanies, fetchFollowedCompanies, getFollowedCompanyById } = useContext(CompanyContext);
+    const { fetchJobById } = useContext(JobContext);
+    const { recruiterReviews, getReviewsForJob, loading: reviewsLoading } = useContext(ReviewContext);
+    const { user } = useContext(AuthContext);
+    
     const [jobDetail, setJobDetail] = useState(null);
     const [loading, setLoading] = useState(true);
-    const { fetchJobById } = useContext(JobContext);
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
     const [followRecord, setFollowRecord] = useState(null);
-    const { user } = useContext(AuthContext);
-    
-    // Review state
+    const [jobReviews, setJobReviews] = useState([]);
     const [showReviews, setShowReviews] = useState(false);
-    
-    // Sử dụng hook để truy cập review context
-    const { 
-        recruiterReviews,
-        fetchRecruiterReviews 
-    } = useContext(ReviewContext);
 
     const loadJobDetail = async () => {
         if (!jobId) return;
@@ -37,9 +32,7 @@ const JobDetailScreen = () => {
             setLoading(true);
             const data = await fetchJobById(jobId);
             setJobDetail(data);
-            
-            // Fetch reviews for this job
-            await fetchRecruiterReviews();
+            console.log("Job details loaded:", data);
         } catch (error) {
             console.error("Error loading job details:", error);
         } finally {
@@ -83,56 +76,36 @@ const JobDetailScreen = () => {
     );
     
     // Kiểm tra trạng thái follow mỗi khi danh sách công ty theo dõi thay đổi
-    useEffect(() => {
-        if (jobDetail && jobDetail.company && followedCompanies.length > 0) {
-            const foundCompany = getFollowedCompanyById(jobDetail.company.id);
-            setIsFollowing(!!foundCompany);
-            setFollowRecord(foundCompany);
-        } else {
-            setIsFollowing(false);
-            setFollowRecord(null);
-        }
+        useEffect(() => {
+        const checkFollowAndLoadReviews = async () => {
+            if (jobDetail && jobDetail.company && followedCompanies.length > 0) {
+                const foundCompany = getFollowedCompanyById(jobDetail.company.id);
+                await getReviewsForJob(jobDetail.company.id);
+                setJobReviews(recruiterReviews);
+                setIsFollowing(!!foundCompany);
+                setFollowRecord(foundCompany);
+            } else {
+                setIsFollowing(false);
+                setFollowRecord(null);
+            }
+        };
+        checkFollowAndLoadReviews();
     }, [jobDetail, followedCompanies]);
 
-    // Get reviews for this company instead of just for this job
-    const getReviewsForThisCompany = () => {
-        if (!jobDetail || !companyExists || !recruiterReviews) return [];
-        
-        // Lọc tất cả đánh giá cho công ty này dựa vào company_id
-        const companyId = jobDetail.company.id;
-        console.log('Getting reviews for company ID:', companyId);
-        console.log('All reviews:', recruiterReviews);
-        
-        return recruiterReviews.filter(review => {
-            // Kiểm tra review có company_id khớp với công ty hiện tại không
-            const isForThisCompany = review.company_id === companyId || review.company === companyId;
-            console.log(`Review ${review.id} for company ${review.company_id || review.company}, matches: ${isForThisCompany}`);
-            return isForThisCompany;
-        });
-    };
+    // Load reviews for this job when jobId changes
+    useEffect(() => {
+        const fetchReviews = async () => {
+            if (jobDetail) {
+                const reviews = await getReviewsForJob(JobDetail.company.id);
+                setJobReviews(reviews);
+            }
+        };
+        fetchReviews();
+    }, [jobDetail]);
 
-    // Navigate to review creation screen
-    const navigateToCreateReview = () => {
-        if (!jobDetail) {
-            alert('Không thể đánh giá công việc này do thiếu thông tin.');
-            return;
-        }
-        
-        if (!companyExists) {
-            alert('Không thể đánh giá công việc này do không tìm thấy thông tin công ty.');
-            return;
-        }
-        
-        console.log('Navigating to review screen with company:', jobDetail.company);
-        console.log('Company ID:', jobDetail.company?.id);
-        
-        navigation.navigate('CreateReview', { 
-            jobId: jobDetail.id,
-            jobTitle: jobDetail.title,
-            companyId: jobDetail.company.id
-        });
-    };
-    
+    // Ensure company exists before rendering company-related information
+    const companyExists = jobDetail && jobDetail.company;
+
     const handleApply = () => {
         if (!jobDetail) return;
         navigation.navigate('ApplyScreen', { jobId: jobDetail.id });
@@ -160,10 +133,6 @@ const JobDetailScreen = () => {
     if (!jobDetail) {
         return <Text style={styles.errorText}>Không tìm thấy công việc</Text>;
     }
-
-    // Ensure company exists before rendering company-related information
-    const companyExists = jobDetail && jobDetail.company;
-    const jobReviews = getReviewsForThisCompany();
 
     return (
         <ScrollView style={styles.container}>
@@ -265,8 +234,8 @@ const JobDetailScreen = () => {
                         </View>
                     </View>
                 </View>
-
-                {/* Reviews section */}
+                
+                {/* Reviews Section */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Đánh giá & Nhận xét</Text>
@@ -276,10 +245,10 @@ const JobDetailScreen = () => {
                             </Text>
                         </TouchableOpacity>
                     </View>
-                    
-                    {showReviews ? (
+                    {reviewsLoading ? (
+                        <ActivityIndicator size="small" color="#2196F3" />
+                    ) : showReviews ? (
                         <View style={styles.reviewsContainer}>
-                            {/* List of reviews */}
                             {jobReviews.length > 0 ? (
                                 <View style={styles.reviewsList}>
                                     {jobReviews.map((review) => (
@@ -314,7 +283,7 @@ const JobDetailScreen = () => {
                         </Text>
                     )}
                 </View>
-
+                
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity 
                         style={[styles.button, styles.applyButton]}
