@@ -114,7 +114,8 @@ const ApplicationDetailScreen = ({ route }) => {
                     )}
                     <Divider style={styles.divider} />
                     {error && <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text>}
-                    <View style={styles.actionButtonsRow}>
+                    {status === 'pending' && (
+                        <View style={styles.actionButtonsRow}>
                         <Button
                             mode="contained"
                             style={styles.acceptButton}
@@ -135,7 +136,7 @@ const ApplicationDetailScreen = ({ route }) => {
                         >
                             Từ chối
                         </Button>
-                    </View>
+                    </View>)}
                 </Card.Content>
             </Card>
             <Snackbar

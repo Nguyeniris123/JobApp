@@ -28,8 +28,8 @@ export const API_ENDPOINTS = {
   // Candidates
   CANDIDATES_CREATE: `${API_URL}/candidates/`,
   CANDIDATES_GET_CURRENT_USER: `${API_URL}/candidates/current-user/`,
-  CANDIDATES_UPDATE: (id) => `${API_URL}/candidates/${id}`,
-  CANDIDATES_PARTIAL_UPDATE: (id) => `${API_URL}/candidates/${id}`,
+  CANDIDATES_UPDATE: (id) => `${API_URL}/candidates/${id}/`,
+  CANDIDATES_PARTIAL_UPDATE: (id) => `${API_URL}/candidates/${id}/`,
 
   // Apply Job
   APPLY_JOB: `${API_URL}/apply/`,

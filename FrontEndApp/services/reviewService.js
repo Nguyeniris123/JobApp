@@ -33,11 +33,10 @@ export const fetchCandidateReviews = async (candidateId) => {
 };
 
 // Thêm đánh giá mới
-export const addReview = async (reviewData, type = 'job') => {
+export const addReview = async (reviewData, type) => {
     try {
         const accessToken = await AsyncStorage.getItem('accessToken');
         if (!accessToken) throw new Error('Chưa đăng nhập');
-        // Nếu type === 'candidate' thì dùng API REVIEWS_CANDIDATE_CREATE, ngược lại dùng REVIEWS_RECRUITER_CREATE
         let url = type === 'candidate' ? API_ENDPOINTS.REVIEWS_CANDIDATE_CREATE : API_ENDPOINTS.REVIEWS_RECRUITER_CREATE;
         console.log('Adding review with data:', reviewData);
         const response = await axios.post(url, reviewData, {

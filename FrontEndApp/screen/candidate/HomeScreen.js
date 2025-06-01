@@ -62,7 +62,6 @@ const HomeScreen = ({ navigation }) => {
       if (!hasMore && !reset) return;
       setIsFetchingMore(true);
       const data = await fetchJobsByPage({ page: pageNum, page_size: pageSize });
-      console.log('fetchJobsByPage data:', data); // Debug API data
       if (data && Array.isArray(data.results)) {
         setJobList(prev => (pageNum === 1 ? data.results : [...prev, ...data.results]));
         setHasMore(!!data.next);
@@ -202,8 +201,6 @@ const HomeScreen = ({ navigation }) => {
       </View>
     </View>
   );
-
-  console.log('jobList for FlatList:', jobList);
 
   return (
     <View style={styles.container}>

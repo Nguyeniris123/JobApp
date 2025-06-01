@@ -1,9 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useContext, useEffect, useState } from "react"
-import { FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native"
-import { ActivityIndicator, Avatar, Button, Card, Chip, Divider, Menu, Searchbar, Text } from "react-native-paper"
-import { ReviewCard } from "../../components/ui/ReviewCard"
-import { ReviewForm } from "../../components/ui/ReviewForm"
+import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Avatar, Card, Chip, Divider, Menu, Searchbar, Text } from "react-native-paper"
 import { ApplicationContext } from "../../contexts/ApplicationContext"
 import { AuthContext } from "../../contexts/AuthContext"
 
@@ -56,7 +54,7 @@ const ApplicationListScreen = ({ route, navigation }) => {
                 reviewData.strengths,
                 reviewData.weaknesses
             );
-            
+
             if (result.success) {
                 setShowReviewForm(false);
                 // Tải lại đánh giá sau khi thêm thành công
@@ -167,15 +165,26 @@ const ApplicationListScreen = ({ route, navigation }) => {
         }
     }
 
+    // Thêm hàm chuyển sang CreateReviewScreen cho recruiter
+    const handleNavigateToCreateReview = (application) => {
+        navigation.navigate('CreateReview', {
+            jobId: application.job_detail?.id,
+            jobTitle: application.job_detail?.title,
+            companyId: application.job_detail?.recruiter?.company?.id,
+            applicationId: application.id,
+            candidateId: application.applicant_detail?.id,
+        });
+    };
+
     const renderCandidateItem = ({ item }) => (
         <Card style={styles.candidateCard} mode="elevated">
             <Card.Content>
                 <TouchableOpacity onPress={() => navigation.navigate('ApplicationDetail', { application: item })}>
                     <View style={styles.candidateHeader}>
                         <View style={styles.candidateInfo}>
-                            <Avatar.Image 
-                                source={{ uri: item.applicant_detail?.avatar || 'https://via.placeholder.com/150' }} 
-                                size={70} 
+                            <Avatar.Image
+                                source={{ uri: item.applicant_detail?.avatar || 'https://via.placeholder.com/150' }}
+                                size={70}
                                 style={styles.avatar}
                             />
                             <View style={styles.candidateDetails}>
@@ -221,94 +230,29 @@ const ApplicationListScreen = ({ route, navigation }) => {
                     </View>
                 </View>
 
-                {/* Hiển thị đánh giá nếu card được mở rộng và chỉ khi đã phỏng vấn */}
-                {expandedCardId === item.id && item.status === "Đã phỏng vấn" && (
-                    <View style={styles.reviewsSection}>
-                        <Text style={styles.reviewsSectionTitle}>Đánh giá của bạn</Text>
-                        
-                        {/* Form thêm đánh giá mới */}
-                        {showReviewForm ? (
-                            <ReviewForm 
-                                onSubmit={(reviewData) => handleReviewSubmit(item.id, reviewData)}
-                                onCancel={() => setShowReviewForm(false)}
-                            />
-                        ) : (
-                            <Button 
-                                mode="outlined" 
-                                icon="plus" 
-                                onPress={() => setShowReviewForm(true)}
-                                style={styles.addReviewButton}
+                <View style={styles.actionButtons}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+                        <Chip
+                            icon="chat"
+                            mode="outlined"
+                            style={[styles.chatChip, { marginRight: item.status === "accepted" ? 12 : 0 }]}
+                            textStyle={styles.chatChipText}
+                            onPress={() => handleChatPress(item)}
+                        >
+                            Nhắn tin
+                        </Chip>
+                        {item.status === "accepted" && (
+                            <Chip
+                                icon="star-outline"
+                                mode="outlined"
+                                style={[styles.reviewChip]}
+                                textStyle={styles.reviewChipText}
+                                onPress={() => handleNavigateToCreateReview(item)}
                             >
-                                Thêm đánh giá
-                            </Button>
-                        )}
-                        
-                        {/* Danh sách đánh giá hiện tại */}
-                        {getReviewsForCandidate(item.id).length > 0 ? (
-                            getReviewsForCandidate(item.id).map((review) => (
-                                <ReviewCard 
-                                    key={review.id}
-                                    review={review}
-                                    style={styles.reviewCard} 
-                                />
-                            ))
-                        ) : (
-                            <Text style={styles.emptyReviewsText}>
-                                Chưa có đánh giá nào cho ứng viên này
-                            </Text>
+                                Tạo đánh giá
+                            </Chip>
                         )}
                     </View>
-                )}
-
-                <View style={styles.actionButtons}>
-                    {item.status === "Đang xem xét" ? (
-                        <>
-                            <Button
-                                mode="outlined"
-                                onPress={() => handleRejectCandidate(item)}
-                                style={styles.rejectButton}
-                                labelStyle={styles.rejectButtonLabel}
-                                contentStyle={styles.buttonContent}
-                            >
-                                Từ chối
-                            </Button>
-                            <Button 
-                                mode="contained" 
-                                onPress={() => handleAcceptCandidate(item)} 
-                                style={styles.acceptButton}
-                                contentStyle={styles.buttonContent}
-                            >
-                                Chấp nhận
-                            </Button>
-                        </>
-                    ) : (
-                        <>
-                            <Button
-                                mode="outlined"
-                                icon="message-text"
-                                onPress={() => handleChatPress(item)}
-                                style={[styles.chatButton, { flex: expandedCardId === item.id ? 1 : 2 }]}
-                                contentStyle={styles.buttonContent}
-                            >
-                                Nhắn tin
-                            </Button>
-                            {/* Chỉ cho phép đánh giá khi đã phỏng vấn */}
-                            {item.status === "Đã phỏng vấn" && (
-                                <Button
-                                    mode={expandedCardId === item.id ? "contained" : "outlined"}
-                                    icon={expandedCardId === item.id ? "comment-minus" : "comment-text-multiple"}
-                                    onPress={() => toggleCardExpand(item.id)}
-                                    style={[
-                                        styles.reviewButton,
-                                        expandedCardId === item.id ? styles.reviewButtonActive : null
-                                    ]}
-                                    contentStyle={styles.buttonContent}
-                                >
-                                    {expandedCardId === item.id ? "Thu gọn" : "Đánh giá"}
-                                </Button>
-                            )}
-                        </>
-                    )}
                 </View>
             </Card.Content>
         </Card>
@@ -333,32 +277,46 @@ const ApplicationListScreen = ({ route, navigation }) => {
                 />
             </View>
 
-            {/* Thay thế các Button filter status bằng ScrollView ngang với Chip đẹp */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingHorizontal: 12, marginBottom: 12 }}>
-                {[
-                    { label: 'Tất cả', value: 'all', color: '#757575' },
-                    { label: 'Đang xem xét', value: 'pending', color: '#2196F3' },
-                    { label: 'Đã phỏng vấn', value: 'accepted', color: '#4CAF50' },
-                    { label: 'Từ chối', value: 'rejected', color: '#F44336' },
-                ].map((item) => (
-                    <Chip
-                        key={item.value}
-                        mode="outlined"
-                        style={[
-                            styles.statusFilterChip,
-                            statusFilter === item.value && { backgroundColor: item.color + '22', borderColor: item.color },
-                        ]}
-                        textStyle={[
-                            styles.statusFilterChipText,
-                            statusFilter === item.value && { color: item.color, fontWeight: 'bold' },
-                        ]}
-                        selected={statusFilter === item.value}
-                        onPress={() => handleStatusFilter(item.value)}
-                    >
-                        {item.label}
-                    </Chip>
-                ))}
-            </ScrollView>
+            {/* Sửa lại filter status: dùng FlatList ngang để không bị đè và lướt mượt */}
+            <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
+                <FlatList
+                    data={[
+                        { label: 'Tất cả', value: 'all', color: '#757575' },
+                        { label: 'Đang xem xét', value: 'pending', color: '#2196F3' },
+                        { label: 'Đã phỏng vấn', value: 'accepted', color: '#4CAF50' },
+                        { label: 'Từ chối', value: 'rejected', color: '#F44336' },
+                    ]}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    keyExtractor={item => item.value}
+                    renderItem={({ item }) => {
+                        const isSelected = statusFilter === item.value;
+                        return (
+                            <Chip
+                                mode={isSelected ? 'flat' : 'outlined'}
+                                style={[
+                                    styles.statusFilterChip,
+                                    isSelected && {
+                                        backgroundColor: item.color + '22',
+                                        borderColor: item.color,
+                                        elevation: 2,
+                                    },
+                                ]}
+                                textStyle={[
+                                    styles.statusFilterChipText,
+                                    isSelected && { color: item.color, fontWeight: 'bold' },
+                                ]}
+                                selected={isSelected}
+                                onPress={() => handleStatusFilter(item.value)}
+                                icon={isSelected ? 'check-circle' : undefined}
+                            >
+                                {item.label}
+                            </Chip>
+                        );
+                    }}
+                    contentContainerStyle={{ paddingRight: 12 }}
+                />
+            </View>
 
             {filteredCandidates.length === 0 ? (
                 <View style={styles.emptyContainer}>
@@ -521,12 +479,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     actionButtons: {
-        flexDirection: "row",
-        justifyContent: "space-between",
         marginTop: 8,
-    },
-    buttonContent: {
-        paddingVertical: 8,
+        alignItems: 'center',
     },
     rejectButton: {
         flex: 1,
@@ -598,6 +552,22 @@ const styles = StyleSheet.create({
     statusFilterChipText: {
         fontSize: 15,
         color: '#757575',
+    },
+    chatChip: {
+        borderColor: '#1976D2',
+        backgroundColor: '#E3F2FD',
+    },
+    chatChipText: {
+        color: '#1976D2',
+        fontWeight: 'bold',
+    },
+    reviewChip: {
+        borderColor: '#FFD600',
+        backgroundColor: '#FFF9C4',
+    },
+    reviewChipText: {
+        color: '#FFD600',
+        fontWeight: 'bold',
     },
 })
 

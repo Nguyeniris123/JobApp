@@ -10,9 +10,10 @@ import ApplicationListScreen from "../screen/recruiter/ApplicationListScreen";
 import ChatListScreenSimple from "../screen/recruiter/ChatListScreenSimple";
 import ChatScreenSimple from "../screen/recruiter/ChatScreenSimple";
 import CompanyProfileScreen from "../screen/recruiter/CompanyProfileScreen";
+import CreateReviewScreen from "../screen/recruiter/CreateReviewScreen";
 import HomeScreen from "../screen/recruiter/HomeScreen";
 import JobDetailScreen from "../screen/recruiter/JobDetailScreen";
-import MyReviewsScreen from "../screen/recruiter/MyReviewsScreen"; // Thêm import này
+import MyReviewsScreen from "../screen/recruiter/MyReviewsScreen";
 import PostJobScreen from "../screen/recruiter/PostJobScreen";
 import ReviewScreen from "../screen/recruiter/ReviewScreen";
 import SettingsScreen from "../screen/recruiter/SettingsScreen";
@@ -139,6 +140,7 @@ const CandidateStack = () => {
                     headerShown: false
                 }}
             />
+            <Stack.Screen name="CreateReview" component={CreateReviewScreen} />
         </Stack.Navigator>
     )
 }
