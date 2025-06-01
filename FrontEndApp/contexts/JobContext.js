@@ -38,16 +38,12 @@ export const JobProvider = ({ children }) => {
         return params.toString();
     };
 
-    // Lấy danh sách công việc từ API với filters
+    // Lấy danh sách công việc từ API với filters (public, không cần accessToken)
     const fetchJobs = async (customFilters = null) => {
-        if (authLoading || !isAuthenticated || !accessToken) {
-            return null;
-        }
         try {
             setLoading(true);
             const queryString = buildQueryString(customFilters || filters);
             const url = `${API_ENDPOINTS.JOBPOSTS_LIST}${queryString ? `?${queryString}` : ''}`;
-            
             const response = await axios.get(url);
             // Map lại dữ liệu để đảm bảo mỗi job có trường company
             const jobsWithCompany = (response.data.results || []).map(job => {
@@ -219,6 +215,36 @@ export const JobProvider = ({ children }) => {
         }
     };
 
+    // Lấy danh sách công việc theo trang (phân trang, public)
+    const fetchJobsByPage = async ({ page = 1, page_size = 10, customFilters = null } = {}) => {
+        try {
+            const queryFilters = customFilters || filters;
+            const params = new URLSearchParams();
+            if (queryFilters.specialized) params.append('specialized__icontains', queryFilters.specialized);
+            if (queryFilters.salary_min) params.append('salary__gte', queryFilters.salary_min);
+            if (queryFilters.salary_max) params.append('salary__lte', queryFilters.salary_max);
+            if (queryFilters.working_hours_min) params.append('working_hours__gte', queryFilters.working_hours_min);
+            if (queryFilters.working_hours_max) params.append('working_hours__lte', queryFilters.working_hours_max);
+            if (queryFilters.location) params.append('location__icontains', queryFilters.location);
+            if (queryFilters.search) params.append('search', queryFilters.search);
+            if (queryFilters.ordering) params.append('ordering', queryFilters.ordering);
+            params.append('page', page);
+            params.append('page_size', page_size);
+            const url = `${API_ENDPOINTS.JOBPOSTS_LIST}?${params.toString()}`;
+            const response = await axios.get(url);
+            // Map lại dữ liệu để đảm bảo mỗi job có trường company
+            const jobsWithCompany = (response.data.results || []).map(job => {
+                if (job.recruiter && job.recruiter.company) {
+                    return { ...job, company: job.recruiter.company };
+                }
+                return job;
+            });
+            return { ...response.data, results: jobsWithCompany };
+        } catch (error) {
+            return { results: [], next: null, previous: null, count: 0, error: error.response?.data?.detail || 'Lỗi khi lấy danh sách công việc!' };
+        }
+    };
+
     // Tải danh sách công việc ngay khi component được mount
     useEffect(() => {
         fetchJobs();
@@ -236,7 +262,8 @@ export const JobProvider = ({ children }) => {
             deleteJob,
             updateJob,
             fetchRecruiterJobs,
-            updateFilters
+            updateFilters,
+            fetchJobsByPage // <-- thêm hàm mới vào context
         }}>
             {children}
         </JobContext.Provider>

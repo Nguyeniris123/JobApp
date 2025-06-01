@@ -143,9 +143,9 @@ const ApplicationStatusScreen = ({ navigation }) => {
             <Card style={styles.card} onPress={() => handleCardPress(item)}>
                 <Card.Content>
                     <View style={styles.cardHeader}>
-                        <View style={styles.companyInfo}>
+                        <View style={styles.recruiterInfo}>
                             <View style={styles.logoContainer}>
-                                <Card.Cover source={{ uri: company?.images?.[0] || 'https://via.placeholder.com/150' }} style={styles.logo} />
+                                <Card.Cover source={{ uri: recruiter?.avatar || 'https://via.placeholder.com/150' }} style={styles.logo} />
                             </View>
                             <View style={styles.jobInfo}>
                                 <Text style={styles.jobTitle}>{item.job_detail?.title}</Text>
@@ -202,7 +202,7 @@ const ApplicationStatusScreen = ({ navigation }) => {
                                     mode="outlined"
                                     style={[styles.chatChip, { marginLeft: 12, borderColor: '#FFD600', backgroundColor: '#FFFDE7' }]}
                                     textStyle={[styles.chatChipText, { color: '#FFD600' }]}
-                                    onPress={() => navigation.navigate('CreateReview', { applicationId: item.id, jobId: item.job_detail?.id })}
+                                    onPress={() => navigation.navigate('CreateReview', {  jobId: item.job_detail?.id, jobTitle: item.job_detail?.title, companyId: recruiter?.company.id })}
                                 >
                                     Đánh giá
                                 </Chip>

@@ -6,7 +6,7 @@ import { ReviewCard } from '../../components/ui/ReviewCard';
 import { AuthContext } from '../../contexts/AuthContext';
 import { CompanyContext } from '../../contexts/CompanyContext';
 import { JobContext } from '../../contexts/JobContext';
-import { useReview } from '../../contexts/ReviewContext';
+import { ReviewContext } from '../../contexts/ReviewContext';
 
 const JobDetailScreen = () => {
     const navigation = useNavigation();
@@ -28,7 +28,7 @@ const JobDetailScreen = () => {
     const { 
         recruiterReviews,
         fetchRecruiterReviews 
-    } = useReview();
+    } = useContext(ReviewContext);
 
     const loadJobDetail = async () => {
         if (!jobId) return;

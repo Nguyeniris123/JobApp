@@ -153,7 +153,6 @@ const ProfileStack = () => {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="CompanyProfile" component={CompanyProfileScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-            <Stack.Screen name="MyReviews" component={MyReviewsScreen} />
         </Stack.Navigator>
     )
 }
@@ -170,8 +169,8 @@ const RecruiterNavigator = () => {
                         iconName = focused ? "briefcase" : "briefcase-outline"
                     } else if (route.name === "CandidateTab") {
                         iconName = focused ? "account-group" : "account-group-outline"
-                    } else if (route.name === "ChatTab") {
-                        iconName = focused ? "chat" : "chat-outline"
+                    } else if (route.name === "ReviewTab") {
+                        iconName = focused ? "review" : "review-outline"
                     } else if (route.name === "ProfileTab") {
                         iconName = focused ? "domain" : "domain"
                     }
@@ -186,7 +185,7 @@ const RecruiterNavigator = () => {
         >
             <Tab.Screen name="HomeTab" component={HomeStack} options={{ tabBarLabel: "Tin tuyển dụng" }} />
             <Tab.Screen name="CandidateTab" component={CandidateStack} options={{ tabBarLabel: "Ứng viên" }} />
-            <Tab.Screen name="ChatTab" component={ChatListScreenSimple} options={{ tabBarLabel: "Chat" }} />
+            <Tab.Screen name="ReviewTab" component={MyReviewsScreen} options={{ tabBarLabel: "Review" }} />
             <Tab.Screen name="ProfileTab" component={ProfileStack} options={{ tabBarLabel: "Công ty" }} />
         </Tab.Navigator>
     )

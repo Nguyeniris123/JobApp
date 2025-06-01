@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useContext, useEffect, useState } from "react"
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native"
+import { FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native"
 import { ActivityIndicator, Avatar, Button, Card, Chip, Divider, Menu, Searchbar, Text } from "react-native-paper"
 import { ReviewCard } from "../../components/ui/ReviewCard"
 import { ReviewForm } from "../../components/ui/ReviewForm"
@@ -333,37 +333,32 @@ const ApplicationListScreen = ({ route, navigation }) => {
                 />
             </View>
 
-            {/* Thêm list filter status dưới search */}
-            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 12 }}>
-                <Button
-                    mode={statusFilter === 'pending' ? 'contained' : 'outlined'}
-                    onPress={() => handleStatusFilter('pending')}
-                    style={{ marginHorizontal: 4 }}
-                >
-                    Đang xem xét
-                </Button>
-                <Button
-                    mode={statusFilter === 'accepted' ? 'contained' : 'outlined'}
-                    onPress={() => handleStatusFilter('accepted')}
-                    style={{ marginHorizontal: 4 }}
-                >
-                    Đã phỏng vấn
-                </Button>
-                <Button
-                    mode={statusFilter === 'rejected' ? 'contained' : 'outlined'}
-                    onPress={() => handleStatusFilter('rejected')}
-                    style={{ marginHorizontal: 4 }}
-                >
-                    Từ chối
-                </Button>
-                <Button
-                    mode={statusFilter === 'all' ? 'contained' : 'outlined'}
-                    onPress={() => handleStatusFilter('all')}
-                    style={{ marginHorizontal: 4 }}
-                >
-                    Tất cả
-                </Button>
-            </View>
+            {/* Thay thế các Button filter status bằng ScrollView ngang với Chip đẹp */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingHorizontal: 12, marginBottom: 12 }}>
+                {[
+                    { label: 'Tất cả', value: 'all', color: '#757575' },
+                    { label: 'Đang xem xét', value: 'pending', color: '#2196F3' },
+                    { label: 'Đã phỏng vấn', value: 'accepted', color: '#4CAF50' },
+                    { label: 'Từ chối', value: 'rejected', color: '#F44336' },
+                ].map((item) => (
+                    <Chip
+                        key={item.value}
+                        mode="outlined"
+                        style={[
+                            styles.statusFilterChip,
+                            statusFilter === item.value && { backgroundColor: item.color + '22', borderColor: item.color },
+                        ]}
+                        textStyle={[
+                            styles.statusFilterChipText,
+                            statusFilter === item.value && { color: item.color, fontWeight: 'bold' },
+                        ]}
+                        selected={statusFilter === item.value}
+                        onPress={() => handleStatusFilter(item.value)}
+                    >
+                        {item.label}
+                    </Chip>
+                ))}
+            </ScrollView>
 
             {filteredCandidates.length === 0 ? (
                 <View style={styles.emptyContainer}>
@@ -588,7 +583,22 @@ const styles = StyleSheet.create({
     },
     reviewButtonActive: {
         backgroundColor: "#4F46E5",
-    }
+    },
+    statusFilterChip: {
+        marginRight: 8,
+        marginBottom: 8,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        borderColor: '#E0E0E0',
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 10,
+        height: 36,
+        justifyContent: 'center',
+    },
+    statusFilterChipText: {
+        fontSize: 15,
+        color: '#757575',
+    },
 })
 
 export default ApplicationListScreen

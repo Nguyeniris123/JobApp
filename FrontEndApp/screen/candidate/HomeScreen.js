@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from "react-native";
 // Remove the LinearGradient import temporarily
 import { Avatar, Chip, Searchbar, Text } from "react-native-paper";
@@ -10,18 +10,25 @@ import { JobContext } from "../../contexts/JobContext";
 
 const HomeScreen = ({ navigation }) => {
   
-  const { loading, jobs, fetchJobs, updateFilters, filters } = useContext(JobContext);
+  const { loading, jobs, fetchJobs, updateFilters, filters, fetchJobsByPage } = useContext(JobContext);
   const { user } = useContext(AuthContext);
   const username = useMemo(() => user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : "Người dùng", [user]);
   
   // Thêm console.log để kiểm tra user
   console.log("Current user:", user);
   
+  // State for lazy loading
+  const [jobList, setJobList] = useState([]);
+  const [page, setPage] = useState(1);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const pageSize = 10; // Số lượng job mỗi trang, chỉnh theo backend
   const scrollY = new Animated.Value(0);
+  const isFirstLoad = useRef(true);
 
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 100],
@@ -43,14 +50,57 @@ const HomeScreen = ({ navigation }) => {
     { id: 'education', label: 'Giáo dục', icon: 'school' },
   ];
 
+  // Thay thế logic phân trang bằng hàm context
+  const loadJobsByPage = async (pageNum = 1, reset = false) => {
+    try {
+      if (reset) {
+        setIsInitialLoading(true);
+        setHasMore(true);
+        setPage(1);
+        setJobList([]);
+      }
+      if (!hasMore && !reset) return;
+      setIsFetchingMore(true);
+      const data = await fetchJobsByPage({ page: pageNum, page_size: pageSize });
+      console.log('fetchJobsByPage data:', data); // Debug API data
+      if (data && Array.isArray(data.results)) {
+        setJobList(prev => (pageNum === 1 ? data.results : [...prev, ...data.results]));
+        setHasMore(!!data.next);
+        setPage(pageNum);
+      } else {
+        setHasMore(false);
+      }
+    } catch (e) {
+      setHasMore(false);
+    } finally {
+      setIsFetchingMore(false);
+      if (reset) setIsInitialLoading(false);
+    }
+  };
+
+  // Initial load & when filters change
   useEffect(() => {
-    fetchJobs();
+    loadJobsByPage(1, true);
+  }, [filters]);
+
+  // Initial load on mount
+  useEffect(() => {
+    if (isFirstLoad.current) {
+      loadJobsByPage(1, true);
+      isFirstLoad.current = false;
+    }
   }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchJobs();
+    await loadJobsByPage(1, true);
     setRefreshing(false);
+  };
+
+  const onEndReached = () => {
+    if (!isFetchingMore && hasMore) {
+      loadJobsByPage(page + 1);
+    }
   };
 
   const debounce = (func, wait) => {
@@ -153,6 +203,8 @@ const HomeScreen = ({ navigation }) => {
     </View>
   );
 
+  console.log('jobList for FlatList:', jobList);
+
   return (
     <View style={styles.container}>
       {/* Replace LinearGradient with a regular View */}
@@ -214,36 +266,45 @@ const HomeScreen = ({ navigation }) => {
         </ScrollView>
       </View> */}
 
-      {loading ? (
+      {jobList.length === 0 && isInitialLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1E88E5" />
           <Text style={styles.loadingText}>Đang tải danh sách việc làm...</Text>
         </View>
-      ) : jobs.length === 0 ? (
+      ) : jobList.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Icon name="search-off" size={64} color="#CCC" />
           <Text style={styles.emptyText}>Không tìm thấy công việc phù hợp</Text>
         </View>
       ) : (
-        <FlatList
-          data={jobs}
-          renderItem={renderJobItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.jobList}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#1E88E5']}
-            />
-          }
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
-          )}
-          scrollEventThrottle={16}
-        />
+        <>
+          <FlatList
+            data={jobList}
+            renderItem={renderJobItem}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={{ flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#1E88E5']}
+              />
+            }
+            onEndReached={onEndReached}
+            onEndReachedThreshold={0.2}
+            ListFooterComponent={isFetchingMore && hasMore ? (
+              <View style={{ padding: 16 }}>
+                <ActivityIndicator size="small" color="#1E88E5" />
+              </View>
+            ) : null}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { useNativeDriver: false }
+            )}
+            scrollEventThrottle={16}
+          />
+        </>
       )}
 
       <FilterModal

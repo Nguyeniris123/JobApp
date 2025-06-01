@@ -43,18 +43,18 @@ const CreateReviewScreen = () => {
             }
             
             console.log('Submitting review:', {
-                companyId,
+                company_id: companyId,
                 rating,
-                reviewComment,
+                comment: reviewComment,
             });
 
             setSubmitting(true);
+
             await addReview({
-                reviewed_user: jobId,
-                job: jobId,
+                company_id: companyId,
                 rating,
                 comment: reviewComment,
-            }, 'job');
+            }, 'recruiter');
             alert('Đánh giá của bạn đã được gửi thành công!');
             navigation.goBack();
         } catch (error) {

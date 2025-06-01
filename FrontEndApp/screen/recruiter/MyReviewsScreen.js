@@ -1,37 +1,18 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useContext, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { ActivityIndicator, Avatar, Button, Card, FAB, Paragraph, Text } from 'react-native-paper';
-import { deleteReview as deleteReviewApi, fetchCandidateReviews, fetchRecruiterReviews } from '../../services/reviewService';
+import { ActivityIndicator, Avatar, Card, Paragraph, Text } from 'react-native-paper';
+import { AuthContext } from '../../contexts/AuthContext';
+import { fetchRecruiterReviews } from '../../services/reviewService';
 
 const MyReviewsScreen = ({ navigation }) => {
-    const [user, setUser] = useState(null);
+    const { user } = useContext(AuthContext);
     const [refreshing, setRefreshing] = useState(false);
-    const [activeTab, setActiveTab] = useState('candidate'); // 'candidate' or 'job'
     const [expandedReview, setExpandedReview] = useState(null);
-    const [candidateReviews, setCandidateReviews] = useState([]);
     const [recruiterReviews, setRecruiterReviews] = useState([]);
     const [loading, setLoading] = useState(false);
-
-    // Lấy user từ AsyncStorage
-    React.useEffect(() => {
-        AsyncStorage.getItem('user').then(data => {
-            if (data) setUser(JSON.parse(data));
-        });
-    }, []);
-
-    // Lấy các đánh giá mà nhà tuyển dụng đã viết cho ứng viên
-    const candidateReviewsByMe = candidateReviews.filter(review =>
-        review.application && review.reviewer_id === user?.id
-    );
-
-    // Lấy các đánh giá của công ty/công việc (từ ứng viên)
-    const jobReviewsForMe = recruiterReviews.filter(review =>
-        review.job && review.job_detail?.recruiter_id === user?.id
-    );
 
     // Format ngày tháng
     const formatDate = (dateString) => {
@@ -56,11 +37,10 @@ const MyReviewsScreen = ({ navigation }) => {
         if (!user) return;
         setLoading(true);
         try {
-            const [cReviews, rReviews] = await Promise.all([
-                fetchCandidateReviews(user.id),
-                fetchRecruiterReviews(user.id)
+            const [rReviews] = await Promise.all([
+                fetchRecruiterReviews(user?.company?.id)
             ]);
-            setCandidateReviews(cReviews);
+            console.log('Fetched recruiter reviews:', rReviews);
             setRecruiterReviews(rReviews);
         } catch (e) {
             // handle error
@@ -75,18 +55,6 @@ const MyReviewsScreen = ({ navigation }) => {
         setExpandedReview(expandedReview === id ? null : id);
     };
 
-    // Xóa đánh giá
-    const handleDeleteReview = async (reviewId, type) => {
-        setLoading(true);
-        try {
-            await deleteReviewApi(reviewId, type);
-            loadReviews();
-        } catch (e) {
-            // handle error
-        } finally {
-            setLoading(false);
-        }
-    };
 
     // Render sao đánh giá
     const renderStars = (rating) => (
@@ -104,36 +72,37 @@ const MyReviewsScreen = ({ navigation }) => {
     );
 
     // Render từng đánh giá
-    const renderReviewItem = ({ item }) => (
-        <Card style={styles.reviewCard}>
-            <Card.Content>
-                <View style={styles.reviewHeader}>
-                    <Avatar.Text label={item.reviewer_name?.[0] || '?'} size={40} style={styles.avatar} />
-                    <View style={styles.headerInfo}>
-                        <Text style={styles.reviewTitle}>{item.reviewer_name}</Text>
-                        <Text style={styles.reviewSubtitle}>{item.job_title || item.application_title || ''}</Text>
-                        <Text style={styles.reviewDate}>{formatDate(item.created_date)}</Text>
+    const renderReviewItem = ({ item }) => {
+        const isExpanded = expandedReview === item.id;
+        const comment = item.comment || '';
+        const shouldTruncate = comment.length > 100 && !isExpanded;
+        const displayComment = shouldTruncate ? comment.slice(0, 100) + '...' : comment;
+        return (
+            <Card style={styles.reviewCard}>
+                <Card.Content>
+                    <View style={styles.reviewHeader}>
+                        <Avatar.Text label={item.reviewer?.username?.[0]?.toUpperCase() || '?'} size={40} style={styles.avatar} />
+                        <View style={styles.headerInfo}>
+                            <Text style={styles.reviewSubtitle}>{item.reviewed_user?.username ? `Ứng viên: ${item.reviewer.first_name} ${item.reviewer.last_name}` : ''}</Text>
+                            <Text style={styles.reviewDate}>{formatDate(item.created_date)}</Text>
+                        </View>
+                        <View style={styles.ratingContainer}>{renderStars(item.rating)}</View>
                     </View>
-                    <View style={styles.ratingContainer}>{renderStars(item.rating)}</View>
-                </View>
-                <TouchableOpacity style={styles.expandTouchable} onPress={() => toggleExpandReview(item.id)}>
-                    <Paragraph numberOfLines={expandedReview === item.id ? undefined : 2} style={styles.commentPreview}>
-                        {item.comment}
-                    </Paragraph>
-                    {item.comment && (
-                        <Text style={styles.expandText}>{expandedReview === item.id ? 'Thu gọn' : 'Xem thêm'}</Text>
-                    )}
-                </TouchableOpacity>
-                <View style={styles.actionButtons}>
-                    <Button mode="outlined" style={styles.deleteButton} onPress={() => handleDeleteReview(item.id, activeTab === 'candidate' ? 'candidate' : 'job')}>Xóa</Button>
-                </View>
-            </Card.Content>
-        </Card>
-    );
+                    <TouchableOpacity style={styles.expandTouchable} onPress={() => toggleExpandReview(item.id)}>
+                        <Paragraph numberOfLines={undefined} style={styles.commentPreview}>
+                            {displayComment}
+                        </Paragraph>
+                        {comment.length > 100 && (
+                            <Text style={styles.expandText}>{isExpanded ? 'Thu gọn' : 'Xem thêm'}</Text>
+                        )}
+                    </TouchableOpacity>
+                </Card.Content>
+            </Card>
+        );
+    };
 
-    // Render danh sách đánh giá dựa trên tab đang active
+    // Render danh sách đánh giá
     const renderReviewsList = () => {
-        const reviewsToShow = activeTab === 'candidate' ? candidateReviewsByMe : jobReviewsForMe;
         if (loading) {
             return (
                 <View style={styles.loadingContainer}>
@@ -141,7 +110,7 @@ const MyReviewsScreen = ({ navigation }) => {
                 </View>
             );
         }
-        if (reviewsToShow.length === 0) {
+        if (recruiterReviews.length === 0) {
             return (
                 <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>Chưa có đánh giá nào.</Text>
@@ -150,7 +119,7 @@ const MyReviewsScreen = ({ navigation }) => {
         }
         return (
             <FlatList
-                data={reviewsToShow}
+                data={recruiterReviews}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={renderReviewItem}
                 contentContainerStyle={styles.listContent}
@@ -165,39 +134,10 @@ const MyReviewsScreen = ({ navigation }) => {
                 colors={['#1976D2', '#1E88E5', '#2196F3']}
                 style={styles.header}
             >
-                <Text style={styles.screenTitle}>Đánh giá & Nhận xét</Text>
-                <Text style={styles.screenSubtitle}>
-                    {activeTab === 'candidate' ? 'Đánh giá của tôi về ứng viên' : 'Nhận xét của ứng viên về công việc'}
-                </Text>
+                <Text style={styles.screenTitle}>Đánh giá của tôi</Text>
+                <Text style={styles.screenSubtitle}>{user?.username || 'Nhà tuyển dụng'}</Text>
             </LinearGradient>
-
-            <View style={styles.tabContainer}>
-                <Button
-                    mode={activeTab === 'candidate' ? 'contained' : 'outlined'}
-                    onPress={() => setActiveTab('candidate')}
-                    style={[styles.tabButton, activeTab === 'candidate' && styles.activeTabButton]}
-                >
-                    Đánh giá của tôi ({candidateReviewsByMe.length})
-                </Button>
-                <Button
-                    mode={activeTab === 'job' ? 'contained' : 'outlined'}
-                    onPress={() => setActiveTab('job')}
-                    style={[styles.tabButton, activeTab === 'job' && styles.activeTabButton]}
-                >
-                    Nhận xét về công việc ({jobReviewsForMe.length})
-                </Button>
-            </View>
-
             {renderReviewsList()}
-
-            {activeTab === 'candidate' && (
-                <FAB
-                    style={styles.fab}
-                    icon="plus"
-                    label="Đánh giá mới"
-                    onPress={() => navigation.navigate('ApplicationListScreen')}
-                />
-            )}
         </View>
     );
 };
@@ -222,19 +162,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#FFFFFF',
         opacity: 0.9,
-    },
-    tabContainer: {
-        flexDirection: 'row',
-        padding: 16,
-        backgroundColor: '#FFFFFF',
-        elevation: 2,
-    },
-    tabButton: {
-        flex: 1,
-        marginHorizontal: 4,
-    },
-    activeTabButton: {
-        backgroundColor: '#1976D2',
     },
     listContent: {
         padding: 16,

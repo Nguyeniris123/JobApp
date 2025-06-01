@@ -6,7 +6,7 @@ import { AuthContext } from "../../contexts/AuthContext"
 import { JobContext } from "../../contexts/JobContext"
 
 const PostJobScreen = ({ navigation, route }) => {
-    const { createJob, updateJob, fetchJobById } = useContext(JobContext)
+    const { createJob, updateJob, fetchJobById, fetchRecruiterJobs } = useContext(JobContext)
     const { accessToken } = useContext(AuthContext)
     const [title, setTitle] = useState("")
     const [specialized, setSpecialized] = useState("")
@@ -107,6 +107,8 @@ const PostJobScreen = ({ navigation, route }) => {
             }
 
             if (result) {
+                // Fetch lại dữ liệu job ngay sau khi tạo/cập nhật thành công
+                await fetchRecruiterJobs();
                 Alert.alert(
                     "Thành công",
                     isEditMode 

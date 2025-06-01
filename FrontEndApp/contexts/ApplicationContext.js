@@ -221,10 +221,12 @@ export const ApplicationProvider = ({ children }) => {
     };
 
     useEffect(() => {
+        // Chỉ fetch applications khi KHÔNG phải recruiter và role khác null
+        if (role === 'recruiter' || !role) return;
         if (accessToken) {
             fetchApplications();
         }
-    }, [accessToken, fetchApplications]);
+    }, [accessToken, fetchApplications, role]);
 
     return (
         <ApplicationContext.Provider

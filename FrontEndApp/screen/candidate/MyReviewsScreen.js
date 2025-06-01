@@ -1,37 +1,21 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useContext, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Divider, Paragraph, Text } from 'react-native-paper';
-import { deleteReview as deleteReviewApi, fetchCandidateReviews, fetchRecruiterReviews } from '../../services/reviewService';
+import { AuthContext } from '../../contexts/AuthContext';
+import { deleteReview as deleteReviewApi, fetchCandidateReviews } from '../../services/reviewService';
 
 const MyReviewsScreen = ({ navigation }) => {
-  const [user, setUser] = useState(null);
+  const { user } = useContext(AuthContext);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('job'); // 'job' or 'application'
   const [candidateReviews, setCandidateReviews] = useState([]);
-  const [recruiterReviews, setRecruiterReviews] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const getUser = async () => {
-      const userData = await AsyncStorage.getItem('user');
-      if (userData) setUser(JSON.parse(userData));
-    };
-
-    getUser();
-  }, []);
-
   // Lấy các đánh giá mà người dùng đã viết (cho công việc)
-  const jobReviews = recruiterReviews.filter(review => 
-    review.job && review.reviewer_id === user?.id
-  );
-
-  // Lấy các đánh giá mà người dùng đã viết (cho ứng viên)
-  const applicationReviews = candidateReviews.filter(review => 
-    review.application && review.reviewer_id === user?.id
+  const myReviews = candidateReviews.filter(review => 
+    review.company_id && review.reviewer_id === user?.id
   );
 
   // Hàm format ngày tháng
@@ -57,12 +41,9 @@ const MyReviewsScreen = ({ navigation }) => {
     setLoading(true);
     setRefreshing(true);
     try {
-      const [rReviews, cReviews] = await Promise.all([
-        fetchRecruiterReviews(user.id),
-        fetchCandidateReviews(user.id)
-      ]);
-      setRecruiterReviews(rReviews);
-      setCandidateReviews(cReviews);
+      const reviews = await fetchCandidateReviews(user.id);
+      console.log('Fetched reviews:', reviews);
+      setCandidateReviews(reviews);
     } catch (e) {
       console.error(e);
     } finally {
@@ -72,10 +53,10 @@ const MyReviewsScreen = ({ navigation }) => {
   };
 
   // Xử lý xóa đánh giá
-  const handleDeleteReview = async (reviewId, type) => {
+  const handleDeleteReview = async (reviewId) => {
     setLoading(true);
     try {
-      await deleteReviewApi(reviewId, type);
+      await deleteReviewApi(reviewId, 'job');
       loadReviews();
     } catch (e) {
       console.error(e);
@@ -101,9 +82,8 @@ const MyReviewsScreen = ({ navigation }) => {
     );
   };
 
-  // Render danh sách đánh giá dựa trên tab đang active
+  // Render danh sách đánh giá
   const renderReviewsList = () => {
-    const reviewsToShow = activeTab === 'job' ? jobReviews : applicationReviews;
     if (loading) {
       return (
         <View style={styles.loadingContainer}>
@@ -111,7 +91,7 @@ const MyReviewsScreen = ({ navigation }) => {
         </View>
       );
     }
-    if (reviewsToShow.length === 0) {
+    if (myReviews.length === 0) {
       return (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Chưa có đánh giá nào.</Text>
@@ -120,7 +100,7 @@ const MyReviewsScreen = ({ navigation }) => {
     }
     return (
       <ScrollView style={styles.reviewsList} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadReviews} />}>
-        {reviewsToShow.map((item) => (
+        {myReviews.map((item) => (
           <Card key={item.id} style={styles.reviewCard}>
             <Card.Content>
               <View style={styles.reviewHeader}>
@@ -133,7 +113,7 @@ const MyReviewsScreen = ({ navigation }) => {
               <Divider style={styles.divider} />
               <Paragraph style={styles.commentText}>{item.comment}</Paragraph>
               <View style={styles.actionButtons}>
-                <Button mode="outlined" style={styles.deleteButton} onPress={() => handleDeleteReview(item.id, activeTab === 'job' ? 'job' : 'candidate')}>Xóa</Button>
+                <Button mode="outlined" style={styles.deleteButton} onPress={() => handleDeleteReview(item.id)}>Xóa</Button>
               </View>
             </Card.Content>
           </Card>
@@ -148,27 +128,21 @@ const MyReviewsScreen = ({ navigation }) => {
         colors={['#1976D2', '#1E88E5', '#2196F3']}
         style={styles.header}
       >
-        <Text style={styles.screenTitle}>Đánh giá của tôi</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Button
+            onPress={() => navigation.goBack()}
+            style={{ marginRight: 8, backgroundColor: 'transparent', minWidth: 0, padding: 0 }}
+            labelStyle={{ color: '#fff', fontSize: 22 }}
+            compact
+            icon={() => (
+              <MaterialCommunityIcons name="arrow-left" size={28} color="#fff" />
+            )}
+          >
+          </Button>
+          <Text style={styles.screenTitle}>Đánh giá của tôi</Text>
+        </View>
         <Text style={styles.screenSubtitle}>{user?.username || 'Người dùng'}</Text>
       </LinearGradient>
-
-      <View style={styles.tabContainer}>
-        <Button
-          mode={activeTab === 'job' ? "contained" : "outlined"}
-          onPress={() => setActiveTab('job')}
-          style={[styles.tabButton, activeTab === 'job' && styles.activeTabButton]}
-        >
-          Công việc ({jobReviews.length})
-        </Button>
-        <Button
-          mode={activeTab === 'application' ? "contained" : "outlined"}
-          onPress={() => setActiveTab('application')}
-          style={[styles.tabButton, activeTab === 'application' && styles.activeTabButton]}
-        >
-          Ứng viên ({applicationReviews.length})
-        </Button>
-      </View>
-
       {renderReviewsList()}
     </View>
   );
@@ -181,7 +155,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 50,
+    paddingTop: 25,
     paddingBottom: 25,
   },
   screenTitle: {
@@ -194,18 +168,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     opacity: 0.9,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  tabButton: {
-    flex: 1,
-    marginHorizontal: 4,
-  },
-  activeTabButton: {
-    backgroundColor: '#1976D2',
   },
   reviewsList: {
     padding: 16,

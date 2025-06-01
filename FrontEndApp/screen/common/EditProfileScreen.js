@@ -1,22 +1,17 @@
-import axios from "axios";
-import * as ImagePicker from "expo-image-picker";
 import { useContext, useEffect, useState } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { Button, TextInput, Title } from "react-native-paper";
-import { API_ENDPOINTS } from "../../apiConfig";
 import { AuthContext } from "../../contexts/AuthContext";
 
 const EditProfileScreen = ({ navigation }) => {
-    const { user, updateUser } = useContext(AuthContext);
+    const auth = useContext(AuthContext);
+    const { user } = auth;
     const [loading, setLoading] = useState(false);
     const [profileImage, setProfileImage] = useState(user?.avatar || null);
     const [formData, setFormData] = useState({
         first_name: user?.first_name || "",
         last_name: user?.last_name || "",
         email: user?.email || "",
-        phone: user?.phone || "",
-        address: user?.address || "",
-        bio: user?.bio || "",
     });
 
     useEffect(() => {
@@ -25,31 +20,9 @@ const EditProfileScreen = ({ navigation }) => {
                 first_name: user.first_name || "",
                 last_name: user.last_name || "",
                 email: user.email || "",
-                phone: user.phone || "",
-                address: user.address || "",
-                bio: user.bio || "",
             });
-            setProfileImage(user.avatar || null);
         }
     }, [user]);
-
-    const pickImage = async () => {
-        try {
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1], // Square aspect ratio
-                quality: 1,
-            });
-
-            if (!result.canceled) {
-                setProfileImage(result.assets[0].uri);
-            }
-        } catch (error) {
-            console.log("Error picking image:", error);
-            Alert.alert("Lỗi", "Không thể chọn ảnh. Vui lòng thử lại.");
-        }
-    };
 
     const handleInputChange = (field, value) => {
         setFormData({
@@ -61,46 +34,14 @@ const EditProfileScreen = ({ navigation }) => {
     const handleSubmit = async () => {
         setLoading(true);
         try {
-            // Create form data for multipart upload
-            const updatedData = new FormData();
+            const updatedData = {};
             Object.keys(formData).forEach(key => {
                 if (formData[key]) {
-                    updatedData.append(key, formData[key]);
+                    updatedData[key] = formData[key];
                 }
             });
-
-            // Add profile image if changed
-            if (profileImage && profileImage !== user?.avatar) {
-                const filename = profileImage.split('/').pop();
-                const match = /\.(\w+)$/.exec(filename || "");
-                const type = match ? `image/${match[1]}` : "image/jpeg";
-                
-                updatedData.append('avatar', {
-                    uri: profileImage,
-                    name: filename || 'profile.jpg',
-                    type
-                });
-            }
-
-            // Determine endpoint based on role
-            const endpoint = user.role === "recruiter" 
-                ? API_ENDPOINTS.RECRUITERS_UPDATE(user.id)
-                : API_ENDPOINTS.CANDIDATES_UPDATE(user.id);
-
-            const response = await axios.patch(endpoint, updatedData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'Authorization': `Bearer ${user.access_token}`,
-                }
-            });
-
-            if (response.status === 200) {
-                // Update local user data
-                await updateUser({
-                    ...user,
-                    ...formData,
-                    avatar: profileImage
-                });
+            const success = await auth.updateUserProfile(updatedData);
+            if (success) {
                 Alert.alert("Thành công", "Cập nhật thông tin cá nhân thành công");
                 navigation.goBack();
             }

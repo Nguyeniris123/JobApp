@@ -26,7 +26,8 @@ export const CompanyProvider = ({ children }) => {
 
     // Only run effect logic if not recruiter
     useEffect(() => {
-        if (role === 'recruiter') return;
+        // Nếu role là recruiter hoặc null thì không fetch
+        if (role === 'recruiter' || !role) return;
         const loadToken = async () => {
             try {
                 if (accessToken) {
@@ -42,7 +43,8 @@ export const CompanyProvider = ({ children }) => {
     }, [accessToken, role]);
 
     useEffect(() => {
-        if (role === 'recruiter') return;
+        // Nếu role là recruiter hoặc null thì không fetch
+        if (role === 'recruiter' || !role) return;
         if (isTokenLoaded && accessToken && isAuthenticated && !authLoading && !hasFetchedInitialData.current) {
             console.log('Token is loaded, fetching followed companies (initial load)...');
             hasFetchedInitialData.current = true;
@@ -400,8 +402,8 @@ export const CompanyProvider = ({ children }) => {
         return () => clearInterval(interval);
     }, [accessToken, loading]);
 
-    // Always render the Provider, but for recruiter, provide minimal context
-    if (role === 'recruiter') {
+    // Always render the Provider, but for recruiter or role null, provide minimal context
+    if (role === 'recruiter' || !role) {
         return (
             <CompanyContext.Provider value={{
                 loading: false,

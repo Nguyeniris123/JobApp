@@ -28,30 +28,27 @@ export const ReviewProvider = ({ children }) => {
     const { user, role, accessToken } = useContext(AuthContext);
     const { isAuthenticated, loading: authLoading } = useContext(AuthContext);
 
-    // Lấy danh sách đánh giá dành cho nhà tuyển dụng
+    // Lấy danh sách đánh giá dành cho nhà tuyển dụng (chỉ recruiter dùng)
     const fetchRecruiterReviews = async (recruiterId) => {
-        if (authLoading || !isAuthenticated || !accessToken) {
+        if (authLoading || !isAuthenticated || !accessToken || role !== 'recruiter') {
             return [];
         }
         try {
             setLoading(true);
             setError(null);
-
             const id = recruiterId || user?.id;
             if (!id) {
                 setError('Không có ID nhà tuyển dụng');
                 return [];
             }
-
             const response = await axios.get(
-                API_ENDPOINTS.REVIEWS_LIST_FOR_RECRUITER(id), 
+                API_ENDPOINTS.REVIEWS_LIST_FOR_RECRUITER(id),
                 {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`
                     }
                 }
             );
-
             const reviews = response.data.results || response.data;
             setRecruiterReviews(reviews);
             return reviews;
@@ -64,31 +61,27 @@ export const ReviewProvider = ({ children }) => {
         }
     };
 
-    // Lấy danh sách đánh giá dành cho ứng viên
+    // Lấy danh sách đánh giá dành cho ứng viên (chỉ candidate dùng)
     const fetchCandidateReviews = async (candidateId) => {
-        if (authLoading || !isAuthenticated || !accessToken) {
+        if (authLoading || !isAuthenticated || !accessToken || role !== 'candidate') {
             return [];
         }
         try {
             setLoading(true);
             setError(null);
-            console.log(accessToken)
-            
             const id = candidateId || user?.id;
             if (!id) {
                 setError('Không có ID ứng viên');
                 return [];
             }
-
             const response = await axios.get(
-                API_ENDPOINTS.REVIEWS_LIST_FOR_CANDIDATE(id), 
+                API_ENDPOINTS.REVIEWS_LIST_FOR_CANDIDATE(id),
                 {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`
                     }
                 }
             );
-
             const reviews = response.data.results || response.data;
             setCandidateReviews(reviews);
             return reviews;
@@ -101,35 +94,32 @@ export const ReviewProvider = ({ children }) => {
         }
     };
 
-    // Thêm đánh giá mới - cập nhật để phù hợp với API mới
+    // Thêm đánh giá mới - endpoint theo role
     const addReview = async (reviewData) => {
         try {
             setLoading(true);
             setError(null);
-
             if (!accessToken) {
                 setError('Không có token xác thực. Vui lòng đăng nhập lại.');
                 return { success: false, message: 'Không có token xác thực' };
             }
-
-            // Sử dụng endpoint phù hợp dựa trên loại đánh giá
             let endpoint;
             if (role === 'recruiter') {
                 endpoint = API_ENDPOINTS.REVIEWS_CANDIDATE_CREATE;
-            } else {
+            } else if (role === 'candidate') {
                 endpoint = API_ENDPOINTS.REVIEWS_RECRUITER_CREATE;
+            } else {
+                setError('Role không hợp lệ');
+                return { success: false, message: 'Role không hợp lệ' };
             }
-
             const apiRequestData = {
                 company_id: reviewData.company_id,
                 rating: reviewData.rating,
                 comment: reviewData.comment,
                 reviewed_user: reviewData.reviewed_user,
-                application: reviewData.application
+                application: reviewData.application,
+                job: reviewData.job
             };
-
-            console.log('Đang gửi dữ liệu đánh giá:', apiRequestData);
-
             const response = await axios.post(
                 endpoint,
                 apiRequestData,
@@ -140,27 +130,19 @@ export const ReviewProvider = ({ children }) => {
                     }
                 }
             );
-
-            console.log('Phản hồi từ API:', response.data);
-
-            // Tạo đánh giá với thông tin bổ sung từ người dùng hiện tại
             const newReview = {
                 ...response.data,
                 reviewer_name: user?.username || 'Người dùng ẩn danh',
                 reviewer_avatar: user?.avatar || null
             };
-
-            // Cập nhật danh sách đánh giá tương ứng
             if (role === 'recruiter') {
                 setCandidateReviews(prev => [newReview, ...prev]);
             } else {
                 setRecruiterReviews(prev => [newReview, ...prev]);
             }
-
             return { success: true, data: newReview };
         } catch (error) {
             console.error('Lỗi khi thêm đánh giá:', error);
-            console.error('Chi tiết lỗi:', error.response?.data);
             const errorMsg = error.response?.data?.detail || 'Không thể thêm đánh giá';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -169,25 +151,24 @@ export const ReviewProvider = ({ children }) => {
         }
     };
 
-    // Xóa đánh giá
+    // Xóa đánh giá - endpoint theo role
     const deleteReview = async (reviewId) => {
         try {
             setLoading(true);
             setError(null);
-
             if (!accessToken) {
                 setError('Không có token xác thực. Vui lòng đăng nhập lại.');
                 return { success: false, message: 'Không có token xác thực' };
             }
-
-            // Sử dụng endpoint phù hợp dựa trên loại đánh giá
             let endpoint;
             if (role === 'recruiter') {
                 endpoint = API_ENDPOINTS.REVIEWS_DELETE_FOR_CANDIDATE(reviewId);
-            } else {
+            } else if (role === 'candidate') {
                 endpoint = API_ENDPOINTS.REVIEWS_DELETE_FOR_RECRUITER(reviewId);
+            } else {
+                setError('Role không hợp lệ');
+                return { success: false, message: 'Role không hợp lệ' };
             }
-
             await axios.delete(
                 endpoint,
                 {
@@ -196,11 +177,8 @@ export const ReviewProvider = ({ children }) => {
                     }
                 }
             );
-
-            // Cập nhật cả hai danh sách đánh giá
             setRecruiterReviews(prev => prev.filter(review => review.id !== reviewId));
             setCandidateReviews(prev => prev.filter(review => review.id !== reviewId));
-
             return { success: true };
         } catch (error) {
             console.error('Lỗi khi xóa đánh giá:', error);
@@ -230,14 +208,21 @@ export const ReviewProvider = ({ children }) => {
 
     // Tải đánh giá ban đầu dựa trên vai trò người dùng
     useEffect(() => {
-        if (user?.id) {
+        // Chỉ fetch khi đã có user, accessToken, role, đã xác thực và không còn authLoading
+        if (
+            user?.id &&
+            accessToken &&
+            role &&
+            isAuthenticated &&
+            !authLoading
+        ) {
             if (role === 'recruiter') {
                 fetchRecruiterReviews();
             } else if (role === 'candidate') {
                 fetchCandidateReviews();
             }
         }
-    }, [user, role]);
+    }, [user, role, accessToken, isAuthenticated, authLoading]);
 
     // Các hàm từ useReview.js - chuyển vào ReviewContext
 

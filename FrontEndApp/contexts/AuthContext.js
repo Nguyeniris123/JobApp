@@ -202,6 +202,51 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Cập nhật thông tin user
+    const updateUserProfile = async (updatedData) => {
+        if (!user || !role) return;
+        try {
+            setLoading(true);
+            const endpoint = role === "recruiter"
+                ? API_ENDPOINTS.RECRUITERS_UPDATE(user.id)
+                : API_ENDPOINTS.CANDIDATES_UPDATE(user.id);
+            const response = await axios.patch(endpoint, updatedData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+            if (response.status === 200) {
+                setUser({ ...user, ...updatedData });
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Lỗi khi cập nhật thông tin user:', error);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Cập nhật thông tin công ty
+    const updateCompanyProfile = async (companyData) => {
+        try {
+            const response = await axios.patch(API_ENDPOINTS.COMPANIES_UPDATE(companyData.id), companyData);
+            if (response.data) {
+                // Sau khi cập nhật, gọi lại fetchUserProfile để đồng bộ user.company
+                if (typeof fetchUserProfile === 'function') {
+                    await fetchUserProfile();
+                }
+                return response.data;
+            }
+            return null;
+        } catch (error) {
+            console.error('Lỗi khi cập nhật thông tin công ty:', error);
+            throw error;
+        }
+    };
+
     // Đăng ký
     // const register = async (userData) => {
     //     try {
@@ -248,6 +293,9 @@ export const AuthProvider = ({ children }) => {
                 logout,
                 changeAvatar,
                 accessToken, // <-- expose accessToken here
+                updateUserProfile, // expose updateUserProfile
+                updateCompanyProfile, // expose updateCompanyProfile
+                fetchUserProfile, // expose fetchUserProfile
             }}
         >
             {children}

@@ -3,13 +3,11 @@ import { useContext, useEffect, useState } from "react"
 import { Alert, ScrollView, StyleSheet, View } from "react-native"
 import { ActivityIndicator, Button, Card, Chip, Divider, IconButton, Menu, Text } from "react-native-paper"
 import { ApplicationContext } from "../../contexts/ApplicationContext"
-import { AuthContext } from "../../contexts/AuthContext"
 import { JobContext } from "../../contexts/JobContext"
 
 const RecruiterJobDetailScreen = ({ route, navigation }) => {
     const { jobId } = route.params || { jobId: "1" }
     const { fetchJobById } = useContext(JobContext)
-    const { accessToken } = useContext(AuthContext)
     const { applications, fetchApplications, loading: loadingApplications } = useContext(ApplicationContext)
     const [job, setJob] = useState(null)
     const [loading, setLoading] = useState(true)

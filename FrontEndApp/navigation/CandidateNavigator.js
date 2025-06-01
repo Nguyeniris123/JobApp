@@ -7,6 +7,7 @@ import { Text, View } from "react-native"
 import { ApplicationContext } from "../contexts/ApplicationContext"
 
 // Screens
+import LoginScreen from "../screen/auth/LoginScreen"
 import ApplicationDetailScreen from "../screen/candidate/ApplicationDetailScreen"
 import ApplicationStatusScreen from "../screen/candidate/ApplicationStatusScreen"
 import ApplyScreen from "../screen/candidate/ApplyScreen"
@@ -107,6 +108,7 @@ const HomeStack = () => {
             <Stack.Screen name="JobDetail" component={JobDetailScreen} />
             <Stack.Screen name="ApplyScreen" component={ApplyScreen} />
             <Stack.Screen name="Chat" component={ChatScreenSimple} />
+            <Stack.Screen name="Login" component={LoginScreen} />
         </Stack.Navigator>
     )
 }

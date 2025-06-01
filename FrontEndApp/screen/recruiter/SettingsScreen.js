@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useContext, useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Avatar, Button, Divider, List, Snackbar, Surface, Text } from "react-native-paper";
 import ScreenContainer from "../../components/layout/ScreenContainer";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -50,6 +50,12 @@ const SettingsScreen = ({ navigation }) => {
             setSnackbarVisible(true);
         }
     };
+    const handleLogout = () => {
+            Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", [
+                { text: "Hủy", style: "cancel" },
+                { text: "Đăng xuất", onPress: () => logout() },
+            ]);
+        };
 
     return (
         <ScreenContainer>
@@ -66,7 +72,7 @@ const SettingsScreen = ({ navigation }) => {
                         </View>
                     </TouchableOpacity>
                     <View style={styles.headerInfo}>
-                        <Text style={styles.name}>{user?.username || "Nhà tuyển dụng"}</Text>
+                        <Text style={styles.name}>{`${user?.first_name} ${user?.last_name}` || "Nhà tuyển dụng"}</Text>
                         <Text style={styles.email}>{user?.email || "email@example.com"}</Text>
                         <Button
                             mode="contained"
@@ -147,7 +153,7 @@ const SettingsScreen = ({ navigation }) => {
                 <Button
                     mode="outlined"
                     icon="logout"
-                    onPress={logout}
+                    onPress={handleLogout}
                     style={styles.logoutButton}
                 >
                     Đăng xuất

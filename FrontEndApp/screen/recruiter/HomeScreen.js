@@ -1,14 +1,14 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { useContext, useEffect, useMemo, useState } from "react"
-import { Alert, RefreshControl, ScrollView, TouchableOpacity, View } from "react-native"
-import { ActivityIndicator, Avatar, Button, Card, Dialog, FAB, Portal, Searchbar, Text } from "react-native-paper"
-import { AuthContext } from "../../contexts/AuthContext"
-import { JobContext } from "../../contexts/JobContext"
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { Alert, RefreshControl, ScrollView, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Avatar, Button, Card, Dialog, FAB, Portal, Searchbar, Text } from "react-native-paper";
+import { AuthContext } from "../../contexts/AuthContext";
+import { JobContext } from "../../contexts/JobContext";
 
 const HomeScreen = ({ navigation }) => {
     const { user } = useContext(AuthContext)
-    const [jobs, setJobs] = useState([])
-    const [loading, setLoading] = useState(true)
+    const { jobs, fetchRecruiterJobs, deleteJob, loading } = useContext(JobContext)
     const [searchQuery, setSearchQuery] = useState('')
     const [stats, setStats] = useState({
         totalJobs: 0,
@@ -17,29 +17,13 @@ const HomeScreen = ({ navigation }) => {
     const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
     const [selectedJob, setSelectedJob] = useState(null);
 
-    const { fetchRecruiterJobs, deleteJob } = useContext(JobContext)
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // Đảm bảo chỉ dùng context, không lấy accessToken từ AsyncStorage
-                const jobsData = await fetchRecruiterJobs()
-                setJobs(jobsData)
-                const totalJobs = jobsData.length
-                // Dùng application_count nếu có, nếu không thì 0
-                const totalApplicants = jobsData.reduce((sum, job) => sum + (job.application_count || 0), 0)
-                setStats({
-                    totalJobs,
-                    totalApplicants,
-                })
-            } catch (error) {
-                console.error("Lỗi khi lấy dữ liệu:", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-        fetchData()
-    }, [])
+    // XÓA mọi setLoading(true/false) trong useFocusEffect, handleScroll, refreshControl, chỉ gọi fetchRecruiterJobs
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchRecruiterJobs();
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, []) // Để dependency array rỗng, chỉ gọi khi màn hình focus
+    );
 
     const formatSalary = (salary) => {
         return new Intl.NumberFormat("vi-VN", {
@@ -84,8 +68,7 @@ const HomeScreen = ({ navigation }) => {
             try {
                 const success = await deleteJob(selectedJob.id);
                 if (success) {
-                    const updatedJobs = await fetchRecruiterJobs();
-                    setJobs(updatedJobs);
+                    await fetchRecruiterJobs();
                 }
             } catch (error) {
                 Alert.alert("Lỗi", "Không thể xóa tin tuyển dụng này");
@@ -104,18 +87,10 @@ const HomeScreen = ({ navigation }) => {
     const handleScroll = async (event) => {
         const y = event.nativeEvent.contentOffset.y;
         if (y <= 0) {
-            setLoading(true);
-            try {
-                const jobsData = await fetchRecruiterJobs();
-                setJobs(jobsData);
-                const totalJobs = jobsData.length;
-                const totalApplicants = jobsData.reduce((sum, job) => sum + (job.application_count || 0), 0);
-                setStats({ totalJobs, totalApplicants });
-            } catch (error) {
-                console.error("Lỗi khi reload dữ liệu:", error);
-            } finally {
-                setLoading(false);
-            }
+            await fetchRecruiterJobs();
+            const totalJobs = jobs.length;
+            const totalApplicants = jobs.reduce((sum, job) => sum + (job.application_count || 0), 0);
+            setStats({ totalJobs, totalApplicants });
         }
     };
 
@@ -158,17 +133,10 @@ const HomeScreen = ({ navigation }) => {
                     <RefreshControl
                         refreshing={loading}
                         onRefresh={async () => {
-                            setLoading(true);
                             try {
-                                const jobsData = await fetchRecruiterJobs();
-                                setJobs(jobsData);
-                                const totalJobs = jobsData.length;
-                                const totalApplicants = jobsData.reduce((sum, job) => sum + (job.application_count || 0), 0);
-                                setStats({ totalJobs, totalApplicants });
+                                await fetchRecruiterJobs();
                             } catch (error) {
                                 console.error("Lỗi khi reload dữ liệu:", error);
-                            } finally {
-                                setLoading(false);
                             }
                         }}
                         colors={["#1E88E5"]}

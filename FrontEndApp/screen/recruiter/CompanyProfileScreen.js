@@ -1,13 +1,12 @@
-import axios from 'axios'
 import * as ImagePicker from "expo-image-picker"
 import { useContext, useEffect, useState } from "react"
-import { Image, ScrollView, StyleSheet, View } from "react-native"
+import { ScrollView, StyleSheet, View } from "react-native"
 import { Button, Card, HelperText, Snackbar, Text, TextInput } from "react-native-paper"
-import { API_ENDPOINTS } from '../../apiConfig'
 import { AuthContext } from "../../contexts/AuthContext"
 
 const CompanyProfileScreen = ({ navigation }) => {
-    const { user, accessToken } = useContext(AuthContext)
+    const auth = useContext(AuthContext);
+    const { user, accessToken } = auth;
 
     // Default empty company data
     const emptyCompanyData = {
@@ -27,9 +26,8 @@ const CompanyProfileScreen = ({ navigation }) => {
     const [snackbarVisible, setSnackbarVisible] = useState(false)
     const [snackbarMessage, setSnackbarMessage] = useState("")
 
-    // Fetch company data on component mount
+    // Lấy company data trực tiếp từ user (không gọi API)
     useEffect(() => {
-        // Nếu user có company (role recruiter) thì set luôn
         if (user && user.company) {
             setCompanyData(user.company);
             setLogo(user.company.logo || emptyCompanyData.logo);
@@ -67,46 +65,6 @@ const CompanyProfileScreen = ({ navigation }) => {
             console.log("Error picking image:", error)
         }
     }
-
-    // Thêm hàm chọn và cập nhật nhiều ảnh công ty
-    const pickCompanyImages = async () => {
-        try {
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsMultipleSelection: true,
-                selectionLimit: 5,
-                quality: 1,
-            });
-            if (!result.canceled) {
-                // Lấy danh sách uri ảnh mới
-                const newImages = result.assets.map(asset => asset.uri);
-                // Gửi PATCH lên API cập nhật images cho company
-                if (companyData.id) {
-                    const formData = new FormData();
-                    newImages.forEach((uri, idx) => {
-                        formData.append('images', {
-                            uri,
-                            type: 'image/jpeg',
-                            name: `company_image_${idx}.jpg`,
-                        });
-                    });
-                    await axios.patch(API_ENDPOINTS.COMPANIES_PARTIAL_UPDATE(companyData.id), formData, {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            Authorization: `Bearer ${accessToken}`,
-                        },
-                    });
-                    // Reload lại dữ liệu công ty
-                    setCompanyData({ ...companyData, images: [...(companyData.images || []), ...newImages] });
-                }
-            }
-        } catch (error) {
-            console.error('Lỗi khi cập nhật ảnh công ty:', error);
-            setSnackbarMessage('Cập nhật ảnh công ty thất bại!');
-            setSnackbarVisible(true);
-        }
-    };
-
     const validateForm = () => {
         const newErrors = {}
         let isValid = true
@@ -131,12 +89,13 @@ const CompanyProfileScreen = ({ navigation }) => {
         }
         try {
             // Gửi cập nhật thông tin công ty qua API chuẩn trong apiConfig
-            const response = await axios.put(API_ENDPOINTS.COMPANIES_UPDATE(companyData.id), companyData);
-            if (response.data) {
+            const response = await auth.updateCompanyProfile(companyData);
+            if (response) {
                 setEditing(false);
                 setSnackbarMessage("Cập nhật thông tin công ty thành công");
                 setSnackbarVisible(true);
-                fetchCompanyData(); // Refresh data
+                setCompanyData(response);
+                setLogo(response.logo || emptyCompanyData.logo);
             }
         } catch (error) {
             console.error("Error updating company data:", error);
@@ -146,9 +105,13 @@ const CompanyProfileScreen = ({ navigation }) => {
     }
 
     const handleCancel = () => {
-        fetchCompanyData() // Reload original data
-        setEditing(false)
-        setErrors({})
+        // Reset lại dữ liệu từ user
+        if (user && user.company) {
+            setCompanyData(user.company);
+            setLogo(user.company.logo || emptyCompanyData.logo);
+        }
+        setEditing(false);
+        setErrors({});
     }
 
     return (
@@ -239,34 +202,6 @@ const CompanyProfileScreen = ({ navigation }) => {
                     )}
                 </Card.Content>
             </Card>
-            {/* Hiển thị danh sách ảnh công ty phía dưới thông tin */}
-            <View style={styles.imagesSection}>
-                <View style={styles.imagesHeaderRow}>
-                    <Text style={styles.imagesSectionTitle}>Hình ảnh công ty</Text>
-                    {!companyData.is_verified && (
-                        <Button mode="outlined" onPress={pickCompanyImages} style={styles.changeImagesButton}>
-                            Đổi/Thêm ảnh
-                        </Button>
-                    )}
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imagesRow}>
-                    {Array.from({ length: Math.max(3, companyData.images?.length || 0) }).map((_, idx) => {
-                        const img = companyData.images && companyData.images[idx];
-                        return img ? (
-                            <Image
-                                key={idx}
-                                source={typeof img === 'string' ? { uri: img } : { uri: img.image || img.uri }}
-                                style={styles.companyImage}
-                                resizeMode="cover"
-                            />
-                        ) : (
-                            <View key={idx} style={[styles.companyImage, styles.emptyImageBox]}>
-                                <Text style={styles.emptyImageText}>Chưa có ảnh</Text>
-                            </View>
-                        );
-                    })}
-                </ScrollView>
-            </View>
             <View style={styles.bottomSpace} />
             <Snackbar
                 visible={snackbarVisible}
