@@ -201,11 +201,11 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.getenv("EMAIL_SEND")
 
-import firebase_admin
-from firebase_admin import credentials
-
-cred = credentials.Certificate('firebase/jobapp-9c8b0-firebase-adminsdk-fbsvc-1da9db7357.json')  # File từ Firebase Console
-firebase_admin.initialize_app(cred)
+# import firebase_admin
+# from firebase_admin import credentials
+#
+# cred = credentials.Certificate('firebase/jobapp-9c8b0-firebase-adminsdk-fbsvc-1da9db7357.json')  # File từ Firebase Console
+# firebase_admin.initialize_app(cred)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(BASE_DIR, "config", "jobapp-9c8b0-752103c18042.json")

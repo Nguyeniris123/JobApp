@@ -131,7 +131,6 @@ class CompanyImageUploadSerializer(serializers.Serializer):
 
         return instance
 
-
 class JobPostSerializer(serializers.ModelSerializer):
     recruiter = RecruiterSerializer(read_only=True)
     application_count = serializers.SerializerMethodField()
@@ -191,15 +190,15 @@ class ApplicationSerializer(serializers.ModelSerializer):
         return data
 
 class FollowSerializer(serializers.ModelSerializer):
-    recruiter_company = CompanySerializer(source="recruiter.company", read_only=True)
+    recruiter = RecruiterSerializer(read_only=True)
     company_id = serializers.PrimaryKeyRelatedField(
         queryset=Company.objects.all(), write_only=True
     )
 
     class Meta:
         model = Follow
-        fields = ["id", "company_id", "follower", "recruiter", "recruiter_company", "created_date"]
-        read_only_fields = ["follower", "recruiter", "recruiter_company", "created_date"]
+        fields = ["id", "company_id", "follower", "recruiter", "created_date"]
+        read_only_fields = ["follower", "recruiter", "created_date"]
 
     def validate(self, attrs):
         request = self.context["request"]
@@ -230,16 +229,20 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'first_name', 'last_name', 'email', 'role', 'avatar']
 
+    def to_representation(self, instance):
+        d = super().to_representation(instance)
+        d['avatar'] = instance.avatar.url if instance.avatar else ''
+        return d
+
 class CandidateReviewRecruiterSerializer(serializers.ModelSerializer):
     reviewer = UserSerializer(read_only=True)  # Trả về thông tin người đánh giá
-    reviewed_user = UserSerializer(read_only=True)  # Trả về thông tin người được đánh giá (nhà tuyển dụng)
-    reviewed_company = CompanySerializer(source="reviewed_user.company", read_only=True) # Trả về thông tin công ty
+    reviewed_user = RecruiterSerializer(read_only=True)
     company_id = serializers.PrimaryKeyRelatedField(queryset=Company.objects.all(), write_only=True)
 
     class Meta:
         model = Review
-        fields = ['id', 'reviewer', 'reviewed_user', 'reviewed_company', 'rating', 'comment', 'created_date', 'company_id']
-        read_only_fields = ['reviewer', 'reviewed_user', 'reviewed_company', 'created_date']
+        fields = ['id', 'reviewer', 'reviewed_user', 'rating', 'comment', 'created_date', 'company_id']
+        read_only_fields = ['reviewer', 'reviewed_user', 'created_date']
 
     def validate(self, attrs):
         request = self.context["request"]
