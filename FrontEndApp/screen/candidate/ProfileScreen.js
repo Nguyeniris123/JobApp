@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useCallback, useContext, useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Avatar, Button, Card, Divider, List, Snackbar, Text } from "react-native-paper";
+import { Avatar, Button, Card, Divider, List, Snackbar, Surface, Text } from "react-native-paper";
 import { AuthContext } from "../../contexts/AuthContext";
 
 const ProfileScreen = ({ navigation }) => {
@@ -63,41 +63,85 @@ const ProfileScreen = ({ navigation }) => {
 
     return (
         <ScrollView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={pickImage} disabled={loading}>
-                    <Avatar.Image 
-                        source={{ uri: profileImage }} 
-                        size={100} 
-                        style={styles.avatar} 
+            <Surface style={styles.headerSurface}>
+                <TouchableOpacity onPress={pickImage} disabled={loading} style={styles.avatarContainer}>
+                    <Avatar.Image
+                        source={{ uri: profileImage }}
+                        size={80}
+                        style={styles.avatar}
                         loading={loading}
                     />
                     <View style={styles.editIconContainer}>
-                        <MaterialCommunityIcons name="camera" size={20} color="#FFFFFF" />
+                        <MaterialCommunityIcons name="camera" size={16} color="#FFFFFF" />
                     </View>
                 </TouchableOpacity>
-                <Text style={styles.name}>{username}</Text>
-                <Text style={styles.email}>{user?.email || "user@example.com"}</Text>
-            </View>
+                <View style={styles.headerInfo}>
+                    <Text style={styles.name}>{username}</Text>
+                    <Text style={styles.email}>{user?.email || "user@example.com"}</Text>
+                    <Button
+                        mode="contained"
+                        onPress={() => navigation.navigate("EditProfile")}
+                        style={styles.profileButton}
+                        icon="account-outline"
+                        labelStyle={styles.buttonLabel}
+                    >
+                        Chỉnh sửa thông tin cá nhân
+                    </Button>
+                </View>
+            </Surface>
 
             {/* Các nút thao tác tài khoản */}
             <View style={styles.buttonContainer}>
-                <Button 
-                    mode="contained" 
-                    onPress={() => navigation.navigate("MyReviews")} 
-                    style={styles.reviewsButton} 
+                <Button
+                    mode="contained"
+                    onPress={() => navigation.navigate("MyReviews")}
+                    style={styles.reviewsButton}
                     icon="comment-text-multiple"
                 >
                     Đánh giá của tôi
                 </Button>
-                <Button 
-                    mode="contained" 
-                    onPress={() => navigation.navigate("EditProfile")} 
-                    style={styles.settingsButton} 
-                    icon="account-outline"
-                >
-                    Chỉnh sửa thông tin cá nhân
-                </Button>
             </View>
+
+            <Surface style={styles.section}>
+                <List.Section>
+                    <List.Subheader>Cài đặt ứng dụng</List.Subheader>
+                    <List.Item
+                        title="Ngôn ngữ"
+                        description="Tiếng Việt"
+                        left={props => <List.Icon {...props} icon="translate" />}
+                        onPress={() => { }}
+                    />
+                    <Divider />
+                    <List.Item
+                        title="Thông báo"
+                        left={props => <List.Icon {...props} icon="bell-outline" />}
+                        onPress={() => { }}
+                    />
+                    <Divider />
+                    <List.Item
+                        title="Chế độ tối"
+                        left={props => <List.Icon {...props} icon="brightness-6" />}
+                        onPress={() => { }}
+                    />
+                </List.Section>
+            </Surface>
+
+            <Surface style={styles.section}>
+                <List.Section>
+                    <List.Subheader>Hỗ trợ</List.Subheader>
+                    <List.Item
+                        title="Trung tâm hỗ trợ"
+                        left={props => <List.Icon {...props} icon="help-circle" />}
+                        onPress={() => { }}
+                    />
+                    <Divider />
+                    <List.Item
+                        title="Điều khoản sử dụng"
+                        left={props => <List.Icon {...props} icon="file-document" />}
+                        onPress={() => { }}
+                    />
+                </List.Section>
+            </Surface>
 
             {/* Nút đăng xuất */}
             <View style={styles.buttonContainer}>
@@ -136,11 +180,50 @@ const CardSection = ({ title, items }) => (
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#F5F5F5" },
-    header: { backgroundColor: "#1E88E5", padding: 20, alignItems: "center" },
-    avatar: { backgroundColor: "#FFFFFF" },
-    editIconContainer: { position: "absolute", bottom: 0, right: 0, backgroundColor: "#1E88E5", borderRadius: 20, padding: 5 },
-    name: { fontSize: 20, fontWeight: "bold", color: "#FFFFFF", marginTop: 10 },
-    email: { fontSize: 16, color: "#FFFFFF" },
+    headerSurface: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 16,
+        margin: 16,
+        elevation: 2,
+        borderRadius: 8,
+        backgroundColor: "#fff",
+    },
+    avatarContainer: {
+        position: "relative",
+        marginRight: 16,
+    },
+    avatar: {
+        backgroundColor: "#FFFFFF",
+    },
+    editIconContainer: {
+        position: "absolute",
+        bottom: 0,
+        right: 0,
+        backgroundColor: "#1E88E5",
+        borderRadius: 15,
+        padding: 4,
+        borderWidth: 1,
+        borderColor: "white",
+    },
+    headerInfo: {
+        flex: 1,
+    },
+    name: {
+        fontSize: 18,
+        fontWeight: "bold",
+    },
+    email: {
+        color: "#666",
+        marginBottom: 8,
+    },
+    profileButton: {
+        marginTop: 8,
+        alignSelf: "flex-start",
+    },
+    buttonLabel: {
+        fontSize: 12,
+    },
     statusContainer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
     statusLabel: { color: "#FFFFFF", fontSize: 16 },
     statusToggle: { flexDirection: "row", alignItems: "center" },

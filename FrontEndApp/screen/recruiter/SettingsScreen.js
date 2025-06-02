@@ -95,13 +95,6 @@ const SettingsScreen = ({ navigation }) => {
                         />
                         <Divider />
                         <List.Item
-                            title="Đánh giá của tôi"
-                            description="Xem danh sách đánh giá bạn đã viết"
-                            left={props => <List.Icon {...props} icon="comment-text-multiple" />}
-                            onPress={() => navigation.navigate("MyReviews")}
-                        />
-                        <Divider />
-                        <List.Item
                             title="Đổi mật khẩu"
                             left={props => <List.Icon {...props} icon="lock-reset" />}
                             onPress={() => {}}

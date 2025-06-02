@@ -170,7 +170,7 @@ const RecruiterNavigator = () => {
                     } else if (route.name === "CandidateTab") {
                         iconName = focused ? "account-group" : "account-group-outline"
                     } else if (route.name === "ReviewTab") {
-                        iconName = focused ? "review" : "review-outline"
+                        iconName = focused ? "note-text" : "note-text-outline"
                     } else if (route.name === "ProfileTab") {
                         iconName = focused ? "domain" : "domain"
                     }

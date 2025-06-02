@@ -10,7 +10,7 @@ import { ReviewProvider } from "./contexts/ReviewContext"
 import AppNavigator from "./navigation/AppNavigator"
 import { theme } from "./theme"
 
-LogBox.ignoreLogs(['Text strings must be rendered within a <Text>']);
+LogBox.ignoreAllLogs;
 
 const App = () => {
     return (

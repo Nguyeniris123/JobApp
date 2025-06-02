@@ -79,11 +79,15 @@ const FollowingScreen = ({ navigation }) => {
         // navigation.navigate('CompanyDetail', { companyId: company.id });
     };
 
-    const getImageUrl = (company) => {
-        if (company.images && company.images.length > 0) {
-            const imageObj = company.images[0];
-            if (typeof imageObj === 'object' && imageObj.image) {
-                return { uri: imageObj.image };
+    const getImageUrl = (images) => {
+        if (Array.isArray(images) && images.length > 0) {
+            const imageObj = images[0];
+            if (imageObj && typeof imageObj === 'object' && imageObj.image) {
+                // Nếu image đã là link đầy đủ thì trả về luôn, nếu chỉ là path thì thêm domain
+                const url = imageObj.image.startsWith('http')
+                    ? imageObj.image
+                    : `https://res.cloudinary.com/dnwyvuqej/${imageObj.image}`;
+                return { uri: url };
             }
         }
         return require('../../assets/logo.png'); // Default image
@@ -95,6 +99,7 @@ const FollowingScreen = ({ navigation }) => {
             console.log('No recruiter_company found for item:', item.id);
             return null;
         }
+        console.log('Rendering company:', company);
 
         return (
             <View style={styles.companyCard}>
@@ -104,7 +109,7 @@ const FollowingScreen = ({ navigation }) => {
                 >
                     <View style={styles.companyHeader}>
                         <Image
-                            source={getImageUrl(company)}
+                            source={getImageUrl(company.images)}
                             style={styles.companyLogo}
                             defaultSource={require('../../assets/logo.png')}
                         />

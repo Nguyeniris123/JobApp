@@ -8,8 +8,8 @@ import { ApplicationContext } from '../../contexts/ApplicationContext';
 const CandidateApplicationDetailScreen = () => {
     const route = useRoute();
     const navigation = useNavigation();
-    const { applicationId, jobId, cv } = route.params || {};
-    const { applications, updateApplication, loading } = useContext(ApplicationContext);
+    const { applicationId} = route.params || {};
+    const { applications, updateApplication } = useContext(ApplicationContext);
     const [snackbarVisible, setSnackbarVisible] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState("");
     const [localLoading, setLocalLoading] = useState(false);

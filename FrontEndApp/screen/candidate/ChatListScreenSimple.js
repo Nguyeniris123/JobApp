@@ -46,8 +46,6 @@ const ChatListScreenSimple = ({ navigation }) => {
                             if (room.recruiterInfo) {
                                 if (room.recruiterInfo.first_name || room.recruiterInfo.last_name) {
                                     recruiterName = `${room.recruiterInfo.first_name || ''} ${room.recruiterInfo.last_name || ''}`.trim();
-                                } else if (room.recruiterInfo.username) {
-                                    recruiterName = room.recruiterInfo.username;
                                 } else if (room.recruiterInfo.email) {
                                     recruiterName = room.recruiterInfo.email;
                                 } else if (room.recruiterInfo.id) {

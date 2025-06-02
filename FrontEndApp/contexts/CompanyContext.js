@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Alert } from 'react-native';
 import { API_ENDPOINTS } from '../apiConfig';
 import * as companyService from '../services/companyService';
 import { AuthContext } from './AuthContext';
@@ -80,80 +79,6 @@ export const CompanyProvider = ({ children }) => {
         }
     };
 
-    // Hàm test để kiểm tra API trực tiếp và hiển thị kết quả
-    const testFetchFollowedCompanies = async () => {
-        try {
-            console.log('TEST: Starting direct API test for followed companies...');
-
-            if (!accessToken) {
-                Alert.alert('Test Failed', 'No access token found. Please login first.');
-                return;
-            }
-
-            // Log toàn bộ token để kiểm tra
-            console.log('TEST: API URL:', API_ENDPOINTS.FOLLOW_LIST);
-
-            // Gọi API trực tiếp
-            console.log('TEST: Sending direct API request...');
-
-            const headers = {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            };
-
-            console.log('TEST: Headers:', JSON.stringify(headers));
-
-            const response = await fetch(API_ENDPOINTS.FOLLOW_LIST, {
-                method: 'GET',
-                headers: headers
-            });
-
-            console.log('TEST: API response status:', response.status);
-
-            // Chuyển đổi response thành JSON
-            const responseText = await response.text();
-            console.log('TEST: Raw response text:', responseText);
-
-            let responseData;
-            try {
-                responseData = JSON.parse(responseText);
-                console.log('TEST: Parsed response data:', JSON.stringify(responseData));
-            } catch (e) {
-                console.log('TEST: Could not parse response as JSON:', e.message);
-                Alert.alert('Test Result', `Status: ${response.status}\nNot JSON: ${responseText.substring(0, 100)}`);
-                return;
-            }
-
-            // Hiển thị kết quả
-            if (Array.isArray(responseData)) {
-                Alert.alert(
-                    'Test Success',
-                    `Found ${responseData.length} companies\n\nFirst item: ${responseData.length > 0 ?
-                        JSON.stringify(responseData[0]).substring(0, 100) + '...' :
-                        'No data'
-                    }`
-                );
-
-                // Cập nhật state với dữ liệu mới
-                setFollowedCompanies(responseData);
-                return responseData;
-            } else {
-                Alert.alert(
-                    'Test Result',
-                    `Response is not an array.\nType: ${typeof responseData}\nData: ${JSON.stringify(responseData).substring(0, 150)
-                    }...`
-                );
-            }
-        } catch (error) {
-            console.error('TEST ERROR:', error);
-            Alert.alert(
-                'Test Failed',
-                `Error: ${error.message}\n\nCheck console for details.`
-            );
-            return [];
-        }
-    };
-
     const unfollowCompany = async (companyIdOrFollowId) => {
         try {
             console.log('Attempting to unfollow with ID:', companyIdOrFollowId);
@@ -189,55 +114,21 @@ export const CompanyProvider = ({ children }) => {
 
                 console.log('Unfollow response:', response.status);
 
-                // Cập nhật state trực tiếp
-                if (companyId) {
-                    // Nếu biết company ID, lọc theo đó
-                    setFollowedCompanies(prev => prev.filter(
-                        company => company.recruiter_company && company.recruiter_company.id !== companyId
-                    ));
-                } else {
-                    // Nếu chỉ biết follow ID, lọc theo đó
-                    setFollowedCompanies(prev => prev.filter(
-                        company => company.id !== followId
-                    ));
-                }
+                // Sau khi unfollow, luôn fetch lại danh sách company
+                await fetchFollowedCompanies();
 
                 return true;
             } catch (apiError) {
-                // API có thể trả về lỗi 404 nếu follow không tồn tại, nhưng điều này vẫn có nghĩa là
-                // công ty không còn nằm trong danh sách followed, nên chúng ta vẫn cần cập nhật UI
                 if (apiError.response && apiError.response.status === 404) {
                     console.log('Company follow not found in database, considering as already unfollowed');
-                    
-                    // Cập nhật state để loại bỏ công ty khỏi danh sách
-                    if (companyId) {
-                        setFollowedCompanies(prev => prev.filter(
-                            company => company.recruiter_company && company.recruiter_company.id !== companyId
-                        ));
-                    } else {
-                        setFollowedCompanies(prev => prev.filter(
-                            company => company.id !== followId
-                        ));
-                    }
-                    
+                    await fetchFollowedCompanies();
                     return true;
                 } 
                 
                 // Xử lý lỗi 400 hoặc lỗi khác
                 if (apiError.response && (apiError.response.status === 400 || apiError.response.status === 204)) {
                     console.log('Successful unfollow with status:', apiError.response.status);
-                    
-                    // Cập nhật state để loại bỏ công ty khỏi danh sách
-                    if (companyId) {
-                        setFollowedCompanies(prev => prev.filter(
-                            company => company.recruiter_company && company.recruiter_company.id !== companyId
-                        ));
-                    } else {
-                        setFollowedCompanies(prev => prev.filter(
-                            company => company.id !== followId
-                        ));
-                    }
-                    
+                    await fetchFollowedCompanies();
                     return true;
                 }
                 
@@ -255,6 +146,7 @@ export const CompanyProvider = ({ children }) => {
             
             if (!stillFollowed) {
                 console.log('Company appears to be unfollowed despite error, considering as success');
+                await fetchFollowedCompanies();
                 return true;
             }
             
@@ -377,7 +269,6 @@ export const CompanyProvider = ({ children }) => {
             followedCompanies,
             error,
             fetchFollowedCompanies,
-            testFetchFollowedCompanies,
             unfollowCompany,
             followCompany,
             getFollowedCompanyById

@@ -85,7 +85,6 @@ const LoginScreen = ({ navigation }) => {
     return (
         <ScreenContainer>
             <ContentContainer scrollable={false} style={styles.container}>
-                {/* Logo và tiêu đề */}
                 <View style={styles.logoContainer}>
                     <Image
                         source={require('../../assets/logo.png')}
@@ -94,7 +93,7 @@ const LoginScreen = ({ navigation }) => {
                     />
                     <Title style={styles.title}>Chào mừng trở lại</Title>
                     <Text style={styles.subtitle}>Đăng nhập để tiếp tục</Text>
-                </View>                {/* Hiển thị lỗi từ API (nếu có) */}
+                </View>
                 {loginError && (
                     <View style={styles.errorContainer}>
                         <MaterialCommunityIcons name="alert-circle" size={20} color={theme.colors.error} />
@@ -104,7 +103,6 @@ const LoginScreen = ({ navigation }) => {
 
                 {/* Form đăng nhập */}
                 <View style={styles.formContainer}>
-                    {/* ✅ Username - thay thế Email */}
                     <FormField
                         control={control}
                         name="username"
@@ -151,12 +149,12 @@ const LoginScreen = ({ navigation }) => {
                     <View style={styles.registerContainer}>
                         <Text style={styles.registerText}>Chưa có tài khoản?</Text>    
                         <AppButton
-                            mode="text"
-                            onPress={() => navigation.navigate('Register')}
-                            style={styles.registerButton}
-                        >
-                            Đăng ký
-                        </AppButton>
+                        mode="text"
+                        onPress={() => navigation.navigate('Register')}
+                        style={styles.registerContainer}
+                    >
+                        Đăng ký
+                    </AppButton>
                     </View>
                 </View>
             </ContentContainer>

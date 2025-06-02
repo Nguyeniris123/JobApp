@@ -1,11 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { API_ENDPOINTS } from '../apiConfig';
 
 // Lấy danh sách đánh giá dành cho nhà tuyển dụng
-export const fetchRecruiterReviews = async (recruiterId) => {
+export const fetchRecruiterReviews = async (recruiterId, accessToken) => {
     try {
-        const accessToken = await AsyncStorage.getItem('accessToken');
         if (!accessToken) throw new Error('Chưa đăng nhập');
         const response = await axios.get(
             API_ENDPOINTS.REVIEWS_LIST_FOR_RECRUITER(recruiterId),
@@ -18,9 +16,8 @@ export const fetchRecruiterReviews = async (recruiterId) => {
 };
 
 // Lấy danh sách đánh giá dành cho ứng viên
-export const fetchCandidateReviews = async (candidateId) => {
+export const fetchCandidateReviews = async (candidateId, accessToken) => {
     try {
-        const accessToken = await AsyncStorage.getItem('accessToken');
         if (!accessToken) throw new Error('Chưa đăng nhập');
         const response = await axios.get(
             API_ENDPOINTS.REVIEWS_LIST_FOR_CANDIDATE(candidateId),
@@ -33,9 +30,8 @@ export const fetchCandidateReviews = async (candidateId) => {
 };
 
 // Thêm đánh giá mới
-export const addReview = async (reviewData, type) => {
+export const addReview = async (reviewData, type, accessToken) => {
     try {
-        const accessToken = await AsyncStorage.getItem('accessToken');
         if (!accessToken) throw new Error('Chưa đăng nhập');
         let url = type === 'candidate' ? API_ENDPOINTS.REVIEWS_CANDIDATE_CREATE : API_ENDPOINTS.REVIEWS_RECRUITER_CREATE;
         console.log('Adding review with data:', reviewData);
@@ -49,9 +45,8 @@ export const addReview = async (reviewData, type) => {
 };
 
 // Xóa đánh giá
-export const deleteReview = async (reviewId, type = 'job') => {
+export const deleteReview = async (reviewId, type = 'job', accessToken) => {
     try {
-        const accessToken = await AsyncStorage.getItem('accessToken');
         if (!accessToken) throw new Error('Chưa đăng nhập');
         let url = type === 'candidate' ? API_ENDPOINTS.REVIEWS_DELETE_FOR_CANDIDATE(reviewId) : API_ENDPOINTS.REVIEWS_DELETE_FOR_RECRUITER(reviewId);
         await axios.delete(url, {

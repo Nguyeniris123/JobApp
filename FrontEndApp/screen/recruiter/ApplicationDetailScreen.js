@@ -41,7 +41,6 @@ const ApplicationDetailScreen = ({ route }) => {
             }
         };
         fetchReviews();
-        // Chỉ phụ thuộc vào applicant_detail.id, KHÔNG phụ thuộc candidateReviews để tránh lặp vô hạn
     }, [application?.applicant_detail?.id]);
 
     // Xử lý accept/reject

@@ -124,7 +124,7 @@ const MyReviewsScreen = ({ navigation }) => {
                 style={styles.header}
             >
                 <Text style={styles.screenTitle}>Đánh giá của tôi</Text>
-                <Text style={styles.screenSubtitle}>{user?.username || 'Nhà tuyển dụng'}</Text>
+                <Text style={styles.screenSubtitle}>{`${user?.first_name} ${user?.last_name}` || 'Nhà tuyển dụng'}</Text>
             </LinearGradient>
             {renderReviewsList()}
         </View>
