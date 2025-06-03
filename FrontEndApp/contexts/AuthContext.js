@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }) => {
             (response) => response,
             async (error) => {
                 const originalRequest = error.config;
-                
+
                 if (error.response?.status === 401 && !originalRequest._retry) {
                     originalRequest._retry = true;
                     try {
@@ -108,19 +108,59 @@ export const AuthProvider = ({ children }) => {
             try {
                 const recruiterData = await fetchRecruiterProfile(token);
                 setUser(recruiterData);
-                setRole('recruiter');
+                setRole(recruiterData.role || 'recruiter');
+                return;
             } catch (error) {
                 if (error.response?.data?.detail === "Bạn không có quyền truy cập.") {
-                    const candidateData = await fetchCandidateProfile(token);
-                    setUser(candidateData);
-                    setRole('candidate');
+                    try {
+                        const candidateData = await fetchCandidateProfile(token);
+                        setUser(candidateData);
+                        setRole(candidateData.role || 'candidate');
+                        return;
+                    } catch (candidateError) {
+                        throw candidateError;
+                    }
                 } else {
                     throw error;
                 }
             }
         } catch (error) {
-            // Log error in fetchUserProfile
-            console.error('Lỗi khi lấy thông tin người dùng:', error);
+            try {
+                const newAccessToken = await refreshAccessToken();
+                if (newAccessToken) {
+                    try {
+                        const recruiterData = await fetchRecruiterProfile(newAccessToken);
+                        setUser(recruiterData);
+                        setRole(recruiterData.role || 'recruiter');
+                        return;
+                    } catch (recruiterError) {
+                        if (recruiterError.response?.data?.detail === "Bạn không có quyền truy cập.") {
+                            try {
+                                const candidateData = await fetchCandidateProfile(newAccessToken);
+                                setUser(candidateData);
+                                setRole(candidateData.role || 'candidate');
+                                return;
+                            } catch (candidateError) {
+                                await logout();
+                                setError('Lỗi khi lấy thông tin người dùng. Vui lòng đăng nhập lại.');
+                                throw candidateError;
+                            }
+                        } else {
+                            await logout();
+                            setError('Lỗi khi lấy thông tin người dùng. Vui lòng đăng nhập lại.');
+                            throw recruiterError;
+                        }
+                    }
+                } else {
+                    await logout();
+                    setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                    throw new Error('Không refresh được access token');
+                }
+            } catch (refreshError) {
+                await logout();
+                setError('Lỗi khi lấy thông tin người dùng. Vui lòng đăng nhập lại.');
+                throw refreshError;
+            }
         }
     };
 

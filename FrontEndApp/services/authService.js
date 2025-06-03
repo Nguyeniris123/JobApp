@@ -4,8 +4,8 @@ import { API_ENDPOINTS } from '../apiConfig';
 
 export const refreshAccessToken = async (refreshToken) => {
     const jsondata = {
-        client_id: "OidP3ERxQtbZvrMN31JhxjjTWm325MLA3OMTCH5h",
-        client_secret: "UI7wNEiXd6H22GYDOyJU8YcaKNDnhpsBB1Z0Ziq89iGtD1qYzybcLS7AUuNKHV02dlABUVccNxKPLNsOYdAYJLspRffloiTaHG0qVh67JP32zynznskB1fYrmP7jGwon",
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
         refresh_token: refreshToken,
         grant_type: "refresh_token"
     };
