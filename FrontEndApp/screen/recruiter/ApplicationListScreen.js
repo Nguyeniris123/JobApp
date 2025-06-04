@@ -17,16 +17,6 @@ const ApplicationListScreen = ({ route, navigation }) => {
     const [expandedCardId, setExpandedCardId] = useState(null)
     const [candidateReviews, setCandidateReviews] = useState([]);
 
-    // Lấy đánh giá cho ứng viên cụ thể
-    const getReviewsForCandidate = (applicationId) => {
-        return candidateReviews.filter(r => r.application === applicationId);
-    };
-
-    // Xem đánh giá và toggle hiển thị
-    const toggleCardExpand = (candidateId) => {
-        setExpandedCardId(expandedCardId === candidateId ? null : candidateId);
-    };
-
     // Fetch applications from API (for recruiter)
     useEffect(() => {
         fetchApplications();
@@ -41,27 +31,6 @@ const ApplicationListScreen = ({ route, navigation }) => {
     const handleScroll = (event) => {
         if (event.nativeEvent.contentOffset.y <= 0 && !loading) {
             fetchApplications();
-        }
-    };
-
-    // Hàm submitting đánh giá mới
-    const handleReviewSubmit = async (applicationId, reviewData) => {
-        try {
-            const result = await createApplicationReview(
-                applicationId,
-                reviewData.rating,
-                reviewData.comment,
-                reviewData.strengths,
-                reviewData.weaknesses
-            );
-
-            if (result.success) {
-                setShowReviewForm(false);
-                // Tải lại đánh giá sau khi thêm thành công
-                await fetchCandidateReviews();
-            }
-        } catch (error) {
-            console.error("Error submitting review:", error);
         }
     };
 
@@ -81,20 +50,6 @@ const ApplicationListScreen = ({ route, navigation }) => {
                 return "Từ chối";
             default:
                 return status;
-        }
-    };
-
-    // Map Vietnamese status to API status
-    const mapVNToStatus = (statusVN) => {
-        switch (statusVN) {
-            case "Đang xem xét":
-                return "pending";
-            case "Đã phỏng vấn":
-                return "accepted";
-            case "Từ chối":
-                return "rejected";
-            default:
-                return null;
         }
     };
 

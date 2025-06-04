@@ -5,7 +5,9 @@ import {
     changeAvatar as changeAvatarApi,
     fetchCandidateProfile,
     fetchRecruiterProfile,
+    login as loginApi,
     refreshAccessToken as refreshAccessTokenApi,
+    register as registerApi,
     updateCompanyProfile as updateCompanyProfileApi,
     updateUserProfile as updateUserProfileApi
 } from '../services/authService';
@@ -40,7 +42,13 @@ export const AuthProvider = ({ children }) => {
                     setIsAuthenticated(true);
                 }
             } catch (error) {
-                console.error('Lỗi khi tải token:', error);
+                refreshAccessTokenApi(refreshToken)
+                    .catch(() => {
+                        console.error('Không thể làm mới access token:', error);
+                        setIsAuthenticated(false);
+                        logout();
+                        console.log('Phiên đăng nhập đã hết hạn, Vui lòng đăng nhập lại');
+                    });
             } finally {
                 setLoading(false);
             }
@@ -165,25 +173,38 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Đăng nhập
-    const login = async (access, refresh, user) => {
+    const login = async (username, password) => {
         try {
             setLoading(true);
-            setError(null)
-
-            await AsyncStorage.setItem('accessToken', access);
-            await AsyncStorage.setItem('refreshToken', refresh);
-            setAccessToken(access);
-            setRefreshToken(refresh);
-
-            axios.defaults.headers.common['Authorization'] = `Bearer ${access}`;
-            console.log("thanh cong")
+            setError(null);
+            const data = await loginApi(username, password);
+            const { access_token, refresh_token } = data;
+            await AsyncStorage.setItem('accessToken', access_token);
+            await AsyncStorage.setItem('refreshToken', refresh_token);
+            setAccessToken(access_token);
+            setRefreshToken(refresh_token);
+            axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
             await fetchUserProfile();
-            console.log("Kiem tra user", user)
             setIsAuthenticated(true);
+            return { success: true };
         } catch (error) {
-
-            console.log("Lỗi khác:", error.message);
             setError(error.response?.data?.detail || 'Đăng nhập thất bại!');
+            return { success: false, error };
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Đăng ký
+    const register = async (data, userType, avatar, companyImages) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const res = await registerApi(data, userType, avatar, companyImages);
+            return { success: true, data: res };
+        } catch (error) {
+            setError(error.response?.data?.detail || 'Đăng ký thất bại!');
+            return { success: false, error };
         } finally {
             setLoading(false);
         }
@@ -267,14 +288,14 @@ export const AuthProvider = ({ children }) => {
                 loading,
                 error,
                 login,
+                register,
                 role,
-                // register,
                 logout,
                 changeAvatar,
-                accessToken, // <-- expose accessToken here
-                updateUserProfile, // expose updateUserProfile
-                updateCompanyProfile, // expose updateCompanyProfile
-                fetchUserProfile, // expose fetchUserProfile
+                accessToken,
+                updateUserProfile,
+                updateCompanyProfile,
+                fetchUserProfile,
             }}
         >
             {children}

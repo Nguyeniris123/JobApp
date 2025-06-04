@@ -28,6 +28,7 @@ const FollowingScreen = ({ navigation }) => {
         try {
             // Không cần kiểm tra token ở đây nữa, context đã xử lý
             const result = await fetchFollowedCompanies();
+            console.log('Fetched followed companies:', result);
             console.log('Followed companies data loaded in FollowingScreen, count:', result?.length || 0);
         } catch (error) {
             console.error('Error in loadData:', error);
@@ -80,26 +81,21 @@ const FollowingScreen = ({ navigation }) => {
     };
 
     const getImageUrl = (images) => {
-        if (Array.isArray(images) && images.length > 0) {
-            const imageObj = images[0];
-            if (imageObj && typeof imageObj === 'object' && imageObj.image) {
-                // Nếu image đã là link đầy đủ thì trả về luôn, nếu chỉ là path thì thêm domain
-                const url = imageObj.image.startsWith('http')
-                    ? imageObj.image
-                    : `https://res.cloudinary.com/dnwyvuqej/${imageObj.image}`;
-                return { uri: url };
-            }
+    if (Array.isArray(images) && images.length > 0) {
+        const url = images[0];
+        if (typeof url === 'string' && url.startsWith('http')) {
+            return { uri: url };
         }
-        return require('../../assets/logo.png'); // Default image
-    };
+    }
+    return require('../../assets/logo.png'); // Default image
+};
 
     const renderCompanyItem = ({ item }) => {
-        const company = item.recruiter_company;
+        const company = item?.recruiter.company;
         if (!company) {
             console.log('No recruiter_company found for item:', item.id);
             return null;
         }
-        console.log('Rendering company:', company);
 
         return (
             <View style={styles.companyCard}>

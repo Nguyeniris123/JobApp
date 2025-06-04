@@ -11,6 +11,7 @@ const ApplicationStatusScreen = ({ navigation }) => {
     const { applications, loading, error, fetchApplications } = useContext(ApplicationContext)
     const { fetchJobById } = useContext(JobContext)
     const [loadingChat, setLoadingChat] = useState(false)
+    const [statusFilter, setStatusFilter] = useState('all');
 
     // Sử dụng useFocusEffect để tải lại dữ liệu khi màn hình được focus
     // Chỉ fetchApplications khi context chưa có dữ liệu
@@ -26,8 +27,6 @@ const ApplicationStatusScreen = ({ navigation }) => {
         switch (status) {
             case "pending":
                 return "#FFC107"
-            case "reviewing":
-                return "#2196F3"
             case "accepted":
                 return "#4CAF50"
             case "rejected":
@@ -41,8 +40,6 @@ const ApplicationStatusScreen = ({ navigation }) => {
         switch (status) {
             case "pending":
                 return "Đang chờ"
-            case "reviewing":
-                return "Đang xem xét"
             case "accepted":
                 return "Đã chấp nhận"
             case "rejected":
@@ -221,6 +218,17 @@ const ApplicationStatusScreen = ({ navigation }) => {
         }
     };
 
+    // Filter applications theo status
+    const filteredApplications = applications.filter(app => {
+        if (statusFilter === 'all') return true;
+        return app.status === statusFilter;
+    });
+
+    // Thêm hàm chọn status filter
+    const handleStatusFilter = (status) => {
+        setStatusFilter(status);
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -254,7 +262,47 @@ const ApplicationStatusScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            {applications.length === 0 ? (
+            {/* Filter status giống ApplicationListScreen */}
+            <View style={{ paddingHorizontal: 12, marginBottom: 12, marginTop: 8 }}>
+                <FlatList
+                    data={[
+                        { label: 'Tất cả', value: 'all', color: '#757575' },
+                        { label: 'Đang chờ', value: 'pending', color: '#FFC107' },
+                        { label: 'Đã chấp nhận', value: 'accepted', color: '#4CAF50' },
+                        { label: 'Đã từ chối', value: 'rejected', color: '#F44336' },
+                    ]}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    keyExtractor={item => item.value}
+                    renderItem={({ item }) => {
+                        const isSelected = statusFilter === item.value;
+                        return (
+                            <Chip
+                                mode={isSelected ? 'flat' : 'outlined'}
+                                style={[
+                                    styles.statusFilterChip,
+                                    isSelected && {
+                                        backgroundColor: item.color + '22',
+                                        borderColor: item.color,
+                                        elevation: 2,
+                                    },
+                                ]}
+                                textStyle={[
+                                    styles.statusFilterChipText,
+                                    isSelected && { color: item.color, fontWeight: 'bold' },
+                                ]}
+                                selected={isSelected}
+                                onPress={() => handleStatusFilter(item.value)}
+                                icon={isSelected ? 'check-circle' : undefined}
+                            >
+                                {item.label}
+                            </Chip>
+                        );
+                    }}
+                    contentContainerStyle={{ paddingRight: 12 }}
+                />
+            </View>
+            {filteredApplications.length === 0 ? (
                 <View style={styles.emptyContainer}>
                     <MaterialCommunityIcons name="file-document-outline" size={64} color="#BDBDBD" />
                     <Text style={styles.emptyText}>Bạn chưa ứng tuyển vào công việc nào</Text>
@@ -272,7 +320,7 @@ const ApplicationStatusScreen = ({ navigation }) => {
                 </View>
             ) : (
                 <FlatList
-                    data={applications}
+                    data={filteredApplications}
                     renderItem={renderApplicationItem}
                     keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={styles.applicationList}
@@ -401,7 +449,7 @@ const styles = StyleSheet.create({
         color: "#757575",
     },
     statusChip: {
-        height: 28,
+        height: 32,
     },
     divider: {
         marginVertical: 12,
@@ -445,6 +493,22 @@ const styles = StyleSheet.create({
     },
     chatChipText: {
         color: "#1E88E5",
+    },
+    // Thêm style cho filter chip
+    statusFilterChip: {
+        marginRight: 8,
+        marginBottom: 8,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        borderColor: '#E0E0E0',
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 10,
+        height: 36,
+        justifyContent: 'center',
+    },
+    statusFilterChipText: {
+        fontSize: 15,
+        color: '#757575',
     },
 })
 

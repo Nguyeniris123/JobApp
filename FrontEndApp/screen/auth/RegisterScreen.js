@@ -1,12 +1,12 @@
 import { yupResolver } from "@hookform/resolvers/yup";
-import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Alert, Image, StyleSheet, View } from "react-native";
 import { Text, Title, useTheme } from "react-native-paper";
 import * as yup from "yup";
 import { API_ENDPOINTS } from "../../apiConfig";
+import { AuthContext } from '../../contexts/AuthContext';
 
 // Import components
 import FormButton from "../../components/form/FormButton";
@@ -47,6 +47,7 @@ const RegisterScreen = ({ navigation }) => {
     const [companyImages, setCompanyImages] = useState([]);
     const [avatar, setAvatar] = useState(null);
     const theme = useTheme();
+    const { register } = useContext(AuthContext);
 
     const { control, handleSubmit, setValue, formState: { errors } } = useForm({
         resolver: yupResolver(registerSchema),
@@ -115,100 +116,20 @@ const RegisterScreen = ({ navigation }) => {
         try {
             setLoading(true);
             setError(null);
-    
             if (userType === "employer" && companyImages.length < 3) {
                 Alert.alert("Lỗi", "Cần ít nhất 3 ảnh công ty.");
                 setLoading(false);
                 return;
             }
-    
-            const formData = new FormData();
-            formData.append("first_name", data.firstname);
-            formData.append("last_name", data.lastname);
-            formData.append("username", data.username);
-            formData.append("email", data.email);
-            formData.append("password", data.password);
-    
-            if (avatar) {
-                // Fix: Properly format avatar for upload
-                const filename = avatar.split('/').pop();
-                const match = /\.(\w+)$/.exec(filename);
-                const type = match ? `image/${match[1]}` : 'image/jpeg';
-                
-                formData.append("avatar", {
-                    uri: avatar,
-                    name: filename || 'avatar.jpg',
-                    type: type,
-                });
-                
-                console.log("Avatar appended to FormData:", {
-                    uri: avatar,
-                    name: filename,
-                    type
-                });
-            }
-
-            if (userType === "employer") {
-                formData.append("company_name", data.companyName);
-                formData.append("description", data.description);
-                formData.append("location", data.location);
-                formData.append("tax_code", data.taxId);
-                
-                // Fix: Properly format images for upload
-                companyImages.forEach((imageUri, index) => {
-                    const filename = imageUri.split('/').pop();
-                    const match = /\.(\w+)$/.exec(filename);
-                    const type = match ? `image/${match[1]}` : 'image/jpeg';
-                    
-                    formData.append('images', {
-                        uri: imageUri,
-                        type: type,
-                        name: filename || `company_image_${index}.jpg`,
-                    });
-                    console.log(`Company image ${index} added to formData:`, {
-                        uri: imageUri,
-                        type: type,
-                        name: filename || `company_image_${index}.jpg`
-                    });
-                });
-            }
-
-            console.log("FormData gửi đi:", formData);
-
-            const apiEndpoint = userType === "jobSeeker" ? 
-                API_ENDPOINTS.CANDIDATES_CREATE : 
-                API_ENDPOINTS.RECRUITERS_CREATE;
-                
-            // Add correct content type header for multipart form data
-            const response = await axios.post(apiEndpoint, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'Accept': 'application/json',
-                },
-                transformRequest: (data, headers) => {
-                    return formData; // Return FormData directly
-                },
-            });
-    
-            console.log("✅ Đăng ký thành công:", response.data);
-            Alert.alert("Thành công", "Đăng ký tài khoản thành công!");
-            navigation.navigate("Login");
-        } catch (error) {
-            console.error("❌ Lỗi API:", "Người dùng đã tồn tại");
-    
-            if (error.response) {
-                console.error("🔹 Response Data:", error.response.data);
-                console.error("🔹 Status Code:", error.response.status);
-    
-                // Hiển thị lỗi cụ thể từ server
-                Alert.alert("Lỗi", `Lỗi ${error.response.status}: ${JSON.stringify(error.response.data)}`);
-            } else if (error.request) {
-                console.error("🔹 Không có phản hồi từ server:", error.request);
-                Alert.alert("Lỗi", "Không có phản hồi từ server. Vui lòng kiểm tra kết nối.");
+            const result = await register(data, userType, avatar, companyImages);
+            if (result.success) {
+                Alert.alert("Thành công", "Đăng ký tài khoản thành công!");
+                navigation.navigate("Login");
             } else {
-                console.error("🔹 Lỗi không xác định:", error.message);
-                Alert.alert("Lỗi", "Đăng ký thất bại. Lỗi không xác định.");
+                Alert.alert("Lỗi", result.error?.response?.data?.detail || 'Đăng ký thất bại!');
             }
+        } catch (error) {
+            Alert.alert("Lỗi", "Đăng ký thất bại!");
         } finally {
             setLoading(false);
         }

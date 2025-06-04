@@ -1,13 +1,10 @@
-import { CLIENT_ID, CLIENT_SECRET } from '@env';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
-import axios from 'axios';
 import { useContext, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Image, StyleSheet, View } from 'react-native';
 import { Text, Title, useTheme } from 'react-native-paper';
 import * as yup from 'yup';
-import { API_ENDPOINTS } from '../../apiConfig';
 
 import { AuthContext } from "../../contexts/AuthContext";
 
@@ -41,42 +38,16 @@ const LoginScreen = ({ navigation }) => {
     });
 
     // ✅ Xử lý đăng nhập    
-    const onSubmit = async (data) => {        try {
+    const onSubmit = async (data) => {
+        try {
             setLoading(true);
-            setLoginError(null); // Reset error state when attempting login
-            const jsondata = {
-                client_id: CLIENT_ID,
-                client_secret: CLIENT_SECRET,
-                username: data.username, // Sử dụng username thay vì email
-                password: data.password,
-                grant_type: "password",
-            };
-
-            console.log("Request gửi đi:", jsondata);
-
-            const response = await axios.post(API_ENDPOINTS.LOGIN, jsondata);
-            const { access_token, refresh_token, user } = response.data;
-
-            console.log("===========================\n",access_token, refresh_token,user)
-            await login(access_token, refresh_token, user);
-
-        } catch (error) {
-            if (error.response) {
-                // Lỗi từ server (ví dụ: 400, 401, 403, ...)
-                console.log("Lỗi response:", error.response.data);
-                const errorMessage = error.response.status === 401 
-                    ? "Tên đăng nhập hoặc mật khẩu không chính xác"
-                    : error.response.data.detail || "Đăng nhập thất bại, vui lòng kiểm tra lại!";
-                setLoginError(errorMessage);
-            } else if (error.request) {
-                // Không có phản hồi từ server (mất mạng, lỗi API)
-                console.log("Lỗi request:", error.request);
-                setLoginError("Không thể kết nối đến máy chủ, vui lòng thử lại sau.");
-            } else {
-                // Lỗi bất thường
-                console.log("Lỗi khác:", error.message);
-                setLoginError("Có lỗi xảy ra, vui lòng thử lại!");
+            setLoginError(null);
+            const result = await login(data.username, data.password);
+            if (!result.success) {
+                setLoginError(result.error?.response?.data?.detail || 'Đăng nhập thất bại, vui lòng kiểm tra lại!');
             }
+        } catch (error) {
+            setLoginError('Có lỗi xảy ra, vui lòng thử lại!');
         } finally {
             setLoading(false);
         }

@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '../apiConfig';
 
 export const fetchJobs = async (filters) => {
     const params = new URLSearchParams();
-    if (filters.specialized) params.append('specialized__icontains', filters.specialized);
+    if (filters.specialized) params.append('specialized', filters.specialized);
     if (filters.salary_min) params.append('salary__gte', filters.salary_min);
     if (filters.salary_max) params.append('salary__lte', filters.salary_max);
     if (filters.working_hours_min) params.append('working_hours__gte', filters.working_hours_min);
@@ -51,7 +51,7 @@ export const fetchRecruiterJobs = async (accessToken) => {
 
 export const fetchJobsByPage = async ({ page = 1, page_size = 10, filters = {} }) => {
     const params = new URLSearchParams();
-    if (filters.specialized) params.append('specialized__icontains', filters.specialized);
+    if (filters.specialized) params.append('specialized', filters.specialized);
     if (filters.salary_min) params.append('salary__gte', filters.salary_min);
     if (filters.salary_max) params.append('salary__lte', filters.salary_max);
     if (filters.working_hours_min) params.append('working_hours__gte', filters.working_hours_min);

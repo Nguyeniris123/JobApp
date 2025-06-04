@@ -92,47 +92,6 @@ const RecruiterJobDetailScreen = ({ route, navigation }) => {
         )
     }
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case "active":
-                return "#4CAF50"
-            case "closed":
-                return "#F44336"
-            case "expired":
-                return "#9E9E9E"
-            default:
-                return "#9E9E9E"
-        }
-    }
-
-    const getStatusText = (status) => {
-        switch (status) {
-            case "active":
-                return "Đang hiển thị"
-            case "closed":
-                return "Đã đóng"
-            case "expired":
-                return "Hết hạn"
-            default:
-                return "Không xác định"
-        }
-    }
-
-    const getApplicantStatusColor = (status) => {
-        switch (status) {
-            case "pending":
-                return "#FFC107"
-            case "reviewing":
-                return "#2196F3"
-            case "accepted":
-                return "#4CAF50"
-            case "rejected":
-                return "#F44336"
-            default:
-                return "#9E9E9E"
-        }
-    }
-
     const getApplicantStatusText = (status) => {
         switch (status) {
             case "pending":

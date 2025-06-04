@@ -10,7 +10,7 @@ import { ReviewProvider } from "./contexts/ReviewContext"
 import AppNavigator from "./navigation/AppNavigator"
 import { theme } from "./theme"
 
-LogBox.ignoreAllLogs;
+LogBox.ignoreAllLogs();
 
 const App = () => {
     return (
