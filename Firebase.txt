@@ -1,0 +1,78 @@
+Hiện tại, chúng ta đang sử dụng dữ liệu mẫu cho danh sách người dùng. Trong môi trường sản xuất thực tế, bạn cần:
+
+Tích hợp với API người dùng của bạn để tải danh sách người dùng thực tế
+Thêm logic để lọc người dùng theo vai trò tương ứng (nhà tuyển dụng chỉ nên thấy ứng viên và ngược lại)
+Triển khai các quy tắc bảo mật Firestore để đảm bảo người dùng chỉ có thể truy cập tin nhắn của họ
+Bạn có thể tiếp tục phát triển hệ thống chat bằng cách:
+
+Thêm tính năng hiển thị trạng thái tin nhắn (đã gửi, đã đọc)
+Thêm chức năng gửi hình ảnh và tệp đính kèm
+Triển khai thông báo đẩy khi có tin nhắn mới
+Thêm tính năng gõ chỉ báo ("người dùng đang nhập...")
+
+// firebase/firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Bảo vệ phòng chat - chỉ cho phép thành viên truy cập
+    match /chatRooms/{roomId} {
+      allow read, write: if request.auth != null && 
+        (exists(/databases/$(database)/documents/chatRooms/$(roomId)/participants/$(request.auth.uid)));
+      
+      // Cho phép đọc/ghi tin nhắn trong phòng
+      match /messages/{messageId} {
+        allow read: if request.auth != null && 
+          exists(/databases/$(database)/documents/chatRooms/$(roomId)/participants/$(request.auth.uid));
+        allow create: if request.auth != null && 
+          exists(/databases/$(database)/documents/chatRooms/$(roomId)/participants/$(request.auth.uid)) &&
+          request.resource.data.senderId == request.auth.uid;
+      }
+      
+      // Quản lý danh sách người tham gia
+      match /participants/{userId} {
+        allow read: if request.auth != null && 
+          (request.auth.uid == userId || 
+          exists(/databases/$(database)/documents/chatRooms/$(roomId)/participants/$(request.auth.uid)));
+      }
+    }
+    
+    // Thông tin người dùng cơ bản
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+
+firestore/
+├── chatRooms/
+│   ├── {roomId}/
+│   │   ├── createdAt: timestamp
+│   │   ├── updatedAt: timestamp
+│   │   ├── lastMessage: string
+│   │   ├── lastMessageTime: timestamp
+│   │   ├── unreadCount: {
+│   │   │   └── {userId}: number
+│   │   │ }
+│   │   ├── messages/
+│   │   │   └── {messageId}/
+│   │   │       ├── content: string
+│   │   │       ├── senderId: string
+│   │   │       ├── timestamp: timestamp
+│   │   │       ├── read: boolean
+│   │   │       └── attachments: array (optional)
+│   │   └── participants/
+│   │       └── {userId}: {
+│   │           ├── role: string
+│   │           ├── joinedAt: timestamp
+│   │           └── displayName: string
+│   │         }
+├── users/
+│   └── {userId}/
+│       ├── displayName: string
+│       ├── email: string
+│       ├── role: string
+│       ├── photoURL: string
+│       ├── onlineStatus: string
+│       ├── lastActive: timestamp
+│       └── fcmTokens: [string]
