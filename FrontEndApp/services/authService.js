@@ -122,11 +122,17 @@ export const register = async (data, userType, avatar, companyImages) => {
     const apiEndpoint = userType === "jobSeeker" ? 
         API_ENDPOINTS.CANDIDATES_CREATE : 
         API_ENDPOINTS.RECRUITERS_CREATE;
-    const response = await axios.post(apiEndpoint, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-            'Accept': 'application/json',
-        },
-    });
-    return response.data;
+    try {
+        const response = await axios.post(apiEndpoint, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                'Accept': 'application/json',
+            },
+            validateStatus: () => true // always resolve
+        });
+        return { status: response.status, data: response.data };
+    } catch (error) {
+        // fallback, should not happen with validateStatus
+        return { status: error.response?.status || 500, error };
+    }
 };

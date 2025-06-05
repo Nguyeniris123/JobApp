@@ -10,7 +10,7 @@ import { JobContext } from "../../contexts/JobContext";
 
 const HomeScreen = ({ navigation }) => {
   
-  const { loading, jobs, fetchJobs, updateFilters, filters, fetchJobsByPage } = useContext(JobContext);
+  const { updateFilters, filters, fetchJobsByPage } = useContext(JobContext);
   const { user } = useContext(AuthContext);
   const username = useMemo(() => user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : "Người dùng", [user]);
   
@@ -41,14 +41,7 @@ const HomeScreen = ({ navigation }) => {
     outputRange: [16, 0],
     extrapolate: 'clamp',
   });
-
-  const categories = [
-    { id: 'all', label: 'Tất cả', icon: 'apps' },
-    { id: 'tech', label: 'Công nghệ', icon: 'computer' },
-    { id: 'service', label: 'Dịch vụ', icon: 'room-service' },
-    { id: 'office', label: 'Văn phòng', icon: 'business-center' },
-    { id: 'education', label: 'Giáo dục', icon: 'school' },
-  ];
+  
 
   // Thay thế logic phân trang bằng hàm context
   const loadJobsByPage = async (pageNum = 1, reset = false) => {
@@ -229,40 +222,6 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* <View style={styles.categoriesContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesList}
-        >
-          {categories.map(category => (
-            <Chip
-              key={category.id}
-              mode="outlined"
-              selected={selectedCategory === category.id}
-              onPress={() => setSelectedCategory(category.id)}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category.id && styles.selectedCategoryChip
-              ]}
-              textStyle={[
-                styles.categoryChipText,
-                selectedCategory === category.id && styles.selectedCategoryChipText
-              ]}
-              icon={() => (
-                <Icon
-                  name={category.icon}
-                  size={20}
-                  color={selectedCategory === category.id ? '#fff' : '#1E88E5'}
-                />
-              )}
-            >
-              {category.label}
-            </Chip>
-          ))}
-        </ScrollView>
-      </View> */}
-
       {jobList.length === 0 && isInitialLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1E88E5" />
@@ -336,7 +295,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F7FA',
   },
   header: {
-    paddingTop: 50, // Increased padding to prevent overlap with status bar
+    paddingTop: 50, 
     paddingHorizontal: 20,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
@@ -345,10 +304,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
-    backgroundColor: '#1E88E5', // Use a solid color instead of gradient
-    zIndex: 1, // Added to ensure proper layer stacking  },  headerContent: {
-    paddingBottom: 30, // Increased for more space
-    minHeight: 110, // Ensure minimum height for content
+    backgroundColor: '#1E88E5', 
+    zIndex: 1, 
+    paddingBottom: 30,
+    minHeight: 110,
   },
   headerDebugButton: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react"
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native"
+import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from "react-native"
 import { ActivityIndicator, Avatar, Card, Text } from "react-native-paper"
 import { AuthContext } from "../../contexts/AuthContext"
 import ChatServiceSimple from "../../services/ChatServiceSimple"
@@ -33,7 +33,7 @@ const ChatListScreenSimple = ({ navigation }) => {
                     "recruiter",
                     async (rooms) => {
                         console.log("Nhận được", rooms.length, "phòng chat")
-                        
+
                         // Xử lý thêm thông tin cho mỗi phòng chat
                         const enhancedRooms = await Promise.all(rooms.map(async (room) => {
                             let candidateName = room.candidateName;
@@ -62,7 +62,7 @@ const ChatListScreenSimple = ({ navigation }) => {
                                 lastActive: room.lastMessageTimestamp ? new Date(room.lastMessageTimestamp) : new Date()
                             }
                         }))
-                        
+
                         setChatRooms(enhancedRooms)
                         setLoading(false)
                     },
@@ -103,35 +103,57 @@ const ChatListScreenSimple = ({ navigation }) => {
     // Format thời gian cho tin nhắn cuối
     const formatLastActive = (date) => {
         if (!date) return ""
-        
+
         const now = new Date()
         const diffMs = now - date
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-        
+
         if (diffDays > 0) {
             return `${diffDays} ngày trước`
         }
-        
+
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
         if (diffHours > 0) {
             return `${diffHours} giờ trước`
         }
-        
+
         const diffMins = Math.floor(diffMs / (1000 * 60))
         if (diffMins > 0) {
             return `${diffMins} phút trước`
         }
-        
+
         return "Vừa xong"
     }
+
+    // Hàm xóa phòng chat
+    const handleDeleteChatRoom = (roomId) => {
+        Alert.alert(
+            'Xóa phòng chat',
+            'Bạn có chắc chắn muốn xóa phòng chat này? Tất cả tin nhắn sẽ bị xóa vĩnh viễn.',
+            [
+                { text: 'Hủy', style: 'cancel' },
+                {
+                    text: 'Xóa', style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await ChatServiceSimple.deleteChatRoom(roomId);
+                            setChatRooms((prev) => prev.filter((room) => room.id !== roomId));
+                        } catch (err) {
+                            Alert.alert('Lỗi', 'Không thể xóa phòng chat. Vui lòng thử lại.');
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     const renderChatRoomItem = ({ item }) => (
         <TouchableOpacity onPress={() => navigateToChat(item)}>
             <Card style={styles.chatCard}>
                 <Card.Content style={styles.chatCardContent}>
-                    <Avatar.Image 
-                        source={{ uri: item.candidateAvatar || "https://via.placeholder.com/150" }} 
-                        size={50} 
+                    <Avatar.Image
+                        source={{ uri: item.candidateAvatar || "https://via.placeholder.com/150" }}
+                        size={50}
                     />
                     <View style={styles.chatInfo}>
                         <View style={styles.chatHeader}>
@@ -139,8 +161,8 @@ const ChatListScreenSimple = ({ navigation }) => {
                             <Text style={styles.timeText}>{formatLastActive(item.lastActive)}</Text>
                         </View>
                         <Text style={styles.jobTitle}>Vị trí: {item.jobTitle || "Vị trí tuyển dụng"}</Text>
-                        <Text 
-                            numberOfLines={1} 
+                        <Text
+                            numberOfLines={1}
                             style={styles.lastMessage}
                         >
                             {item.lastMessage || "Bắt đầu cuộc trò chuyện"}
@@ -151,6 +173,11 @@ const ChatListScreenSimple = ({ navigation }) => {
                             <Text style={styles.unreadText}>{item.unreadCount}</Text>
                         </View>
                     )}
+
+                    {/* Nút xóa phòng chat */}
+                    <TouchableOpacity onPress={() => handleDeleteChat(item.id)} style={{ marginLeft: 10 }}>
+                        <Avatar.Icon size={32} icon="delete" color="#D32F2F" style={{ backgroundColor: 'transparent' }} />
+                    </TouchableOpacity>
                 </Card.Content>
             </Card>
         </TouchableOpacity>
@@ -169,7 +196,7 @@ const ChatListScreenSimple = ({ navigation }) => {
         return (
             <View style={styles.centered}>
                 <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.retryButton}
                     onPress={() => setChatRooms([])} // Đặt lại state để kích hoạt useEffect
                 >
@@ -189,7 +216,7 @@ const ChatListScreenSimple = ({ navigation }) => {
     }
 
     return (
-        <FlatList 
+        <FlatList
             data={chatRooms}
             renderItem={renderChatRoomItem}
             keyExtractor={(item) => item.id}

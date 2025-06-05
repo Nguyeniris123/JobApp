@@ -64,7 +64,6 @@ const ApplyScreen = ({ route, navigation }) => {
         <ScrollView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Ứng tuyển vị trí</Text>
-                <Text style={styles.jobTitle}>{jobId}</Text>
             </View>
             <Divider />
             <View style={styles.form}>

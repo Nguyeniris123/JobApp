@@ -164,7 +164,6 @@ const RecruiterNavigator = () => {
                 headerShown: false, // Hide the tab navigation headers
                 tabBarIcon: ({ focused, color, size }) => {
                     let iconName
-
                     if (route.name === "HomeTab") {
                         iconName = focused ? "briefcase" : "briefcase-outline"
                     } else if (route.name === "CandidateTab") {
@@ -174,9 +173,9 @@ const RecruiterNavigator = () => {
                     } else if (route.name === "ProfileTab") {
                         iconName = focused ? "domain" : "domain"
                     }
-
                     return <MaterialCommunityIcons name={iconName} size={size} color={color} />
                 },
+                animationEnabled: true, // enable default slide animation
             })}
             tabBarOptions={{
                 activeTintColor: "#1E88E5",

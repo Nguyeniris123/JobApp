@@ -16,16 +16,6 @@ import { database } from '../firebase/config';
  * Service for handling chat functionality with Firebase Realtime Database
  */
 class ChatServiceSimple {
-  /**
-   * Create a new chat room or return existing one between two users
-   * @param {string} recruiterId - ID of the recruiter
-   * @param {string} candidateId - ID of the candidate
-   * @param {string} jobId - ID of the job (optional)
-   * @param {object} recruiterInfo - Thông tin thật của recruiter (optional)
-   * @param {object} candidateInfo - Thông tin thật của candidate (optional)
-   * @param {object} jobInfo - Thông tin công việc (id, title, ...) (optional)
-   * @returns {Promise<string>} - Chat room ID
-   */
   async createOrGetChatRoom(recruiterId, candidateId, jobId = null, recruiterInfo = null, candidateInfo = null, jobInfo = null) {
     try {
       // Validate inputs
@@ -91,14 +81,6 @@ class ChatServiceSimple {
       throw error;
     }
   }
-
-  /**
-   * Generate a unique chat room ID based on participants
-   * @param {string} recruiterId 
-   * @param {string} candidateId 
-   * @param {string} jobId 
-   * @returns {string} - Unique room ID
-   */
   generateChatRoomId(recruiterId, candidateId, jobId = null) {
     // Sort IDs to ensure the same room ID regardless of order
     const sortedIds = [recruiterId, candidateId].sort();
@@ -107,15 +89,6 @@ class ChatServiceSimple {
       `${sortedIds[0]}_${sortedIds[1]}`;
   }
 
-  /**
-   * Send a message in a chat room
-   * @param {string} roomId - Chat room ID 
-   * @param {string} senderId - ID of the message sender
-   * @param {string} text - Message content
-   * @param {string} senderType - Type of sender ('recruiter' or 'candidate')
-   * @param {object} senderInfo - Thông tin thật của người gửi (tùy chọn)
-   * @returns {Promise<string>} - ID of the new message
-   */
   async sendMessage(roomId, senderId, text, senderType, senderInfo) {
     try {
       if (!roomId || !senderId || !text) {
@@ -149,13 +122,6 @@ class ChatServiceSimple {
     }
   }
 
-  /**
-   * Listen for new messages in a chat room
-   * @param {string} roomId - Chat room ID
-   * @param {function} callback - Function to call with new messages
-   * @param {function} errorCallback - Function to call with errors (optional)
-   * @returns {function} - Unsubscribe function
-   */
   subscribeToMessages(roomId, callback, errorCallback) {
     try {
       if (!roomId) {
@@ -204,14 +170,6 @@ class ChatServiceSimple {
     }
   }
 
-  /**
-   * Get all chat rooms for a user (either recruiter or candidate)
-   * @param {string} userId - User ID
-   * @param {string} userType - Type of user ('recruiter' or 'candidate')
-   * @param {function} callback - Function to call with chat rooms
-   * @param {function} errorCallback - Function to call when there's an error (optional)
-   * @returns {function} - Unsubscribe function
-   */
   getUserChatRooms(userId, userType, callback, errorCallback) {
     try {
       if (!userId || !userType) {
@@ -269,12 +227,6 @@ class ChatServiceSimple {
     }
   }
 
-  /**
-   * Mark all messages as read in a chat room for a user
-   * @param {string} roomId - Chat room ID
-   * @param {string} userId - ID of the user reading the messages
-   * @returns {Promise<void>}
-   */
   async markMessagesAsRead(roomId, userId) {
     try {
       if (!roomId || !userId) {
@@ -326,12 +278,6 @@ class ChatServiceSimple {
     }
   }
 
-  /**
-   * Get the unread message count for a user in a specific chat room
-   * @param {string} roomId - Chat room ID
-   * @param {string} userId - User ID
-   * @returns {Promise<number>} - Number of unread messages
-   */
   async getUnreadMessageCount(roomId, userId) {
     try {
       if (!roomId || !userId) {
@@ -366,11 +312,6 @@ class ChatServiceSimple {
     }
   }
 
-  /**
-   * Xóa toàn bộ phòng chat và tin nhắn
-   * @param {string} roomId
-   * @returns {Promise<void>}
-   */
   async deleteChatRoom(roomId) {
     try {
       if (!roomId) throw new Error('roomId is required');

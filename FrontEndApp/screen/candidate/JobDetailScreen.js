@@ -1,6 +1,6 @@
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useCallback, useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { ReviewCard } from '../../components/ui/ReviewCard';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -24,6 +24,7 @@ const JobDetailScreen = () => {
     const [followRecord, setFollowRecord] = useState(null);
     const [jobReviews, setJobReviews] = useState([]);
     const [showReviews, setShowReviews] = useState(false);
+    const [reviewsAnim] = useState(new Animated.Value(0));
 
     const loadJobDetail = async () => {
         if (!jobId) return;
@@ -102,6 +103,15 @@ const JobDetailScreen = () => {
         };
         fetchReviews();
     }, [jobDetail]);
+
+    // Animate show/hide reviews
+    useEffect(() => {
+        Animated.timing(reviewsAnim, {
+            toValue: showReviews ? 1 : 0,
+            duration: 350,
+            useNativeDriver: true,
+        }).start();
+    }, [showReviews]);
 
     // Ensure company exists before rendering company-related information
     const companyExists = jobDetail && jobDetail.company;
@@ -247,40 +257,59 @@ const JobDetailScreen = () => {
                     </View>
                     {reviewsLoading ? (
                         <ActivityIndicator size="small" color="#2196F3" />
-                    ) : showReviews ? (
-                        <View style={styles.reviewsContainer}>
-                            {jobReviews.length > 0 ? (
-                                <View style={styles.reviewsList}>
-                                    {jobReviews.map((review) => (
-                                        <ReviewCard 
-                                            key={review.id}
-                                            review={review}
-                                            style={styles.reviewCard} 
-                                        />
-                                    ))}
+                    ) : (
+                        <>
+                            <Animated.View
+                                style={{
+                                    opacity: reviewsAnim,
+                                    transform: [{
+                                        translateY: reviewsAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [20, 0],
+                                        })
+                                    }],
+                                    display: showReviews ? 'flex' : 'none',
+                                }}
+                            >
+                                {showReviews && (
+                                    <View style={styles.reviewsContainer}>
+                                        {jobReviews.length > 0 ? (
+                                            <View style={styles.reviewsList}>
+                                                {jobReviews.map((review) => (
+                                                    <ReviewCard 
+                                                        key={review.id}
+                                                        review={review}
+                                                        style={styles.reviewCard} 
+                                                    />
+                                                ))}
+                                            </View>
+                                        ) : (
+                                            <Text style={styles.noReviewsText}>
+                                                Chưa có đánh giá nào cho công việc này. Hãy là người đầu tiên đánh giá!
+                                            </Text>
+                                        )}
+                                    </View>
+                                )}
+                            </Animated.View>
+                            {!showReviews && jobReviews.length > 0 && (
+                                <View style={styles.reviewPreview}>
+                                    <ReviewCard 
+                                        review={jobReviews[0]}
+                                        style={styles.reviewCard} 
+                                    />
+                                    {jobReviews.length > 1 && (
+                                        <Text style={styles.moreReviewsText}>
+                                            + {jobReviews.length - 1} đánh giá khác
+                                        </Text>
+                                    )}
                                 </View>
-                            ) : (
+                            )}
+                            {!showReviews && jobReviews.length === 0 && (
                                 <Text style={styles.noReviewsText}>
                                     Chưa có đánh giá nào cho công việc này. Hãy là người đầu tiên đánh giá!
                                 </Text>
                             )}
-                        </View>
-                    ) : jobReviews.length > 0 ? (
-                        <View style={styles.reviewPreview}>
-                            <ReviewCard 
-                                review={jobReviews[0]}
-                                style={styles.reviewCard} 
-                            />
-                            {jobReviews.length > 1 && (
-                                <Text style={styles.moreReviewsText}>
-                                    + {jobReviews.length - 1} đánh giá khác
-                                </Text>
-                            )}
-                        </View>
-                    ) : (
-                        <Text style={styles.noReviewsText}>
-                            Chưa có đánh giá nào cho công việc này. Hãy là người đầu tiên đánh giá!
-                        </Text>
+                        </>
                     )}
                 </View>
                 

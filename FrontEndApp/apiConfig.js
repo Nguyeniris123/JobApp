@@ -1,9 +1,4 @@
-// export const API_URL = 'http://192.168.1.5:8000';
-// export const API_URL = 'http://127.0.0.0:8000'
-// export const API_URL = 'http://192.168.88.130:8000';
-// export const API_URL = 'http://10.17.51.133:8000';
-export const API_URL = 'http://192.168.1.7:8000';
-
+import { API_HOST as API_URL } from '@env';
 
 export const API_ENDPOINTS = {
   // Auth

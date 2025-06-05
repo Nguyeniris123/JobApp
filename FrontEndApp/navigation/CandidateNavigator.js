@@ -25,12 +25,11 @@ const Tab = createBottomTabNavigator()
 const TopTab = createMaterialTopTabNavigator()
 const Stack = createStackNavigator()
 
-// Define a common navigationRef that can be used for direct navigation 
-// from anywhere in the app, if needed in the future
+
 import { createNavigationContainerRef } from '@react-navigation/native'
 export const navigationRef = createNavigationContainerRef()
 
-// Custom TabBar Label with Icon
+
 const TabBarLabel = ({ label, focused, color, icon }) => (
     <View style={{
         flexDirection: 'row',
@@ -64,7 +63,6 @@ const NotificationTabs = () => {
                 tabBarActiveTintColor: "#1E88E5",
                 tabBarInactiveTintColor: "#757575",
                 tabBarIndicatorStyle: { backgroundColor: "#1E88E5" },
-                // KHÔNG dùng tabBarShowLabel: false để label custom hoạt động
                 tabBarStyle: {
                     elevation: 0,
                     shadowOpacity: 0,
@@ -95,7 +93,7 @@ const NotificationTabs = () => {
         </TopTab.Navigator>
     )
 }
-
+// 
 const HomeStack = () => {
     return (
         <Stack.Navigator
@@ -113,18 +111,25 @@ const HomeStack = () => {
     )
 }
 
-
+// 
 const FavoriteStack = () => {
     return (
         <Stack.Navigator
             screenOptions={{
-                headerShown: true,
+                headerShown: true
             }}>
-            <Stack.Screen name="Favorite" component={FollowingScreen} />
+            <Stack.Screen name="Favorite"
+                options={
+                    {
+                        title: "Theo dõi",
+                        headerStyle: { elevation: 0, shadowOpacity: 0 }
+                    }
+                }
+                component={FollowingScreen} />
         </Stack.Navigator>
     )
 }
-
+// 
 const NotificationStack = () => {
     return (
         <Stack.Navigator
@@ -150,7 +155,7 @@ const NotificationStack = () => {
         </Stack.Navigator>
     )
 }
-
+// 
 const ProfileStack = () => {
     return (
         <Stack.Navigator
@@ -169,10 +174,10 @@ const CandidateNavigator = () => {
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
-                headerShown: false, // Hide the tab navigation headers
+                headerShown: false,
+                tabBarHideOnKeyboard: true,
                 tabBarIcon: ({ focused, color, size }) => {
                     let iconName
-
                     if (route.name === "HomeTab") {
                         iconName = focused ? "home" : "home-outline"
                     } else if (route.name === "FavoriteTab") {
@@ -182,9 +187,9 @@ const CandidateNavigator = () => {
                     } else if (route.name === "ProfileTab") {
                         iconName = focused ? "account" : "account-outline"
                     }
-
                     return <MaterialCommunityIcons name={iconName} size={size} color={color} />
                 },
+                animationEnabled: true, // enable default slide animation
             })}
             tabBarOptions={{
                 activeTintColor: "#1E88E5",

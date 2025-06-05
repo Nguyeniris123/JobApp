@@ -198,16 +198,17 @@ export const AuthProvider = ({ children }) => {
     // Đăng ký
     const register = async (data, userType, avatar, companyImages) => {
         try {
-            setLoading(true);
-            setError(null);
             const res = await registerApi(data, userType, avatar, companyImages);
-            return { success: true, data: res };
+            // Trả về status code và thông báo lỗi nếu có
+            if (res.status === 201) {
+                return { success: true, status: res.status };
+            } else {
+                return { success: false, status: res.status, error: res.data };
+            }
         } catch (error) {
             setError(error.response?.data?.detail || 'Đăng ký thất bại!');
-            return { success: false, error };
-        } finally {
-            setLoading(false);
-        }
+            return { success: false, status: error.response?.status || 500, error };
+        } 
     };
 
     // Đổi avatar

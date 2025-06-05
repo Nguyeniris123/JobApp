@@ -64,9 +64,9 @@ class RecruiterSerializer(serializers.ModelSerializer):
         # Tạo company
         company = Company.objects.create(user=user, **company_info)
 
-        # # Validate ảnh
-        # if len(images_data) < 3:
-        #     raise serializers.ValidationError({"images": "Công ty phải có ít nhất 3 ảnh môi trường làm việc."})
+        # Validate ảnh
+        if len(images_data) < 3:
+            raise serializers.ValidationError({"images": "Công ty phải có ít nhất 3 ảnh môi trường làm việc."})
 
         # Lưu từng ảnh
         for image in images_data:
